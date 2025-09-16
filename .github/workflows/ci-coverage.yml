@@ -3,15 +3,13 @@ name: CI - Coverage
 on:
   push:
     branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  test:
+  coverage:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -55,12 +53,10 @@ jobs:
           name: coverage-xml
           path: coverage.xml
 
-      # Subimos a Codecov SOLO en push (no en pull_request, porque no hay secrets en PR de fork)
-      - name: Upload to Codecov (push only)
-        if: github.event_name == 'push'
+      - name: Upload to Codecov
         uses: codecov/codecov-action@v4
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}   # requerido para repos privados
+          token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage.xml
           flags: unittests
           fail_ci_if_error: false
