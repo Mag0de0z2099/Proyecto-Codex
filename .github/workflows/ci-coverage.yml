@@ -7,13 +7,17 @@ on:
     branches: [ "main" ]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -44,13 +48,16 @@ jobs:
             --cov-report=term-missing \
             --cov-report=xml:coverage.xml
 
-      - name: Upload coverage artifact (optional)
+      - name: Upload coverage artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: coverage-xml
           path: coverage.xml
 
-      - name: Upload to Codecov
+      # Subimos a Codecov SOLO en push (no en pull_request, porque no hay secrets en PR de fork)
+      - name: Upload to Codecov (push only)
+        if: github.event_name == 'push'
         uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}   # requerido para repos privados
