@@ -10,6 +10,10 @@ class BaseConfig:
     """Configuración base compartida."""
 
     SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret")
+    ALLOWED_ORIGINS = os.environ.get("ALLOWED_ORIGINS", "*")
+    ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin")
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = "Lax"
 
 
 class DevConfig(BaseConfig):

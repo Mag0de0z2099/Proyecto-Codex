@@ -2,11 +2,16 @@
 
 from __future__ import annotations
 
+import logging
+
 from flask import Flask
 
+from .blueprints.admin import bp_admin
 from .blueprints.api.v1 import bp_api_v1
 from .blueprints.web import bp_web
 from .config import get_config
+from .errors import register_error_handlers
+from .extensions import init_extensions
 
 __all__ = ["create_app", "__version__"]
 
@@ -19,8 +24,17 @@ def create_app(config_name: str | None = None) -> Flask:
     app = Flask(__name__)
     app.config.from_object(get_config(config_name))
 
-    # Registro de blueprints
+    if not app.debug:
+        gunicorn_error_logger = logging.getLogger("gunicorn.error")
+        if gunicorn_error_logger.handlers:
+            app.logger.handlers = gunicorn_error_logger.handlers
+            app.logger.setLevel(gunicorn_error_logger.level)
+
+    init_extensions(app)
+
     app.register_blueprint(bp_web)
     app.register_blueprint(bp_api_v1, url_prefix="/api/v1")
+    app.register_blueprint(bp_admin, url_prefix="/admin")
 
+    register_error_handlers(app)
     return app
