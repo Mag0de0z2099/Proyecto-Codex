@@ -1,4 +1,4 @@
-name: CI
+name: CI (PR)
 
 on:
   pull_request:
@@ -15,10 +15,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Install & test (PR safe)
+
+      - name: Install & test (PR-safe)
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt || true
