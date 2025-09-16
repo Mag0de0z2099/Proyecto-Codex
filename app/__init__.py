@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import os
 
 from flask import Flask
 
@@ -45,18 +44,9 @@ def create_app(config_name: str | None = None) -> Flask:
     # Migraciones (Flask-Migrate / Alembic)
     init_migrations(app, db)
 
-    skip_create_all_raw = app.config.get("SKIP_DB_CREATE_ALL")
-    if skip_create_all_raw is None:
-        skip_create_all_raw = os.environ.get("SKIP_DB_CREATE_ALL")
-    if isinstance(skip_create_all_raw, str):
-        skip_create_all = skip_create_all_raw.strip().lower() in {"1", "true", "yes", "on"}
-    else:
-        skip_create_all = bool(skip_create_all_raw)
-
-    with app.app_context():
-        from . import models  # noqa: F401  (asegura el registro de modelos)
-        if not skip_create_all:
-            db.create_all()
+    # Ya no usamos create_all(); las tablas las crean las migraciones.
+    # Si quisieras permitirlo en dev, podrías condicionar con un flag/env.
+    from . import models  # noqa: F401  (asegura el registro de modelos)
 
     app.register_blueprint(bp_web)
     app.register_blueprint(bp_api_v1, url_prefix="/api/v1")
