@@ -1,6 +1,4 @@
-from __future__ import annotations
-
-from flask import request, jsonify
+from flask import jsonify, request
 from werkzeug.exceptions import BadRequest, NotFound
 
 from ...db import db
@@ -42,12 +40,15 @@ def list_users():
 def create_user():
     data = request.get_json(silent=True) or {}
     email = (data.get("email") or "").strip()
+    password = data.get("password")
     _validate_email(email)
 
     if User.query.filter_by(email=email).first() is not None:
         raise BadRequest("email already exists.")
 
     u = User(email=email)
+    u.set_password(password or "")
+
     db.session.add(u)
     db.session.commit()
     return jsonify(u.to_dict()), 201
@@ -69,12 +70,16 @@ def update_user(user_id: int):
 
     data = request.get_json(silent=True) or {}
     email = (data.get("email") or "").strip()
+    password = data.get("password")
     _validate_email(email)
 
     if User.query.filter(User.id != user_id, User.email == email).first():
         raise BadRequest("email already exists.")
 
     u.email = email
+    if password is not None:
+        u.set_password(password)
+
     db.session.commit()
     return jsonify(u.to_dict())
 
