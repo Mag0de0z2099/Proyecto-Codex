@@ -1,0 +1,12 @@
+coverage:
+  status:
+    project:
+      default:
+        target: 80%   # exige al menos 80% cobertura global
+        threshold: 2% # permite variación del ±2%
+    patch:
+      default:
+        target: auto
+comment:
+  layout: "diff, flags, files"
+  behavior: default
