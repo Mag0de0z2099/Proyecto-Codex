@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from flask import current_app, jsonify, request, session
+from flask import current_app, jsonify, render_template, request, session
 
 from . import bp_admin
 
@@ -34,3 +34,10 @@ def admin_logout():
 
     session.pop("admin", None)
     return jsonify(ok=True), 200
+
+
+@bp_admin.get("/ui")
+def admin_ui():
+    """Servir una interfaz mínima para gestionar el login del administrador."""
+
+    return render_template("admin_ui.html")
