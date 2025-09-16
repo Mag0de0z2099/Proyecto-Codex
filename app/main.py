@@ -1,15 +1,8 @@
-from flask import Flask
-import os
+"""Punto de entrada para servidores WSGI como gunicorn."""
 
-app = Flask(__name__)
-app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret")
+from __future__ import annotations
 
+from . import create_app
 
-@app.route("/")
-def home():
-    return "Hola desde Elyra + Render 🚀"
-
-
-@app.route("/health")
-def health():
-    return "ok", 200
+# Render arranca con: ``gunicorn app.main:app --bind 0.0.0.0:$PORT``
+app = create_app()
