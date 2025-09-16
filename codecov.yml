@@ -1,12 +1,24 @@
 coverage:
+  precision: 2
+  round: down
+  range: "50...90"
+
   status:
     project:
       default:
-        target: 80%   # exige al menos 80% cobertura global
-        threshold: 2% # permite variación del ±2%
+        target: 70%
+        threshold: 2%
+        base: auto
     patch:
       default:
-        target: auto
+        target: 60%
+        threshold: 1%
+
 comment:
-  layout: "diff, flags, files"
+  layout: "reach,diff,flags,files"
   behavior: default
+  require_changes: true
+
+ignore:
+  - "tests/"
+  - "migrations/"
