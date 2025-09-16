@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from .main import create_app
+from .main import app
 
-__all__ = ["create_app", "__version__"]
+__all__ = ["app", "__version__"]
 
 __version__ = "0.1.0"
