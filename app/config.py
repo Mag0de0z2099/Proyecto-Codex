@@ -28,6 +28,7 @@ class TestingConfig(BaseConfig):
     TESTING = True
     DEBUG = False
     SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
+    SQLALCHEMY_ENGINE_OPTIONS = {"connect_args": {"check_same_thread": False}}
 
 
 CONFIG_MAP: dict[str, type[BaseConfig]] = {

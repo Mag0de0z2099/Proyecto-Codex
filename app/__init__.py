@@ -18,6 +18,9 @@ def create_app(config_name: str | None = None) -> Flask:
     app = Flask(__name__)
     app.config.from_object(get_config(config_name))
 
+    # Directorios persistentes (DATA_DIR, instance/, etc.)
+    ensure_dirs(app)
+
     # Log de Gunicorn en producción (Render)
     if not app.debug:
         gunicorn_error_logger = logging.getLogger("gunicorn.error")
@@ -28,9 +31,6 @@ def create_app(config_name: str | None = None) -> Flask:
     # DB
     db.init_app(app)
     init_migrations(app, db)
-
-    # Directorios persistentes (DATA_DIR, etc.)
-    ensure_dirs(app)
 
     # Blueprints
     app.register_blueprint(bp_web)
