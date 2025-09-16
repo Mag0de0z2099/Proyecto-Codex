@@ -12,18 +12,15 @@ jobs:
   coverage:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: Cache pip
-        uses: actions/cache@v4
+      - uses: actions/cache@v4
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
@@ -40,13 +37,11 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          pytest -q --disable-warnings \
-            --maxfail=1 \
-            --cov=./ \
-            --cov-report=term-missing \
+          pytest -q --disable-warnings --maxfail=1 \
+            --cov=./ --cov-report=term-missing \
             --cov-report=xml:coverage.xml
 
-      - name: Upload coverage artifact
+      - name: Upload artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -56,7 +51,6 @@ jobs:
       - name: Upload to Codecov
         uses: codecov/codecov-action@v4
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage.xml
           flags: unittests
           fail_ci_if_error: false
