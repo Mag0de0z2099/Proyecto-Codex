@@ -53,7 +53,7 @@ jobs:
       - name: Upload to Codecov
         uses: codecov/codecov-action@v4
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}   # requerido para repos privados
+          token: ${{ secrets.CODECOV_TOKEN }}   # requerido si el repo es privado
           files: coverage.xml
           flags: unittests
           fail_ci_if_error: false
