@@ -1,15 +1,13 @@
+"""Punto de entrada para ejecutar la aplicación Flask."""
+
+from __future__ import annotations
+
 from flask import Flask
-import os
 
-app = Flask(__name__)
-app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret")
+from . import create_app
 
-
-@app.route("/")
-def home():
-    return "Hola desde Elyra + Render 🚀"
+app: Flask = create_app()
 
 
-@app.route("/health")
-def health():
-    return "ok", 200
+if __name__ == "__main__":  # pragma: no cover - ejecución manual
+    app.run(debug=True)
