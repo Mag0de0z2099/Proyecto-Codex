@@ -10,6 +10,7 @@ from .blueprints.admin import bp_admin
 from .blueprints.api.v1 import bp_api_v1
 from .blueprints.web import bp_web
 from .config import get_config
+from .db import db, init_db
 from .errors import register_error_handlers
 from .extensions import init_extensions
 from .storage import ensure_dirs
@@ -35,6 +36,12 @@ def create_app(config_name: str | None = None) -> Flask:
 
     # Asegurar directorios persistentes (DATA_DIR)
     ensure_dirs(app)
+
+    # Base de datos
+    init_db(app)
+    with app.app_context():
+        from . import models  # noqa: F401  (asegura el registro de modelos)
+        db.create_all()
 
     app.register_blueprint(bp_web)
     app.register_blueprint(bp_api_v1, url_prefix="/api/v1")

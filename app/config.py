@@ -12,7 +12,7 @@ class BaseConfig:
     SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret")
     ALLOWED_ORIGINS = os.environ.get("ALLOWED_ORIGINS", "*")
     ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin")
-    DATA_DIR = os.environ.get("DATA_DIR", "./data")
+    DATA_DIR = os.path.abspath(os.environ.get("DATA_DIR", "./data"))
     SQLITE_PATH = os.path.join(DATA_DIR, "db", "app.db")
     SQLALCHEMY_DATABASE_URI = f"sqlite:///{SQLITE_PATH}"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
