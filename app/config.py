@@ -13,6 +13,7 @@ class BaseConfig:
         f"sqlite:///{DATA_DIR / 'app.db'}",
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin")
 
 
 class DevConfig(BaseConfig):
@@ -23,9 +24,33 @@ class ProdConfig(BaseConfig):
     DEBUG = False
 
 
+class TestingConfig(BaseConfig):
+    TESTING = True
+    DEBUG = False
+    SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
+
+
+CONFIG_MAP: dict[str, type[BaseConfig]] = {
+    "development": DevConfig,
+    "production": ProdConfig,
+    "testing": TestingConfig,
+}
+
+ALIASES = {
+    "dev": "development",
+    "prod": "production",
+    "test": "testing",
+}
+
+
 def get_config(name: str | None) -> type[BaseConfig]:
-    env = name or os.environ.get("APP_ENV") or os.environ.get("FLASK_ENV") or "production"
+    env = (
+        name
+        or os.environ.get("APP_ENV")
+        or os.environ.get("FLASK_ENV")
+        or os.environ.get("FLASK_CONFIG")
+        or "production"
+    )
     env = env.lower()
-    if env in {"dev", "development"}:
-        return DevConfig
-    return ProdConfig
+    env = ALIASES.get(env, env)
+    return CONFIG_MAP.get(env, CONFIG_MAP["production"])

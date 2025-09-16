@@ -6,3 +6,8 @@ bp = Blueprint("web", __name__)
 @bp.route("/")
 def index():
     return "Hola desde Elyra + Render 🚀"
+
+
+@bp.route("/health")
+def health():
+    return "ok"
