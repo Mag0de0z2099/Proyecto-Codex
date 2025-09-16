@@ -12,6 +12,7 @@ from .blueprints.web import bp_web
 from .config import get_config
 from .errors import register_error_handlers
 from .extensions import init_extensions
+from .storage import ensure_dirs
 
 __all__ = ["create_app", "__version__"]
 
@@ -31,6 +32,9 @@ def create_app(config_name: str | None = None) -> Flask:
             app.logger.setLevel(gunicorn_error_logger.level)
 
     init_extensions(app)
+
+    # Asegurar directorios persistentes (DATA_DIR)
+    ensure_dirs(app)
 
     app.register_blueprint(bp_web)
     app.register_blueprint(bp_api_v1, url_prefix="/api/v1")

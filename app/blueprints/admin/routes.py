@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from flask import current_app, jsonify, render_template, request, session
+from flask import current_app as app, jsonify, render_template, request, session
 
 from . import bp_admin
+from app.storage import join
 
 
 @bp_admin.get("/")
@@ -22,7 +23,7 @@ def admin_login():
 
     data = request.get_json(silent=True) or {}
     password = data.get("password")
-    if password and password == current_app.config.get("ADMIN_PASSWORD", "admin"):
+    if password and password == app.config.get("ADMIN_PASSWORD", "admin"):
         session["admin"] = True
         return jsonify(ok=True), 200
     return jsonify(ok=False, error="bad credentials"), 401
@@ -34,6 +35,16 @@ def admin_logout():
 
     session.pop("admin", None)
     return jsonify(ok=True), 200
+
+
+@bp_admin.post("/write-test")
+def write_test():
+    """Crear o sobrescribir un archivo de prueba en el directorio de cargas."""
+
+    path = join(app, "uploads", "prueba.txt")
+    with open(path, "w", encoding="utf-8") as f:
+        f.write("archivo creado OK")
+    return jsonify(ok=True, path=path), 200
 
 
 @bp_admin.get("/ui")
