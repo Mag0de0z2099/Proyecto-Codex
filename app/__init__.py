@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from flask import Flask
 
+from .api.v1 import bp as bp_api_v1
 from .config import get_config
 from .db import db
 from .migrate_ext import init_migrations
@@ -32,5 +33,6 @@ def create_app(config_name: str | None = None) -> Flask:
 
     # Blueprints
     app.register_blueprint(bp_web)
+    app.register_blueprint(bp_api_v1, url_prefix="/api/v1")
 
     return app
