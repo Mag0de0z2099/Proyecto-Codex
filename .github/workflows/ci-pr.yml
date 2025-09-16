@@ -1,28 +1,57 @@
-name: CI (PR)
+name: CI (PR) / build
 
 on:
   pull_request:
-    branches: [ "main" ]
+    branches: [ main ]
   workflow_dispatch:
 
-permissions:
-  contents: read
-
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # App factory
+      FLASK_APP: app:create_app
+      FLASK_CONFIG: testing
+      # BD sqlite temporal en workspace del runner
+      DATABASE_URL: sqlite:///./.tmp/test.db
+      SQLALCHEMY_DATABASE_URI: sqlite:///./.tmp/test.db
+      # Evita ruido de flask run
+      PYTHONWARNINGS: ignore::DeprecationWarning
+
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: '3.11'
 
-      - name: Install & test (PR-safe)
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install deps
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt || true
-          pip install pytest
-          pytest -q --disable-warnings --maxfail=1
+          pip install -r requirements.txt
+
+      - name: Prepare temp dirs
+        run: mkdir -p .tmp
+
+      - name: Upgrade DB (migrations)
+        run: |
+          # Si tienes manage.py con Flask-Migrate:
+          python manage.py db upgrade || true
+        env:
+          FLASK_APP: app:create_app
+          FLASK_CONFIG: testing
+
+      - name: Run tests
+        run: |
+          pytest -q --maxfail=1 --disable-warnings
