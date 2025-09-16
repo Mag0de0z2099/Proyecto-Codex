@@ -1,53 +1,31 @@
-"""Configuraciones para la aplicación Flask."""
-
 from __future__ import annotations
 
 import os
-from typing import Type
+from pathlib import Path
 
 
 class BaseConfig:
-    """Configuración base compartida."""
-
     SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret")
-    ALLOWED_ORIGINS = os.environ.get("ALLOWED_ORIGINS", "*")
-    ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin")
-    DATA_DIR = os.path.abspath(os.environ.get("DATA_DIR", "./data"))
-    SQLITE_PATH = os.path.join(DATA_DIR, "db", "app.db")
-    SQLALCHEMY_DATABASE_URI = f"sqlite:///{SQLITE_PATH}"
+    # DATA_DIR: si no te dan un disco persistente, usa ./data
+    DATA_DIR = Path(os.environ.get("DATA_DIR", Path("data").resolve()))
+    SQLALCHEMY_DATABASE_URI = os.environ.get(
+        "DATABASE_URL",
+        f"sqlite:///{DATA_DIR / 'app.db'}",
+    )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    SESSION_COOKIE_HTTPONLY = True
-    SESSION_COOKIE_SAMESITE = "Lax"
 
 
 class DevConfig(BaseConfig):
-    """Configuración para entornos de desarrollo."""
-
     DEBUG = True
 
 
 class ProdConfig(BaseConfig):
-    """Configuración para entornos de producción."""
-
     DEBUG = False
 
 
-class TestConfig(BaseConfig):
-    """Configuración para entornos de pruebas."""
-
-    TESTING = True
-
-
-def get_config(name: str | None) -> Type[BaseConfig]:
-    """Obtener la clase de configuración según ``name``.
-
-    Si no se especifica, se usa la variable de entorno ``FLASK_ENV`` y
-    se asume producción por defecto.
-    """
-
-    env = (name or os.environ.get("FLASK_ENV") or "production").lower()
-    if env.startswith("dev"):
+def get_config(name: str | None) -> type[BaseConfig]:
+    env = name or os.environ.get("APP_ENV") or os.environ.get("FLASK_ENV") or "production"
+    env = env.lower()
+    if env in {"dev", "development"}:
         return DevConfig
-    if env.startswith("test"):
-        return TestConfig
     return ProdConfig
