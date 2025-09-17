@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from flask import Flask
+from werkzeug.exceptions import HTTPException
 
 from .blueprints.admin import bp_admin
 from .blueprints.api.v1 import bp_api_v1
@@ -26,11 +27,9 @@ def create_app(config_name: str | None = None) -> Flask:
     ensure_dirs(app)
 
     # Log de Gunicorn en producción (Render)
-    if not app.debug:
-        gunicorn_error_logger = logging.getLogger("gunicorn.error")
-        if gunicorn_error_logger.handlers:
-            app.logger.handlers = gunicorn_error_logger.handlers
-            app.logger.setLevel(gunicorn_error_logger.level)
+    gunicorn_error_logger = logging.getLogger("gunicorn.error")
+    app.logger.handlers = gunicorn_error_logger.handlers or app.logger.handlers
+    app.logger.setLevel(logging.INFO)
 
     # DB
     db.init_app(app)
@@ -56,5 +55,12 @@ def create_app(config_name: str | None = None) -> Flask:
     app.register_blueprint(bp_folders, url_prefix="/folders")
     app.register_blueprint(bp_api_v1, url_prefix="/api/v1")
     app.register_blueprint(bp_ping)
+
+    @app.errorhandler(Exception)
+    def handle_any_error(err):  # pragma: no cover - logging side-effect
+        if isinstance(err, HTTPException):
+            return err
+        app.logger.exception("Unhandled exception")
+        return ("", 500)
 
     return app

@@ -1,1 +1,1 @@
-web: gunicorn app.main:app --bind 0.0.0.0:$PORT
+web: gunicorn "app:create_app()" --workers 2 --threads 2 --timeout 120 --keep-alive 5
