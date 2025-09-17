@@ -25,6 +25,7 @@
     <a href="{{ url_for('auth.forgot_password') }}">¿Olvidaste tu contraseña?</a>
   {% endif %}
   {% if current_user.is_authenticated and current_user.is_admin %}
+    <a href="{{ url_for('admin.admin_users') }}">Usuarios</a>
     <a href="{{ url_for('admin.admin_new_user') }}">Crear usuario</a>
   {% endif %}
 </nav>

@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Enlace de reset{% endblock %}
+{% block content %}
+<h2>Enlace de restablecimiento</h2>
+<p>Usuario: <strong>{{ user.email }}</strong></p>
+
+{% if reset_url %}
+  <p><strong>Link:</strong> <a href="{{ reset_url }}" target="_blank">{{ reset_url }}</a></p>
+  <p style="font-size:.9rem;color:#555">
+    Copia este enlace y compártelo al usuario por un canal seguro.
+    Es válido por 1 hora y también quedó registrado en los logs del servidor.
+  </p>
+{% else %}
+  <p>No se pudo generar el enlace.</p>
+{% endif %}
+
+<p><a href="{{ url_for('admin.admin_users') }}">Volver a usuarios</a></p>
+{% endblock %}
