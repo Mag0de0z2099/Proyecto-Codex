@@ -1,13 +1,18 @@
 from __future__ import annotations
 
+import re
+from http import HTTPStatus
+
 from flask import render_template, request, redirect, url_for, flash
 from flask_login import current_user, login_required, login_user, logout_user
 
 from app.db import db
 from app.models.user import User
-from app.security import generate_reset_token, parse_reset_token, send_reset_link
+from app.security import generate_reset_token, parse_reset_token
 
 from . import bp_auth
+
+EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
 @bp_auth.get("/login")
@@ -85,17 +90,27 @@ def forgot_password_post():
     email = (request.form.get("email") or "").strip().lower()
     user = db.session.query(User).filter_by(email=email).one_or_none()
 
-    # Siempre respondemos OK sin revelar si existe o no.
-    if user:
-        token = generate_reset_token(user.email)
-        reset_url = url_for("auth.reset_password", token=token, _external=True)
-        send_reset_link(user.email, reset_url)
+    # Siempre mensaje neutro
+    if not user:
+        flash("Si la cuenta existe, se generó un enlace temporal.", "info")
+        return (
+            render_template("auth/forgot_password_sent.html", reset_url=None),
+            HTTPStatus.OK,
+        )
 
-    flash(
-        "Si el email existe, recibirás un link para restablecer tu contraseña.",
-        "info",
+    # Generar token y MOSTRAR el link en pantalla (sin correo)
+    token = generate_reset_token(user.email)
+    reset_url = url_for("auth.reset_password", token=token, _external=True)
+    # También lo dejamos en logs
+    from flask import current_app
+
+    current_app.logger.warning("[RESET-LINK] %s -> %s", user.email, reset_url)
+
+    flash("Se generó un enlace temporal. Úsalo antes de 1 hora.", "success")
+    return (
+        render_template("auth/forgot_password_sent.html", reset_url=reset_url),
+        HTTPStatus.OK,
     )
-    return redirect(url_for("auth.login"))
 
 
 @bp_auth.get("/reset-password/<token>")
