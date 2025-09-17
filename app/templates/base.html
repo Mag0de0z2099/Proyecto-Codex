@@ -14,12 +14,19 @@
 </head>
 <body>
 <nav>
-  <a href="/">Inicio</a>
-  <a href="/admin/">Admin</a>
-  <a href="/admin/files">Archivos</a>
-  <a href="/auth/login">Login</a>
-  <a href="/auth/register">Registro</a>
-  <a href="/auth/logout">Logout</a>
+  <a href="{{ url_for('web.index') }}">Inicio</a>
+  <a href="{{ url_for('admin.index') }}">Admin</a>
+  <a href="{{ url_for('admin.list_files') }}">Archivos</a>
+  {% if current_user.is_authenticated %}
+    <a href="{{ url_for('auth.change_password') }}">Cambiar contraseña</a>
+    <a href="{{ url_for('auth.logout') }}">Logout</a>
+  {% else %}
+    <a href="{{ url_for('auth.login') }}">Login</a>
+    <a href="{{ url_for('auth.forgot_password') }}">¿Olvidaste tu contraseña?</a>
+  {% endif %}
+  {% if current_user.is_authenticated and current_user.is_admin %}
+    <a href="{{ url_for('admin.admin_new_user') }}">Crear usuario</a>
+  {% endif %}
 </nav>
 
 {% with messages = get_flashed_messages(with_categories=true) %}
