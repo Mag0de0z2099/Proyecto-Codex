@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Crear usuario{% endblock %}
+{% block content %}
+<h2>Crear usuario</h2>
+<form method="post" action="{{ url_for('admin.admin_create_user') }}" class="form" style="max-width:460px">
+  <div style="margin:.5rem 0">
+    <label>Email</label><br>
+    <input type="email" name="email" required autofocus style="width:100%">
+  </div>
+  <div style="margin:.5rem 0">
+    <label>Contraseña</label><br>
+    <input type="password" name="password" minlength="8" required style="width:100%">
+  </div>
+  <div style="margin:.5rem 0">
+    <label><input type="checkbox" name="is_admin"> ¿Administrador?</label>
+  </div>
+  <button type="submit">Crear</button>
+  <p style="margin-top:.5rem"><a href="{{ url_for('admin.index') }}">Volver</a></p>
+</form>
+{% endblock %}

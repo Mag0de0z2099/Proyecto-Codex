@@ -1,16 +1,13 @@
 from __future__ import annotations
 
-import re
-
 from flask import render_template, request, redirect, url_for, flash
 from flask_login import current_user, login_required, login_user, logout_user
 
 from app.db import db
 from app.models.user import User
+from app.security import generate_reset_token, parse_reset_token, send_reset_link
 
 from . import bp_auth
-
-EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
 @bp_auth.get("/login")
@@ -43,48 +40,101 @@ def logout():
     return redirect(url_for("auth.login"))
 
 
-@bp_auth.get("/register")
-def register():
-    """Formulario de registro."""
-    if current_user.is_authenticated:
-        return redirect(url_for("admin.index"))
-    return render_template("auth/register.html")
+@bp_auth.get("/change-password")
+@login_required
+def change_password():
+    return render_template("auth/change_password.html")
 
 
-@bp_auth.post("/register")
-def register_post():
-    """Procesa el registro."""
-    if current_user.is_authenticated:
-        return redirect(url_for("admin.index"))
-
-    email = (request.form.get("email") or "").strip().lower()
-    password = request.form.get("password") or ""
+@bp_auth.post("/change-password")
+@login_required
+def change_password_post():
+    current = request.form.get("current") or ""
+    new = request.form.get("new") or ""
     confirm = request.form.get("confirm") or ""
 
-    # Validaciones simples
-    if not EMAIL_RE.match(email):
-        flash("Email inválido.", "danger")
-        return redirect(url_for("auth.register"))
+    if not current_user.check_password(current):
+        flash("Tu contraseña actual no es correcta.", "danger")
+        return redirect(url_for("auth.change_password"))
 
-    if len(password) < 8:
-        flash("La contraseña debe tener al menos 8 caracteres.", "danger")
-        return redirect(url_for("auth.register"))
+    if len(new) < 8:
+        flash("La nueva contraseña debe tener al menos 8 caracteres.", "danger")
+        return redirect(url_for("auth.change_password"))
 
-    if password != confirm:
+    if new != confirm:
         flash("Las contraseñas no coinciden.", "danger")
-        return redirect(url_for("auth.register"))
+        return redirect(url_for("auth.change_password"))
 
-    # Unicidad
-    exists = db.session.query(User).filter_by(email=email).one_or_none()
-    if exists:
-        flash("Este email ya está registrado.", "danger")
-        return redirect(url_for("auth.register"))
-
-    # Crear usuario
-    user = User(email=email, is_admin=False)
-    user.set_password(password)
-    db.session.add(user)
+    current_user.set_password(new)
     db.session.commit()
+    flash("Contraseña actualizada.", "success")
+    return redirect(url_for("admin.index"))
 
-    flash("Cuenta creada. Ya puedes iniciar sesión.", "success")
+
+@bp_auth.get("/forgot-password")
+def forgot_password():
+    if current_user.is_authenticated:
+        return redirect(url_for("admin.index"))
+    return render_template("auth/forgot_password.html")
+
+
+@bp_auth.post("/forgot-password")
+def forgot_password_post():
+    if current_user.is_authenticated:
+        return redirect(url_for("admin.index"))
+    email = (request.form.get("email") or "").strip().lower()
+    user = db.session.query(User).filter_by(email=email).one_or_none()
+
+    # Siempre respondemos OK sin revelar si existe o no.
+    if user:
+        token = generate_reset_token(user.email)
+        reset_url = url_for("auth.reset_password", token=token, _external=True)
+        send_reset_link(user.email, reset_url)
+
+    flash(
+        "Si el email existe, recibirás un link para restablecer tu contraseña.",
+        "info",
+    )
+    return redirect(url_for("auth.login"))
+
+
+@bp_auth.get("/reset-password/<token>")
+def reset_password(token: str):
+    if current_user.is_authenticated:
+        return redirect(url_for("admin.index"))
+    email = parse_reset_token(token)
+    if not email:
+        flash("El enlace no es válido o expiró.", "danger")
+        return redirect(url_for("auth.login"))
+    return render_template("auth/reset_password.html", token=token)
+
+
+@bp_auth.post("/reset-password/<token>")
+def reset_password_post(token: str):
+    if current_user.is_authenticated:
+        return redirect(url_for("admin.index"))
+    email = parse_reset_token(token)
+    if not email:
+        flash("El enlace no es válido o expiró.", "danger")
+        return redirect(url_for("auth.login"))
+
+    new = request.form.get("new") or ""
+    confirm = request.form.get("confirm") or ""
+
+    if len(new) < 8:
+        flash("La nueva contraseña debe tener al menos 8 caracteres.", "danger")
+        return redirect(url_for("auth.reset_password", token=token))
+
+    if new != confirm:
+        flash("Las contraseñas no coinciden.", "danger")
+        return redirect(url_for("auth.reset_password", token=token))
+
+    user = db.session.query(User).filter_by(email=email).one_or_none()
+    if not user:
+        flash("El enlace no es válido o expiró.", "danger")
+        return redirect(url_for("auth.login"))
+
+    user.set_password(new)
+    db.session.commit()
+    flash("Tu contraseña fue restablecida. Ya puedes iniciar sesión.", "success")
     return redirect(url_for("auth.login"))
