@@ -35,6 +35,15 @@ def create_app(config_name: str | None = None) -> Flask:
     init_migrations(app, db)
     init_auth_extensions(app)
 
+    # Variables globales seguras para Jinja (evita usar `current_app` en plantillas)
+    @app.context_processor
+    def inject_nav_targets():
+        try:
+            has_web_index = "web.index" in app.view_functions
+        except Exception:
+            has_web_index = False
+        return {"has_web_index": has_web_index}
+
     # Blueprints
     from . import models  # noqa: F401
 

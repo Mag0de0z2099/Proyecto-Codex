@@ -22,7 +22,12 @@
 <body>
   <nav class="container">
     <ul>
-      <li><strong>SGC</strong></li>
+      <li>
+        <a class="brand"
+           href="{{ url_for('web.index') if has_web_index else url_for('auth.login') }}">
+          SGC
+        </a>
+      </li>
     </ul>
     <ul>
       <li><a href="/">Inicio</a></li>
