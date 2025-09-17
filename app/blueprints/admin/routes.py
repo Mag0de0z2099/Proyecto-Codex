@@ -8,6 +8,7 @@ from flask_login import current_user, login_required
 
 from app.db import db
 from app.models.user import User
+from app.security import generate_reset_token
 
 from . import bp_admin
 
@@ -41,9 +42,7 @@ def list_files():
 
 
 def admin_required() -> bool:
-    if not current_user.is_authenticated or not current_user.is_admin:
-        return False
-    return True
+    return current_user.is_authenticated and current_user.is_admin
 
 
 @bp_admin.get("/users/new")
@@ -85,3 +84,33 @@ def admin_create_user():
     db.session.commit()
     flash("Usuario creado correctamente.", "success")
     return redirect(url_for("admin.index"))
+
+
+@bp_admin.get("/users")
+@login_required
+def admin_users():
+    if not admin_required():
+        flash("Acceso no autorizado.", "danger")
+        return redirect(url_for("web.index"))
+    q = User.query.order_by(User.id.desc()).all()
+    return render_template("admin/users.html", users=q)
+
+
+@bp_admin.post("/users/<int:user_id>/reset-link")
+@login_required
+def admin_user_reset_link(user_id: int):
+    if not admin_required():
+        flash("Acceso no autorizado.", "danger")
+        return redirect(url_for("web.index"))
+
+    u = db.session.get(User, user_id)
+    if not u:
+        flash("Usuario no encontrado.", "danger")
+        return redirect(url_for("admin.admin_users"))
+
+    token = generate_reset_token(u.email)
+    reset_url = url_for("auth.reset_password", token=token, _external=True)
+
+    current_app.logger.warning("[ADMIN-RESET] %s -> %s", u.email, reset_url)
+
+    return render_template("admin/reset_link.html", user=u, reset_url=reset_url)
