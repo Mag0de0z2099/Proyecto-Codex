@@ -33,6 +33,9 @@ def login_post():
         return redirect(url_for("auth.login"))
 
     login_user(user)
+    if getattr(user, "force_change_password", False):
+        flash("Debes actualizar tu contraseña antes de continuar.", "info")
+        return redirect(url_for("auth.change_password"))
     flash("Bienvenido 👋", "success")
     return redirect(url_for("admin.index"))
 
@@ -71,6 +74,7 @@ def change_password_post():
         return redirect(url_for("auth.change_password"))
 
     current_user.set_password(new)
+    current_user.force_change_password = False
     db.session.commit()
     flash("Contraseña actualizada.", "success")
     return redirect(url_for("admin.index"))

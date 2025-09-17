@@ -18,6 +18,7 @@ class User(db.Model, UserMixin):
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    force_change_password: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
@@ -32,6 +33,7 @@ class User(db.Model, UserMixin):
             "id": self.id,
             "email": self.email,
             "is_admin": self.is_admin,
+            "force_change_password": self.force_change_password,
             "is_active": self.is_active,
             "created_at": self.created_at.isoformat() + "Z",
         }
