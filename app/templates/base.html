@@ -6,6 +6,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <!-- Pico.css (CDN) -->
   <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@2.0.6/css/pico.min.css">
+  <style>
+    footer {
+      margin-top: 2rem;
+      padding: 1rem 0;
+      border-top: 1px solid rgba(255,255,255,0.15);
+      font-size: 0.85rem;
+      text-align: center;
+      color: #888;
+    }
+    footer a { color: inherit; text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+  </style>
 </head>
 <body>
   <nav class="container">
@@ -40,5 +52,9 @@
 
     {% block content %}{% endblock %}
   </main>
+
+  <footer>
+    © 2025 SGC • Desplegado en <a href="https://render.com" target="_blank">Render</a> • CI/CD con <a href="https://github.com/features/actions" target="_blank">GitHub Actions</a>
+  </footer>
 </body>
 </html>
