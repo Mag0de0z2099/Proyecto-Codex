@@ -1,31 +1,15 @@
 {% extends "base.html" %}
-{% block title %}SGC — Inicio{% endblock %}
-
+{% block title %}Bienvenido · SGC{% endblock %}
 {% block content %}
-<section class="py-5 bg-light">
-  <div class="container">
-    <div class="row align-items-center g-4">
-      <div class="col-md-7">
-        <h1 class="display-5 fw-bold mb-3">SGC · Sistema de Gestión de Contratos</h1>
-        <p class="lead text-muted">
-          Plataforma interna para el control de obras, contratos, migraciones de datos
-          y flujos administrativos. Integrado con cobertura de código y CI/CD, listo para
-          crecer con tus necesidades.
-        </p>
-        <div class="d-flex gap-2 mt-3">
-          <a class="btn btn-primary btn-lg" href="{{ url_for('auth.login') }}">Entrar</a>
-          <a class="btn btn-outline-secondary btn-lg" href="{{ url_for('admin.index') }}">Panel Admin</a>
-        </div>
-      </div>
-      <div class="col-md-5 text-center">
-        <img
-          src="{{ url_for('static', filename='img/siglo21.png') }}"
-          alt="Siglo 21"
-          class="img-fluid"
-          style="max-height: 200px; width: auto;"
-        />
-      </div>
-    </div>
+<section class="py-5 bg-light border-bottom">
+  <div class="container text-center">
+    <h1 class="display-5 fw-bold mb-3">Sistema de Gestión de Calidad (SGC)</h1>
+    <p class="lead text-muted mb-4">
+      Plataforma digital para el <strong>control, procesamiento y flujo de información</strong> 
+      en proyectos de obra.  
+      Actualmente implementado en <strong>Gas Natural · Huasteca Fuel Terminal</strong>.
+    </p>
+    <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-lg">Acceder al sistema</a>
   </div>
 </section>
 
@@ -33,41 +17,35 @@
   <div class="container">
     <div class="row g-4">
       <div class="col-md-4">
-        <div class="card h-100 border-0 shadow-sm">
+        <div class="card shadow-sm h-100 border-0">
           <div class="card-body">
-            <h5 class="card-title">Contratos y Obras</h5>
+            <h5 class="card-title">📂 Control digital de carpetas</h5>
             <p class="card-text text-muted">
-              Centraliza contratos y seguimiento de obras con seguridad y trazabilidad.
+              Centraliza documentos por área y etapa de la obra con acceso seguro y organizado.
             </p>
           </div>
         </div>
       </div>
       <div class="col-md-4">
-        <div class="card h-100 border-0 shadow-sm">
+        <div class="card shadow-sm h-100 border-0">
           <div class="card-body">
-            <h5 class="card-title">Usuarios y Permisos</h5>
+            <h5 class="card-title">📝 Reportes en línea</h5>
             <p class="card-text text-muted">
-              Administra roles, forzado de cambio de contraseña y acceso a módulos clave.
+              Genera, consulta y respalda reportes técnicos y de calidad de forma eficiente.
             </p>
           </div>
         </div>
       </div>
       <div class="col-md-4">
-        <div class="card h-100 border-0 shadow-sm">
+        <div class="card shadow-sm h-100 border-0">
           <div class="card-body">
-            <h5 class="card-title">Integración CI/CD</h5>
+            <h5 class="card-title">📊 Bitácoras de obra</h5>
             <p class="card-text text-muted">
-              Pipelines de cobertura, CodeQL y despliegue continuo listos para producción.
+              Registra y gestiona bitácoras de las diferentes áreas, manteniendo un historial confiable.
             </p>
           </div>
         </div>
       </div>
-    </div>
-
-    <div class="text-center mt-5">
-      <a class="btn btn-outline-primary" href="{{ url_for('auth.login') }}">
-        Comenzar ahora
-      </a>
     </div>
   </div>
 </section>

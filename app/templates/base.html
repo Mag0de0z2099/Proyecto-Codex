@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{% block title %}SGC{% endblock %}</title>
+    <title>{% block title %}SGC · Sistema de Gestión de Calidad{% endblock %}</title>
 
     <!-- Bootstrap 5 -->
     <link
@@ -22,15 +22,9 @@
     <!-- NAVBAR -->
     <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom shadow-sm">
       <div class="container">
-        <a class="navbar-brand d-flex align-items-center"
-           href="{{ url_for('web.index') if has_web_index else url_for('auth.login') }}">
-          <img
-            src="{{ url_for('static', filename='img/siglo21.png') }}"
-            alt="Siglo 21"
-            class="me-2"
-            style="height: 36px; width: auto;"
-          />
-          <strong>SGC</strong>
+        <a class="navbar-brand d-flex align-items-center" href="{{ url_for('web.index') }}">
+          <img src="{{ url_for('static', filename='img/siglo21.png') }}" alt="Siglo 21" style="height:28px;" class="me-2">
+          <span><strong>SGC</strong> · Sistema de Gestión de Calidad</span>
         </a>
 
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#topNav"

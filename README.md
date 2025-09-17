@@ -1,8 +1,16 @@
-# Proyecto-Codex
+# SGC – Sistema de Gestión de Calidad
 
-Servidor Flask para Codex Primera configuración
+Plataforma web desarrollada con Flask para el **control digital de carpetas, reportes y bitácoras** de diferentes áreas de obra.  
+Actualmente implementada en el proyecto **Gas Natural · Huasteca Fuel Terminal**.
 
+## Funcionalidades principales
+- 📂 **Gestión digital de carpetas** por área y etapa.
+- 📝 **Reportes en línea** de calidad y seguridad.
+- 📊 **Bitácoras de obra** con historial confiable.
+- 🔐 **Control de accesos y roles**, con administración centralizada.
 
-[![CI - Coverage](https://github.com/Mag0de0z2099/Proyecto-Codex/actions/workflows/ci-coverage.yml/badge.svg)](https://github.com/Mag0de0z2099/Proyecto-Codex/actions/workflows/ci-coverage.yml)
-[![codecov](https://codecov.io/gh/Mag0de0z2099/Proyecto-Codex/branch/main/graph/badge.svg)](https://app.codecov.io/gh/Mag0de0z2099/Proyecto-Codex)
-[![Render](https://img.shields.io/website?url=https%3A%2F%2Fproyecto-codex.onrender.com&label=Render%20Deploy&style=flat-square)](https://proyecto-codex.onrender.com)
+## Tecnologías
+- Python + Flask
+- SQLAlchemy + Alembic
+- Bootstrap 5
+- Render (deploy)
