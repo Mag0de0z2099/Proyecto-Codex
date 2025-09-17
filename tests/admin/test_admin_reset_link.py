@@ -10,19 +10,19 @@ def setup_app():
     with app.app_context():
         db.drop_all()
         db.create_all()
-        admin = User(email="admin@codex.local", is_admin=True)
+        admin = User(username="admin", email="admin@codex.local", is_admin=True)
         admin.set_password("admin12345")
-        u = User(email="user@codex.local", is_admin=False)
+        u = User(username="user", email="user@codex.local", is_admin=False)
         u.set_password("user12345")
         db.session.add_all([admin, u])
         db.session.commit()
     return app
 
 
-def login(client, email, password):
+def login(client, username, password):
     return client.post(
         "/auth/login",
-        data={"email": email, "password": password},
+        data={"username": username, "password": password},
         follow_redirects=True,
     )
 
@@ -30,7 +30,7 @@ def login(client, email, password):
 def test_admin_generates_reset_link():
     app = setup_app()
     client = app.test_client()
-    login(client, "admin@codex.local", "admin12345")
+    login(client, "admin", "admin12345")
 
     r = client.get("/admin/users")
     assert r.status_code == 200

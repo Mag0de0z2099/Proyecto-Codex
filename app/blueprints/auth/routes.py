@@ -24,12 +24,12 @@ def login():
 
 @bp_auth.post("/login")
 def login_post():
-    email = request.form.get("email", "").strip().lower()
-    password = request.form.get("password", "")
+    username = (request.form.get("username") or "").strip()
+    password = request.form.get("password") or ""
 
-    user = db.session.query(User).filter_by(email=email).one_or_none()
-    if not user or not user.check_password(password):
-        flash("Credenciales inválidas", "danger")
+    user = User.query.filter_by(username=username).first()
+    if not user or not user.check_password(password) or not user.is_active:
+        flash("Credenciales inválidas o usuario inactivo.", "danger")
         return redirect(url_for("auth.login"))
 
     login_user(user)

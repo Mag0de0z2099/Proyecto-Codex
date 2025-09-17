@@ -11,20 +11,30 @@ from app.models.user import User
 
 def main() -> None:
     app: Flask = create_app()
-    admin_email = os.environ.get("ADMIN_EMAIL", "admin@codex.local").strip().lower()
-    admin_password = os.environ.get("ADMIN_PASSWORD", "admin12345")
+    username = os.environ.get("ADMIN_USERNAME", "admin")
+    password = os.environ.get("ADMIN_PASSWORD", "admin")
 
     with app.app_context():
-        u = db.session.query(User).filter_by(email=admin_email).one_or_none()
+        u = User.query.filter_by(username=username).first()
         if u:
-            app.logger.info("[ensure_admin] Admin ya existe: %s", admin_email)
+            app.logger.info("[ensure_admin] ya existe '%s'", username)
             return
 
-        u = User(email=admin_email, is_admin=True, force_change_password=False)
-        u.set_password(admin_password)
+        u = User(
+            username=username,
+            email=None,
+            is_admin=True,
+            is_active=True,
+            force_change_password=False,
+        )
+        u.set_password(password)
         db.session.add(u)
         db.session.commit()
-        app.logger.warning("[ensure_admin] Admin creado: %s", admin_email)
+        app.logger.warning(
+            "[ensure_admin] creado admin '%s' con password '%s'",
+            username,
+            password,
+        )
 
 
 if __name__ == "__main__":

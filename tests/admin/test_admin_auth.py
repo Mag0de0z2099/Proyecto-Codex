@@ -15,7 +15,7 @@ def app_with_admin(tmp_path, monkeypatch):
     app = create_app("test")
     with app.app_context():
         db.create_all()
-        admin = User(email="admin@codex.local", is_admin=True)
+        admin = User(username="admin", email="admin@codex.local", is_admin=True)
         admin.set_password("admin123")
         db.session.add(admin)
         db.session.commit()
@@ -39,7 +39,7 @@ def test_admin_login_ok_and_access(app_with_admin):
 
     response = client.post(
         "/auth/login",
-        data={"email": "admin@codex.local", "password": "admin123"},
+        data={"username": "admin", "password": "admin123"},
         follow_redirects=True,
     )
 
@@ -64,7 +64,7 @@ def test_admin_login_wrong_password(app_with_admin):
 
     response = client.post(
         "/auth/login",
-        data={"email": "admin@codex.local", "password": "wrong"},
+        data={"username": "admin", "password": "wrong"},
         follow_redirects=False,
     )
 

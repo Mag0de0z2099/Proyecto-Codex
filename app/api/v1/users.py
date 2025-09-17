@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import secrets
+from typing import Any
 
 from flask import jsonify, request
 from werkzeug.exceptions import BadRequest, NotFound
@@ -8,9 +11,26 @@ from ...models.user import User
 from . import bp
 
 
-def _validate_email(email: str) -> None:
-    if not email or "@" not in email:
-        raise BadRequest("email is required and must contain '@'.")
+def _normalize_email(value: Any) -> str | None:
+    if value is None:
+        return None
+    email = str(value).strip()
+    if not email:
+        return None
+    if "@" not in email:
+        raise BadRequest("email must contain '@'.")
+    if len(email) > 254:
+        raise BadRequest("email must be at most 254 characters.")
+    return email
+
+
+def _require_username(value: Any) -> str:
+    username = str(value or "").strip()
+    if not username:
+        raise BadRequest("username is required.")
+    if len(username) > 64:
+        raise BadRequest("username must be at most 64 characters.")
+    return username
 
 
 def _parse_pagination() -> tuple[int, int]:
@@ -41,14 +61,17 @@ def list_users():
 @bp.post("/users")
 def create_user():
     data = request.get_json(silent=True) or {}
-    email = (data.get("email") or "").strip()
+    username = _require_username(data.get("username"))
+    email = _normalize_email(data.get("email"))
     password = data.get("password")
-    _validate_email(email)
 
-    if User.query.filter_by(email=email).first() is not None:
+    if User.query.filter_by(username=username).first() is not None:
+        raise BadRequest("username already exists.")
+
+    if email and User.query.filter_by(email=email).first() is not None:
         raise BadRequest("email already exists.")
 
-    u = User(email=email)
+    u = User(username=username, email=email)
     if not password:
         password = secrets.token_urlsafe(12)
     u.set_password(password)
@@ -73,14 +96,20 @@ def update_user(user_id: int):
         raise NotFound("user not found")
 
     data = request.get_json(silent=True) or {}
-    email = (data.get("email") or "").strip()
     password = data.get("password")
-    _validate_email(email)
 
-    if User.query.filter(User.id != user_id, User.email == email).first():
-        raise BadRequest("email already exists.")
+    if "username" in data:
+        username = _require_username(data.get("username"))
+        if User.query.filter(User.id != user_id, User.username == username).first():
+            raise BadRequest("username already exists.")
+        u.username = username
 
-    u.email = email
+    if "email" in data:
+        email = _normalize_email(data.get("email"))
+        if email and User.query.filter(User.id != user_id, User.email == email).first():
+            raise BadRequest("email already exists.")
+        u.email = email
+
     if password:
         u.set_password(password)
 

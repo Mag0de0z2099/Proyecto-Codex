@@ -1,5 +1,7 @@
 from __future__ import annotations
+
 import json
+
 import pytest
 
 from app import create_app
@@ -28,11 +30,12 @@ def test_create_and_get_user(client):
     # create
     rv = client.post(
         "/api/v1/users",
-        data=json.dumps({"email": "alice@example.com"}),
+        data=json.dumps({"username": "alice", "email": "alice@example.com"}),
         content_type="application/json",
     )
     assert rv.status_code == 201
     data = rv.get_json()
+    assert data["username"] == "alice"
     assert data["email"] == "alice@example.com"
     user_id = data["id"]
 
@@ -45,8 +48,11 @@ def test_create_and_get_user(client):
 
 def test_list_users(client):
     # seed
-    for e in ["a@a.com", "b@b.com", "c@c.com"]:
-        client.post("/api/v1/users", json={"email": e})
+    for idx, e in enumerate(["a@a.com", "b@b.com", "c@c.com"]):
+        client.post(
+            "/api/v1/users",
+            json={"username": f"user{idx}", "email": e},
+        )
 
     rv = client.get("/api/v1/users?page=1&per_page=2")
     assert rv.status_code == 200
@@ -58,16 +64,26 @@ def test_list_users(client):
 
 
 def test_update_user(client):
-    rv = client.post("/api/v1/users", json={"email": "x@x.com"})
+    rv = client.post(
+        "/api/v1/users",
+        json={"username": "x", "email": "x@x.com"},
+    )
     user_id = rv.get_json()["id"]
 
-    rv = client.put(f"/api/v1/users/{user_id}", json={"email": "y@y.com"})
+    rv = client.put(
+        f"/api/v1/users/{user_id}",
+        json={"username": "y", "email": "y@y.com"},
+    )
     assert rv.status_code == 200
+    assert rv.get_json()["username"] == "y"
     assert rv.get_json()["email"] == "y@y.com"
 
 
 def test_delete_user(client):
-    rv = client.post("/api/v1/users", json={"email": "z@z.com"})
+    rv = client.post(
+        "/api/v1/users",
+        json={"username": "z", "email": "z@z.com"},
+    )
     user_id = rv.get_json()["id"]
 
     rv = client.delete(f"/api/v1/users/{user_id}")
@@ -79,4 +95,6 @@ def test_delete_user(client):
 
 def test_validation(client):
     rv = client.post("/api/v1/users", json={"email": "invalid"})
+    assert rv.status_code == 400
+    rv = client.post("/api/v1/users", json={"username": ""})
     assert rv.status_code == 400
