@@ -64,6 +64,7 @@ def admin_create_user():
     email = (request.form.get("email") or "").strip().lower()
     password = request.form.get("password") or ""
     is_admin = request.form.get("is_admin") == "on"
+    force_change = request.form.get("force_change") == "on"
 
     if not EMAIL_RE.match(email):
         flash("Email inválido.", "danger")
@@ -78,7 +79,7 @@ def admin_create_user():
         flash("Este email ya está registrado.", "danger")
         return redirect(url_for("admin.admin_new_user"))
 
-    u = User(email=email, is_admin=is_admin)
+    u = User(email=email, is_admin=is_admin, force_change_password=force_change)
     u.set_password(password)
     db.session.add(u)
     db.session.commit()
@@ -114,3 +115,21 @@ def admin_user_reset_link(user_id: int):
     current_app.logger.warning("[ADMIN-RESET] %s -> %s", u.email, reset_url)
 
     return render_template("admin/reset_link.html", user=u, reset_url=reset_url)
+
+
+@bp_admin.post("/users/<int:user_id>/toggle-force")
+@login_required
+def admin_user_toggle_force(user_id: int):
+    if not admin_required():
+        flash("Acceso no autorizado.", "danger")
+        return redirect(url_for("web.index"))
+
+    u = db.session.get(User, user_id)
+    if not u:
+        flash("Usuario no encontrado.", "danger")
+        return redirect(url_for("admin.admin_users"))
+
+    u.force_change_password = not bool(u.force_change_password)
+    db.session.commit()
+    flash(("Activado" if u.force_change_password else "Desactivado") + " el requisito de cambio de contraseña.", "info")
+    return redirect(url_for("admin.admin_users"))
