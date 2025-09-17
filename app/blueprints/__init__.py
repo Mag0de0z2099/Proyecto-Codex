@@ -7,4 +7,6 @@ __all__ = [
     "auth",
     "admin",
     "folders",
+    "api",
+    "ping",
 ]
