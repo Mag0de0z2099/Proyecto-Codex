@@ -6,4 +6,5 @@ __all__ = [
     "web",
     "auth",
     "admin",
+    "folders",
 ]
