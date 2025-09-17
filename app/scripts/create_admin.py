@@ -7,17 +7,20 @@ from app.models import User
 def main():
     app = create_app("default")
     with app.app_context():
-        if not User.query.filter_by(username="admin").first():
+        # idempotente: solo lo crea si no existe
+        admin = User.query.filter_by(username="admin").first()
+        if not admin:
             admin = User(
                 username="admin",
                 password_hash=generate_password_hash("admin123"),
                 is_admin=True,
+                force_change_password=False,  # si existe el campo
             )
             db.session.add(admin)
             db.session.commit()
             print("✅ Usuario admin creado: admin / admin123")
         else:
-            print("⚠️ Usuario admin ya existe")
+            print("ℹ️ Usuario admin ya existe")
 
 
 if __name__ == "__main__":
