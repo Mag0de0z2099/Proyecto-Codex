@@ -1,6 +1,4 @@
 from __future__ import annotations
-import re
-
 import pytest
 
 from app import create_app
@@ -22,14 +20,14 @@ def test_homepage_renders(app):
     rv = client.get("/")
     assert rv.status_code == 200
 
-    html = rv.data.decode("utf-8")
+    html = rv.get_data(as_text=True)
 
-    # Título/branding
+    # Branding principal
     assert "SGC - Sistema de Gestión de Calidad" in html
 
-    # Proyecto/Descripción
-    assert "Gas Natural" in html and "Huasteca Fuel Terminal" in html
-    assert "control de carpetas" in html or "bitácoras" in html or "reportes" in html
+    # Contexto del proyecto
+    assert "Huasteca Fuel Terminal" in html
 
-    # Botón/Login visible
-    assert re.search(r'>\s*Login\s*<', html, re.IGNORECASE)
+    # Botón de "Conoce más acerca de nosotros"
+    assert "https://www.dusiglo21.com" in html
+    assert "Conoce más acerca de nosotros" in html
