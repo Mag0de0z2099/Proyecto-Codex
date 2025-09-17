@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from flask import Blueprint, render_template
+from flask import Blueprint, jsonify, render_template
 
 bp_web = Blueprint(
     "web",
@@ -17,3 +17,8 @@ def index():
 @bp_web.get("/health")
 def health() -> str:
     return "ok"
+
+
+@bp_web.get("/healthz")
+def healthz():
+    return jsonify(status="ok"), 200

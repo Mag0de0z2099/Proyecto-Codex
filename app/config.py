@@ -21,6 +21,10 @@ class BaseConfig:
         f"sqlite:///{DATA_DIR / 'app.db'}",
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        "pool_pre_ping": True,
+        "pool_recycle": 280,
+    }
     ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin")
 
 
@@ -36,7 +40,10 @@ class TestingConfig(BaseConfig):
     TESTING = True
     DEBUG = False
     SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
-    SQLALCHEMY_ENGINE_OPTIONS = {"connect_args": {"check_same_thread": False}}
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        **BaseConfig.SQLALCHEMY_ENGINE_OPTIONS,
+        "connect_args": {"check_same_thread": False},
+    }
 
 
 CONFIG_MAP: dict[str, type[BaseConfig]] = {
