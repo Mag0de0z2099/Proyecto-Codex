@@ -5,10 +5,12 @@ from __future__ import annotations
 import logging
 from flask import Flask
 
-from .admin import bp as bp_admin
 from .api.v1 import bp as bp_api_v1
+from .blueprints.admin import bp_admin
+from .blueprints.auth import bp_auth
 from .config import get_config
 from .db import db
+from .extensions import init_auth_extensions
 from .migrate_ext import init_migrations
 from .routes import bp as bp_web
 from .storage import ensure_dirs
@@ -31,10 +33,14 @@ def create_app(config_name: str | None = None) -> Flask:
     # DB
     db.init_app(app)
     init_migrations(app, db)
+    init_auth_extensions(app)
 
     # Blueprints
+    from . import models  # noqa: F401
+
+    app.register_blueprint(bp_auth, url_prefix="/auth")
     app.register_blueprint(bp_web)
-    app.register_blueprint(bp_admin)
+    app.register_blueprint(bp_admin, url_prefix="/admin")
     app.register_blueprint(bp_api_v1, url_prefix="/api/v1")
 
     return app

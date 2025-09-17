@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>{% block title %}Codex{% endblock %}</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; }
+    nav a { margin-right: 1rem; }
+    .flash { padding: .5rem 1rem; border-radius: 6px; margin: .5rem 0; }
+    .flash.info { background: #e7f1ff; }
+    .flash.success { background: #e6ffed; }
+    .flash.danger { background: #ffecef; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/">Inicio</a>
+  <a href="/admin/">Admin</a>
+  <a href="/admin/files">Archivos</a>
+  <a href="/auth/login">Login</a>
+  <a href="/auth/logout">Logout</a>
+</nav>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for cat, msg in messages %}
+      <div class="flash {{ cat }}">{{ msg }}</div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+
+{% block content %}{% endblock %}
+</body>
+</html>
