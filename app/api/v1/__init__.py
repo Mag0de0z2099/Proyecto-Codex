@@ -1,6 +1,6 @@
 from __future__ import annotations
-from flask import Blueprint
+from app.blueprints.api.v1 import bp_api_v1
 
-bp = Blueprint("api_v1", __name__)
+bp = bp_api_v1
 
 from . import ping, todos, users  # noqa: E402,F401
