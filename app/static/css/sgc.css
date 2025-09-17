@@ -1,0 +1,16 @@
+/* SGC tweaks */
+:root {
+  --sgc-primary: #0d6efd;
+}
+
+.navbar-brand strong {
+  letter-spacing: .3px;
+}
+
+footer a {
+  color: #6c757d;
+}
+
+footer a:hover {
+  color: #0d6efd;
+}

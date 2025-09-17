@@ -1,65 +1,92 @@
 <!doctype html>
 <html lang="es">
-<head>
-  <meta charset="utf-8" />
-  <title>{% block title %}SGC{% endblock %}</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <!-- Pico.css (CDN) -->
-  <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@2.0.6/css/pico.min.css">
-  <style>
-    footer {
-      margin-top: 2rem;
-      padding: 1rem 0;
-      border-top: 1px solid rgba(255,255,255,0.15);
-      font-size: 0.85rem;
-      text-align: center;
-      color: #888;
-    }
-    footer a { color: inherit; text-decoration: none; }
-    footer a:hover { text-decoration: underline; }
-  </style>
-</head>
-<body>
-  <nav class="container">
-    <ul>
-      <li>
-        <a class="brand"
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}SGC{% endblock %}</title>
+
+    <!-- Bootstrap 5 -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+      crossorigin="anonymous"
+    />
+
+    <!-- Custom (opcional) -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sgc.css') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/siglo21.png') }}">
+  </head>
+  <body class="d-flex flex-column min-vh-100">
+
+    <!-- NAVBAR -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom shadow-sm">
+      <div class="container">
+        <a class="navbar-brand d-flex align-items-center"
            href="{{ url_for('web.index') if has_web_index else url_for('auth.login') }}">
-          SGC
+          <img
+            src="{{ url_for('static', filename='img/siglo21.png') }}"
+            alt="Siglo 21"
+            class="me-2"
+            style="height: 36px; width: auto;"
+          />
+          <strong>SGC</strong>
         </a>
-      </li>
-    </ul>
-    <ul>
-      <li><a href="/">Inicio</a></li>
-      {% if current_user.is_authenticated and current_user.is_admin %}
-        <li><a href="{{ url_for('admin.admin_users') }}">Usuarios</a></li>
-        <li><a href="{{ url_for('admin.index') }}">Panel</a></li>
-      {% endif %}
-      <li><a href="/api/v1/health" target="_blank">/health</a></li>
-      {% if current_user.is_authenticated %}
-        <li><a href="{{ url_for('auth.change_password') }}">Cambiar contraseña</a></li>
-        <li><a href="{{ url_for('auth.logout') }}">Salir</a></li>
-      {% else %}
-        <li><a href="{{ url_for('auth.login') }}">Entrar</a></li>
-        <li><a href="{{ url_for('auth.forgot_password') }}">¿Olvidaste?</a></li>
-      {% endif %}
-    </ul>
-  </nav>
 
-  <main class="container">
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for cat, msg in messages %}
-          <article class="alert {{ cat }}">{{ msg }}</article>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#topNav"
+                aria-controls="topNav" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
 
-    {% block content %}{% endblock %}
-  </main>
+        <div id="topNav" class="collapse navbar-collapse">
+          <ul class="navbar-nav ms-auto align-items-lg-center">
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('web.index') if has_web_index else '#' }}">Inicio</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('auth.login') }}">Entrar</a>
+            </li>
+            <li class="nav-item">
+              <a class="btn btn-outline-primary ms-lg-3" href="{{ url_for('admin.index') }}">Panel Admin</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
 
-  <footer>
-    © 2025 SGC • Desplegado en <a href="https://render.com" target="_blank">Render</a> • CI/CD con <a href="https://github.com/features/actions" target="_blank">GitHub Actions</a>
-  </footer>
-</body>
+    <!-- CONTENIDO -->
+    <main class="flex-grow-1">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="container py-3">
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+      {% block content %}{% endblock %}
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bg-light border-top py-4 mt-5">
+      <div class="container text-center text-muted small">
+        <div>© {{ 2025 }} SGC — Dragados y Urbanización Siglo 21</div>
+        <div class="mt-1">
+          <a class="text-decoration-none" href="{{ url_for('auth.login') }}">Acceso</a>
+          ·
+          <a class="text-decoration-none" href="{{ url_for('admin.index') }}">Admin</a>
+        </div>
+      </div>
+    </footer>
+
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+      crossorigin="anonymous"
+    ></script>
+  </body>
 </html>
