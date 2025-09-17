@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="utf-8" />
-  <title>{% block title %}Codex{% endblock %}</title>
+  <title>{% block title %}SGC{% endblock %}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <!-- Pico.css (CDN) -->
   <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@2.0.6/css/pico.min.css">
@@ -10,7 +10,7 @@
 <body>
   <nav class="container">
     <ul>
-      <li><strong>Proyecto Codex</strong></li>
+      <li><strong>SGC</strong></li>
     </ul>
     <ul>
       <li><a href="/">Inicio</a></li>
@@ -32,11 +32,9 @@
   <main class="container">
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
-        <div>
-          {% for cat, msg in messages %}
-            <article class="alert {{ cat }}">{{ msg }}</article>
-          {% endfor %}
-        </div>
+        {% for cat, msg in messages %}
+          <article class="alert {{ cat }}">{{ msg }}</article>
+        {% endfor %}
       {% endif %}
     {% endwith %}
 
