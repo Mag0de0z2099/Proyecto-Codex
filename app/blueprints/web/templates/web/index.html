@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Dashboard SGC{% endblock %}
+{% block content %}
+<section>
+  <h2>Bienvenido al Sistema de Gestión de Calidad (SGC)</h2>
+  <p>Usa el panel para administrar usuarios, acceder a las APIs y revisar el estado del sistema.</p>
+</section>
+
+<section class="grid">
+  <article>
+    <h3>👥 Usuarios</h3>
+    <p>Administra cuentas, roles y contraseñas desde el panel de usuarios.</p>
+    <footer>
+      {% if current_user.is_authenticated and current_user.is_admin %}
+        <a href="{{ url_for('admin.admin_users') }}" role="button">Ir a Usuarios</a>
+      {% else %}
+        <a href="{{ url_for('auth.login') }}" role="button" class="secondary">Entrar primero</a>
+      {% endif %}
+    </footer>
+  </article>
+
+  <article>
+    <h3>🛡️ Seguridad</h3>
+    <p>Flujos de login, cambio de contraseña y restablecimiento sin correo, gestionados por el admin.</p>
+    <footer>
+      <a href="{{ url_for('auth.login') }}" role="button">Entrar</a>
+    </footer>
+  </article>
+
+  <article>
+    <h3>📊 Estado del sistema</h3>
+    <p>Consulta la API de salud para verificar que todo funciona correctamente.</p>
+    <footer>
+      <a href="/api/v1/health" target="_blank" role="button">Ver /health</a>
+    </footer>
+  </article>
+</section>
+{% endblock %}
