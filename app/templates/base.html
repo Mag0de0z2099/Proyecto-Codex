@@ -1,60 +1,37 @@
+{# app/templates/base.html #}
 <!doctype html>
 <html lang="es">
-<head>
-  <meta charset="utf-8" />
-  <title>{% block title %}SGC{% endblock %}</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <!-- Pico.css (CDN) -->
-  <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@2.0.6/css/pico.min.css">
-  <style>
-    footer {
-      margin-top: 2rem;
-      padding: 1rem 0;
-      border-top: 1px solid rgba(255,255,255,0.15);
-      font-size: 0.85rem;
-      text-align: center;
-      color: #888;
-    }
-    footer a { color: inherit; text-decoration: none; }
-    footer a:hover { text-decoration: underline; }
-  </style>
-</head>
-<body>
-  <nav class="container">
-    <ul>
-      <li><strong>SGC</strong></li>
-    </ul>
-    <ul>
-      <li><a href="/">Inicio</a></li>
-      {% if current_user.is_authenticated and current_user.is_admin %}
-        <li><a href="{{ url_for('admin.admin_users') }}">Usuarios</a></li>
-        <li><a href="{{ url_for('admin.index') }}">Panel</a></li>
-      {% endif %}
-      <li><a href="/api/v1/health" target="_blank">/health</a></li>
-      {% if current_user.is_authenticated %}
-        <li><a href="{{ url_for('auth.change_password') }}">Cambiar contraseña</a></li>
-        <li><a href="{{ url_for('auth.logout') }}">Salir</a></li>
-      {% else %}
-        <li><a href="{{ url_for('auth.login') }}">Entrar</a></li>
-        <li><a href="{{ url_for('auth.forgot_password') }}">¿Olvidaste?</a></li>
-      {% endif %}
-    </ul>
-  </nav>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>{% block title %}SGC{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sgc.css') }}">
+    {# opcional: favicon si lo tienes #}
+    {# <link rel="icon" href="{{ url_for('static', filename='img/favicon.png') }}"> #}
+    {% block head %}{% endblock %}
+  </head>
+  <body>
+    <header class="navbar">
+      <a class="brand" href="{{ url_for('web.index') if 'web.index' in current_app.view_functions else url_for('static', filename='') }}">
+        <img src="{{ url_for('static', filename='img/siglo21-logo.png') }}" alt="Siglo 21">
+        <span class="sgc">
+          <span class="name">SGC</span>
+          <span class="pill">Siglo 21</span>
+        </span>
+      </a>
+      {% block navbar_right %}{% endblock %}
+    </header>
 
-  <main class="container">
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for cat, msg in messages %}
-          <article class="alert {{ cat }}">{{ msg }}</article>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
+    <main class="container">
+      {% block content %}{% endblock %}
+    </main>
 
-    {% block content %}{% endblock %}
-  </main>
+    <footer class="footer">
+      <div class="container muted">
+        © {{ current_year | default(2025) }} Siglo 21 — Sistema de Gestión y Control (SGC)
+      </div>
+    </footer>
 
-  <footer>
-    © 2025 SGC • Desplegado en <a href="https://render.com" target="_blank">Render</a> • CI/CD con <a href="https://github.com/features/actions" target="_blank">GitHub Actions</a>
-  </footer>
-</body>
+    {% block scripts %}{% endblock %}
+  </body>
 </html>
