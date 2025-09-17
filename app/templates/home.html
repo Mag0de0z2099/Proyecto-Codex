@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}SGC - Sistema de Gestión de Calidad{% endblock %}
+
+{% block content %}
+<section class="py-5 bg-light">
+  <div class="container">
+    <div class="row align-items-center g-4">
+      <div class="col-lg-7">
+        <h1 class="display-5 fw-bold mb-3">SGC - Sistema de Gestión de Calidad</h1>
+        <p class="lead text-muted">
+          Plataforma centralizada para Huasteca Fuel Terminal, enfocada en la gestión de proyectos
+          de Gas Natural con trazabilidad completa de reportes, bitácoras y control de carpetas.
+        </p>
+        <div class="d-flex flex-wrap gap-2 mt-3">
+          <a class="btn btn-primary btn-lg" href="{{ url_for('auth.login') }}">Login</a>
+          <a class="btn btn-outline-secondary btn-lg" href="{{ url_for('admin.index') }}">Panel Admin</a>
+        </div>
+      </div>
+      <div class="col-lg-5 text-center">
+        <img
+          src="{{ url_for('static', filename='img/siglo21.png') }}"
+          alt="Siglo 21"
+          class="img-fluid"
+          style="max-height: 220px; width: auto;"
+        />
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="py-5">
+  <div class="container">
+    <div class="row g-4">
+      <div class="col-md-4">
+        <div class="card h-100 border-0 shadow-sm">
+          <div class="card-body">
+            <h5 class="card-title">Trazabilidad Operativa</h5>
+            <p class="card-text text-muted">
+              Mantén bitácoras y reportes actualizados para cada auditoría y mejora continua.
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card h-100 border-0 shadow-sm">
+          <div class="card-body">
+            <h5 class="card-title">Colaboración Segura</h5>
+            <p class="card-text text-muted">
+              Control de carpetas y versiones para tu equipo, asegurando disponibilidad permanente.
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card h-100 border-0 shadow-sm">
+          <div class="card-body">
+            <h5 class="card-title">Listo para Escalar</h5>
+            <p class="card-text text-muted">
+              Integraciones CI/CD, seguridad y monitoreo para crecer al ritmo de tu operación.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
