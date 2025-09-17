@@ -23,18 +23,36 @@
           class="img-fluid"
           style="max-height: 220px; width: auto;"
         />
-        <div class="mt-3">
+        <div class="mt-4">
           <a
-            class="btn btn-outline-primary d-inline-flex align-items-center gap-2"
+            class="btn btn-lg px-4 py-3 shadow-lg d-inline-flex align-items-center gap-3 position-relative overflow-hidden"
             href="https://www.dusiglo21.com"
             target="_blank"
+            style="border-radius: 50px; background: linear-gradient(135deg, #1e3c72, #2a5298); border: 0;"
           >
-            <img
-              src="{{ url_for('static', filename='img/siglo21-logo.png') }}"
-              alt="Siglo 21"
-              style="height: 20px; width: auto;"
-            />
-            <span>Conoce más acerca de nosotros</span>
+            <span
+              class="bg-white rounded-circle d-flex align-items-center justify-content-center"
+              style="width: 52px; height: 52px;"
+            >
+              <img
+                src="{{ url_for('static', filename='img/siglo21-logo.png') }}"
+                alt="Siglo 21"
+                style="height: 26px; width: auto;"
+              />
+            </span>
+            <span class="text-white text-start">
+              <span class="d-block fw-semibold text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.08em;"
+                >Descubre</span
+              >
+              <span class="fw-bold" style="font-size: 1.05rem;">Conoce más acerca de nosotros</span>
+            </span>
+            <span
+              class="text-white bg-white bg-opacity-25 rounded-pill px-3 py-1 ms-auto d-flex align-items-center gap-2"
+              style="font-weight: 600;"
+            >
+              Visitar
+              <span class="fs-4">→</span>
+            </span>
           </a>
         </div>
       </div>
