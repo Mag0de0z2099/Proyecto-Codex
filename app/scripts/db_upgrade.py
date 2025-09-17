@@ -6,7 +6,7 @@ from app import create_app
 
 
 def main() -> None:
-    app = create_app()
+    app = create_app("default")
     with app.app_context():
         upgrade()
 
