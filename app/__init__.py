@@ -12,7 +12,7 @@ from .config import get_config
 from .db import db
 from .extensions import init_auth_extensions
 from .migrate_ext import init_migrations
-from .routes import bp as bp_web
+from .blueprints.web import bp_web
 from .storage import ensure_dirs
 
 

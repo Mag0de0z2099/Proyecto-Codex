@@ -1,38 +1,74 @@
 {% extends "base.html" %}
-{% block title %}Dashboard SGC{% endblock %}
+{% block title %}SGC — Inicio{% endblock %}
+
 {% block content %}
-<section>
-  <h2>Bienvenido al Sistema de Gestión de Calidad (SGC)</h2>
-  <p>Usa el panel para administrar usuarios, acceder a las APIs y revisar el estado del sistema.</p>
+<section class="py-5 bg-light">
+  <div class="container">
+    <div class="row align-items-center g-4">
+      <div class="col-md-7">
+        <h1 class="display-5 fw-bold mb-3">SGC · Sistema de Gestión de Contratos</h1>
+        <p class="lead text-muted">
+          Plataforma interna para el control de obras, contratos, migraciones de datos
+          y flujos administrativos. Integrado con cobertura de código y CI/CD, listo para
+          crecer con tus necesidades.
+        </p>
+        <div class="d-flex gap-2 mt-3">
+          <a class="btn btn-primary btn-lg" href="{{ url_for('auth.login') }}">Entrar</a>
+          <a class="btn btn-outline-secondary btn-lg" href="{{ url_for('admin.index') }}">Panel Admin</a>
+        </div>
+      </div>
+      <div class="col-md-5 text-center">
+        <img
+          src="{{ url_for('static', filename='img/siglo21.png') }}"
+          alt="Siglo 21"
+          class="img-fluid"
+          style="max-height: 200px; width: auto;"
+        />
+      </div>
+    </div>
+  </div>
 </section>
 
-<section class="grid">
-  <article>
-    <h3>👥 Usuarios</h3>
-    <p>Administra cuentas, roles y contraseñas desde el panel de usuarios.</p>
-    <footer>
-      {% if current_user.is_authenticated and current_user.is_admin %}
-        <a href="{{ url_for('admin.admin_users') }}" role="button">Ir a Usuarios</a>
-      {% else %}
-        <a href="{{ url_for('auth.login') }}" role="button" class="secondary">Entrar primero</a>
-      {% endif %}
-    </footer>
-  </article>
+<section class="py-5">
+  <div class="container">
+    <div class="row g-4">
+      <div class="col-md-4">
+        <div class="card h-100 border-0 shadow-sm">
+          <div class="card-body">
+            <h5 class="card-title">Contratos y Obras</h5>
+            <p class="card-text text-muted">
+              Centraliza contratos y seguimiento de obras con seguridad y trazabilidad.
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card h-100 border-0 shadow-sm">
+          <div class="card-body">
+            <h5 class="card-title">Usuarios y Permisos</h5>
+            <p class="card-text text-muted">
+              Administra roles, forzado de cambio de contraseña y acceso a módulos clave.
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card h-100 border-0 shadow-sm">
+          <div class="card-body">
+            <h5 class="card-title">Integración CI/CD</h5>
+            <p class="card-text text-muted">
+              Pipelines de cobertura, CodeQL y despliegue continuo listos para producción.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
 
-  <article>
-    <h3>🛡️ Seguridad</h3>
-    <p>Flujos de login, cambio de contraseña y restablecimiento sin correo, gestionados por el admin.</p>
-    <footer>
-      <a href="{{ url_for('auth.login') }}" role="button">Entrar</a>
-    </footer>
-  </article>
-
-  <article>
-    <h3>📊 Estado del sistema</h3>
-    <p>Consulta la API de salud para verificar que todo funciona correctamente.</p>
-    <footer>
-      <a href="/api/v1/health" target="_blank" role="button">Ver /health</a>
-    </footer>
-  </article>
+    <div class="text-center mt-5">
+      <a class="btn btn-outline-primary" href="{{ url_for('auth.login') }}">
+        Comenzar ahora
+      </a>
+    </div>
+  </div>
 </section>
 {% endblock %}
