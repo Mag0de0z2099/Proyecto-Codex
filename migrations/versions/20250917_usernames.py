@@ -1,72 +1,57 @@
-"""add username (unique, not null) and make email nullable"""
-from __future__ import annotations
-
+"""add username (unique, not null) and make email nullable (SQLite-safe)"""
 from alembic import op
 import sqlalchemy as sa
 
-
+# OJO: actualiza esto si tu down_revision real es otro
 revision = "20250917_usernames"
 down_revision = "20250916_add_force_change_password"
 branch_labels = None
 depends_on = None
 
 
-def upgrade() -> None:
+def upgrade():
+    # 1) Agregar columna username (temporalmente nullable)
     op.add_column("users", sa.Column("username", sa.String(length=64), nullable=True))
     op.create_index("ix_users_username", "users", ["username"], unique=False)
 
+    # 2) Rellenar username para filas existentes (derivado de email o 'user<ID>')
+    #    Esta sentencia es 100% compatible con SQLite.
     conn = op.get_bind()
-    rows = conn.execute(sa.text("SELECT id, email FROM users ORDER BY id")).fetchall()
-    taken: set[str] = set()
-    for rid, email in rows:
-        base = None
-        if email:
-            base = email.split("@", 1)[0].strip() or None
-        if not base:
-            base = f"user{rid}"
-        candidate = base[:64]
-        original = candidate or f"user{rid}"
-        candidate = original
-        counter = 1
-        while not candidate or candidate in taken:
-            suffix = str(counter)
-            trimmed = original[: max(1, 64 - len(suffix))]
-            candidate = f"{trimmed}{suffix}"
-            counter += 1
-        taken.add(candidate)
-        conn.execute(
-            sa.text("UPDATE users SET username=:u WHERE id=:id"),
-            {"u": candidate, "id": rid},
+    conn.execute(sa.text("""
+        UPDATE users
+           SET username = COALESCE(
+                NULLIF(SUBSTR(email, 1, INSTR(COALESCE(email, ''), '@') - 1), ''),
+                'user' || id
+           )
+         WHERE username IS NULL
+    """))
+
+    # 3) En SQLite, cambiar NULLABLE requiere modo batch (recrea tabla bajo el agua)
+    with op.batch_alter_table("users", recreate="always") as batch:
+        # imponer NOT NULL en username
+        batch.alter_column(
+            "username",
+            existing_type=sa.String(length=64),
+            nullable=False,
+            existing_nullable=True,
         )
-
-    op.alter_column(
-        "users",
-        "username",
-        existing_type=sa.String(length=64),
-        nullable=False,
-    )
-    op.create_unique_constraint("uq_users_username", "users", ["username"])
-
-    op.drop_index("ix_users_email", table_name="users")
-    with op.batch_alter_table("users") as batch:
+        # hacer email nullable=True (por si antes era NOT NULL)
         batch.alter_column(
             "email",
             existing_type=sa.String(length=254),
             nullable=True,
+            existing_nullable=True,  # pon True/False según tu esquema previo; no pasa nada si ya era True
         )
-    op.create_index("ix_users_email", "users", ["email"], unique=False)
+        # agregar UNIQUE sobre username
+        batch.create_unique_constraint("uq_users_username", ["username"])
 
 
-def downgrade() -> None:
-    op.drop_index("ix_users_email", table_name="users")
-    with op.batch_alter_table("users") as batch:
-        batch.alter_column(
-            "email",
-            existing_type=sa.String(length=254),
-            nullable=False,
-        )
-    op.create_index("ix_users_email", "users", ["email"], unique=True)
+def downgrade():
+    # Quitar UNIQUE y el índice/columna (modo batch por compatibilidad)
+    with op.batch_alter_table("users", recreate="always") as batch:
+        batch.drop_constraint("uq_users_username", type_="unique")
+        # si necesitas devolver email a NOT NULL, hazlo aquí
+        # batch.alter_column("email", existing_type=sa.String(length=254), nullable=False)
 
-    op.drop_constraint("uq_users_username", "users", type_="unique")
     op.drop_index("ix_users_username", table_name="users")
     op.drop_column("users", "username")
