@@ -1,3 +1,5 @@
+import secrets
+
 from flask import jsonify, request
 from werkzeug.exceptions import BadRequest, NotFound
 
@@ -47,7 +49,9 @@ def create_user():
         raise BadRequest("email already exists.")
 
     u = User(email=email)
-    u.set_password(password or "")
+    if not password:
+        password = secrets.token_urlsafe(12)
+    u.set_password(password)
 
     db.session.add(u)
     db.session.commit()
@@ -77,7 +81,7 @@ def update_user(user_id: int):
         raise BadRequest("email already exists.")
 
     u.email = email
-    if password is not None:
+    if password:
         u.set_password(password)
 
     db.session.commit()

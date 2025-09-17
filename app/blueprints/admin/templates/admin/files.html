@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Archivos (DATA_DIR){% endblock %}
+{% block content %}
+<h2>Archivos</h2>
+<p><strong>Base:</strong> {{ base }}</p>
+<table border="1" cellspacing="0" cellpadding="6">
+  <thead>
+    <tr>
+      <th>Ruta</th>
+      <th>Tipo</th>
+      <th>Tamaño</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for it in items %}
+    <tr>
+      <td>{{ it.name }}</td>
+      <td>{{ "Directorio" if it.is_dir else "Archivo" }}</td>
+      <td>{{ it.size if it.size else "" }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

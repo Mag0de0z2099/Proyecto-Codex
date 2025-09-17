@@ -1,17 +1,47 @@
-def test_admin_login_and_logout_flow(client):
-    r = client.get("/admin/")
-    assert r.status_code in (401, 403, 200)
+from __future__ import annotations
 
-    r = client.post("/admin/login", json={"password": "pass123"})
-    assert r.status_code in (200, 204)
+from pathlib import Path
 
-    r = client.get("/admin/")
-    assert r.status_code == 200
-    data = r.get_json() or {}
-    assert data.get("area") == "admin"
+from app import create_app
+from app.db import db
+from app.models.user import User
 
-    r = client.post("/admin/logout")
-    assert r.status_code in (200, 204)
 
-    r = client.get("/admin/")
-    assert r.status_code in (401, 403, 200)
+def _create_app_with_admin(tmp_path, monkeypatch):
+    monkeypatch.setenv("DATA_DIR", str(tmp_path))
+    app = create_app("test")
+    with app.app_context():
+        db.create_all()
+        admin = User(email="admin@example.com", is_admin=True)
+        admin.set_password("pass123")
+        db.session.add(admin)
+        db.session.commit()
+    return app
+
+
+def test_admin_files_listing(tmp_path, monkeypatch):
+    app = _create_app_with_admin(tmp_path, monkeypatch)
+    data_dir = Path(app.config["DATA_DIR"])
+    reports = data_dir / "reports"
+    reports.mkdir(parents=True, exist_ok=True)
+    sample = reports / "report.txt"
+    sample.write_text("hola")
+
+    client = app.test_client()
+    try:
+        client.post(
+            "/auth/login",
+            data={"email": "admin@example.com", "password": "pass123"},
+            follow_redirects=True,
+        )
+
+        response = client.get("/admin/files")
+        assert response.status_code == 200
+        body = response.get_data(as_text=True)
+        assert "reports/report.txt" in body
+        assert str(data_dir) in body
+    finally:
+        client.get("/auth/logout")
+        with app.app_context():
+            db.drop_all()
+            db.session.remove()

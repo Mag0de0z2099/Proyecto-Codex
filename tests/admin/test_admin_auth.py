@@ -1,52 +1,72 @@
-"""Pruebas para la autenticación del área administrativa."""
+"""Pruebas para la autenticación del área administrativa con Flask-Login."""
 
 from __future__ import annotations
 
+import pytest
+
 from app import create_app
+from app.db import db
+from app.models.user import User
 
 
-def test_admin_requires_auth() -> None:
+@pytest.fixture()
+def app_with_admin(tmp_path, monkeypatch):
+    monkeypatch.setenv("DATA_DIR", str(tmp_path))
     app = create_app("test")
-    client = app.test_client()
+    with app.app_context():
+        db.create_all()
+        admin = User(email="admin@codex.local", is_admin=True)
+        admin.set_password("admin123")
+        db.session.add(admin)
+        db.session.commit()
+    yield app
+    with app.app_context():
+        db.drop_all()
+        db.session.remove()
+
+
+def test_admin_requires_auth(app_with_admin):
+    client = app_with_admin.test_client()
 
     response = client.get("/admin/")
 
-    assert response.status_code == 401
-    payload = response.get_json()
-    assert payload == {"error": "unauthorized"}
+    assert response.status_code == 302
+    assert "/auth/login" in (response.headers.get("Location") or "")
 
 
-def test_admin_login_ok_and_access() -> None:
-    app = create_app("test")
-    client = app.test_client()
+def test_admin_login_ok_and_access(app_with_admin):
+    client = app_with_admin.test_client()
 
-    response = client.post("/admin/login", json={"password": "admin"})
-
-    assert response.status_code == 200
-    assert response.get_json() == {"ok": True}
-
-    response = client.get("/admin/")
+    response = client.post(
+        "/auth/login",
+        data={"email": "admin@codex.local", "password": "admin123"},
+        follow_redirects=True,
+    )
 
     assert response.status_code == 200
-    assert response.get_json() == {"area": "admin", "status": "ok"}
+    assert b"Panel Admin" in response.data
 
-    response = client.post("/admin/logout")
+    dashboard = client.get("/admin/")
+    assert dashboard.status_code == 200
+    assert b"Panel Admin" in dashboard.data
 
-    assert response.status_code == 200
-    assert response.get_json() == {"ok": True}
+    logout = client.get("/auth/logout", follow_redirects=True)
+    assert logout.status_code == 200
+    assert b"Iniciar sesi" in logout.data
 
-    response = client.get("/admin/")
+    after_logout = client.get("/admin/")
+    assert after_logout.status_code == 302
+    assert "/auth/login" in (after_logout.headers.get("Location") or "")
 
-    assert response.status_code == 401
-    assert response.get_json() == {"error": "unauthorized"}
 
+def test_admin_login_wrong_password(app_with_admin):
+    client = app_with_admin.test_client()
 
-def test_admin_login_wrong_password() -> None:
-    app = create_app("test")
-    client = app.test_client()
+    response = client.post(
+        "/auth/login",
+        data={"email": "admin@codex.local", "password": "wrong"},
+        follow_redirects=False,
+    )
 
-    response = client.post("/admin/login", json={"password": "wrong"})
-
-    assert response.status_code == 401
-    payload = response.get_json()
-    assert payload == {"ok": False, "error": "bad credentials"}
+    assert response.status_code == 302
+    assert "/auth/login" in (response.headers.get("Location") or "")
