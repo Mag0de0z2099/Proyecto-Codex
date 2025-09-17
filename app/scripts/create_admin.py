@@ -14,12 +14,16 @@ def main():
                 username="admin",
                 password_hash=generate_password_hash("admin123"),
                 is_admin=True,
-                force_change_password=False,  # si existe el campo
+                # obligar a cambiar la contraseña en el primer inicio de sesión
+                force_change_password=True,
             )
             db.session.add(admin)
             db.session.commit()
-            print("✅ Usuario admin creado: admin / admin123")
+            print("✅ Usuario admin creado: admin / admin123 (cambio obligatorio)")
         else:
+            if getattr(admin, "force_change_password", None) is None:
+                admin.force_change_password = True
+                db.session.commit()
             print("ℹ️ Usuario admin ya existe")
 
 

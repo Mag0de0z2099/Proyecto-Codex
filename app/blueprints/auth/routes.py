@@ -48,36 +48,44 @@ def logout():
     return redirect(url_for("auth.login"))
 
 
-@bp_auth.get("/change-password")
+@bp_auth.route("/change-password", methods=["GET", "POST"])
 @login_required
 def change_password():
-    return render_template("auth/change_password.html")
+    force_change = getattr(current_user, "force_change_password", False)
+    template = (
+        "auth/force_change_password.html"
+        if force_change
+        else "auth/change_password.html"
+    )
 
+    if request.method == "POST":
+        if not force_change:
+            current = (request.form.get("current") or "").strip()
+            if not current_user.check_password(current):
+                flash("Tu contraseña actual no es correcta.", "warning")
+                return render_template(template)
 
-@bp_auth.post("/change-password")
-@login_required
-def change_password_post():
-    current = request.form.get("current") or ""
-    new = request.form.get("new") or ""
-    confirm = request.form.get("confirm") or ""
+        new_password = (request.form.get("new_password") or "").strip()
+        confirm = (request.form.get("confirm") or "").strip()
 
-    if not current_user.check_password(current):
-        flash("Tu contraseña actual no es correcta.", "danger")
-        return redirect(url_for("auth.change_password"))
+        if len(new_password) < 8:
+            flash("La contraseña debe tener al menos 8 caracteres.", "warning")
+            return render_template(template)
 
-    if len(new) < 8:
-        flash("La nueva contraseña debe tener al menos 8 caracteres.", "danger")
-        return redirect(url_for("auth.change_password"))
+        if new_password != confirm:
+            flash("Las contraseñas no coinciden.", "warning")
+            return render_template(template)
 
-    if new != confirm:
-        flash("Las contraseñas no coinciden.", "danger")
-        return redirect(url_for("auth.change_password"))
+        current_user.set_password(new_password)
+        if hasattr(current_user, "force_change_password"):
+            current_user.force_change_password = False
 
-    current_user.set_password(new)
-    current_user.force_change_password = False
-    db.session.commit()
-    flash("Contraseña actualizada.", "success")
-    return redirect(url_for("admin.index"))
+        db.session.commit()
+        message = "Tu contraseña ha sido actualizada. ¡Bienvenido!" if force_change else "Contraseña actualizada."
+        flash(message, "success")
+        return redirect(url_for("admin.index"))
+
+    return render_template(template)
 
 
 @bp_auth.get("/forgot-password")
