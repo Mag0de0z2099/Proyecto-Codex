@@ -8,6 +8,7 @@ from flask import Flask
 from .api.v1 import bp as bp_api_v1
 from .blueprints.admin import bp_admin
 from .blueprints.auth import bp_auth
+from .blueprints.folders import bp_folders
 from .config import get_config
 from .db import db
 from .extensions import init_auth_extensions
@@ -50,6 +51,7 @@ def create_app(config_name: str | None = None) -> Flask:
     app.register_blueprint(bp_auth, url_prefix="/auth")
     app.register_blueprint(bp_web)
     app.register_blueprint(bp_admin, url_prefix="/admin")
+    app.register_blueprint(bp_folders, url_prefix="/folders")
     app.register_blueprint(bp_api_v1, url_prefix="/api/v1")
 
     return app

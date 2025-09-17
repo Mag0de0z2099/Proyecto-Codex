@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}SGC · {{ folder.name }}{% endblock %}
+{% block content %}
+<section class="py-4">
+  <div class="container">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        {% for node in trail %}
+          {% if not loop.last %}
+            <li class="breadcrumb-item">
+              <a href="{{ url_for('folders.show', folder_id=node.id) }}">{{ node.name }}</a>
+            </li>
+          {% else %}
+            <li class="breadcrumb-item active" aria-current="page">{{ node.name }}</li>
+          {% endif %}
+        {% endfor %}
+      </ol>
+    </nav>
+
+    <div class="d-flex gap-2 mb-3">
+      {% if parent %}
+        <a class="btn btn-outline-secondary" href="{{ url_for('folders.show', folder_id=parent.id) }}">⬅ Volver</a>
+      {% else %}
+        <a class="btn btn-outline-secondary" href="{{ url_for('folders.index') }}">Inicio carpetas</a>
+      {% endif %}
+    </div>
+
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+          <h4 class="m-0">📂 {{ folder.name }}</h4>
+          {% if not folder.is_root %}
+          <form class="d-flex gap-2" method="post" action="{{ url_for('folders.rename', folder_id=folder.id) }}">
+            <input class="form-control form-control-sm" name="name" placeholder="Renombrar a…" required>
+            <button class="btn btn-sm btn-outline-primary" type="submit">Renombrar</button>
+          </form>
+          <form class="d-flex gap-2" method="post" action="{{ url_for('folders.delete', folder_id=folder.id) }}"
+                onsubmit="return confirm('¿Eliminar carpeta? (Debe estar vacía de subcarpetas)')">
+            <button class="btn btn-sm btn-outline-danger" type="submit">Eliminar</button>
+          </form>
+          {% endif %}
+        </div>
+
+        <hr>
+
+        <form class="row g-2" method="post" action="{{ url_for('folders.create') }}">
+          <input type="hidden" name="parent_id" value="{{ folder.id }}">
+          <div class="col-md-6">
+            <input class="form-control" name="name" placeholder="Nueva subcarpeta" required>
+          </div>
+          <div class="col-md-3">
+            <button class="btn btn-primary w-100" type="submit">Crear</button>
+          </div>
+        </form>
+
+        <div class="mt-4">
+          <h6>Subcarpetas</h6>
+          <ul class="list-group">
+            {% for c in children %}
+            <li class="list-group-item d-flex justify-content-between align-items-center flex-wrap gap-2">
+              <div>
+                <a href="{{ url_for('folders.show', folder_id=c.id) }}">📂 {{ c.name }}</a>
+              </div>
+              <form class="d-flex gap-2 align-items-center" method="post" action="{{ url_for('folders.move', folder_id=c.id) }}">
+                <select class="form-select form-select-sm" name="parent_id">
+                  <option value="{{ folder.id }}">Mantener en {{ folder.name }}</option>
+                  {% if parent %}
+                  <option value="{{ parent.id }}">Mover a {{ parent.name }}</option>
+                  {% endif %}
+                  <option value="">Mover a raíz</option>
+                </select>
+                <button class="btn btn-sm btn-outline-secondary" type="submit">Mover</button>
+              </form>
+            </li>
+            {% else %}
+            <li class="list-group-item text-muted">No hay subcarpetas.</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+{% endblock %}
