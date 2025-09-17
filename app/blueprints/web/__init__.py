@@ -11,7 +11,7 @@ bp_web = Blueprint(
 
 @bp_web.get("/")
 def index():
-    return render_template("web/index.html")
+    return render_template("home.html")
 
 
 @bp_web.get("/health")
