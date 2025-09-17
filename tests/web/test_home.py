@@ -14,8 +14,11 @@ def test_home_renders_homepage(client) -> None:
 
     html = res.get_data(as_text=True)
 
-    assert "Sistema de Gestión de Calidad" in html
+    assert "SGC · Sistema de Gestión de Calidad" in html
     assert "Huasteca Fuel Terminal" in html
+
+    assert "https://www.dusiglo21.com" in html
+    assert "Acerca de nosotros" in html
 
 
 def test_health_returns_ok() -> None:
