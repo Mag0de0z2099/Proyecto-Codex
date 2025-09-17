@@ -14,6 +14,7 @@ def main():
                 username="admin",
                 password_hash=generate_password_hash("admin123"),
                 is_admin=True,
+                is_active=True,
                 # obligar a cambiar la contraseña en el primer inicio de sesión
                 force_change_password=True,
             )
