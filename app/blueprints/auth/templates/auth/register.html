@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Registro{% endblock %}
+
+{% block content %}
+<h2>Crear cuenta</h2>
+<form method="post" action="{{ url_for('auth.register_post') }}" class="form" style="max-width:420px">
+  <div style="margin:.5rem 0">
+    <label>Email</label><br>
+    <input type="email" name="email" required autofocus style="width:100%">
+  </div>
+  <div style="margin:.5rem 0">
+    <label>Contraseña</label><br>
+    <input type="password" name="password" minlength="8" required style="width:100%">
+    <small>Al menos 8 caracteres</small>
+  </div>
+  <div style="margin:.5rem 0">
+    <label>Confirmar contraseña</label><br>
+    <input type="password" name="confirm" minlength="8" required style="width:100%">
+  </div>
+  <button type="submit">Crear cuenta</button>
+  <p style="margin-top:.5rem">¿Ya tienes cuenta? <a href="{{ url_for('auth.login') }}">Inicia sesión</a></p>
+</form>
+{% endblock %}
