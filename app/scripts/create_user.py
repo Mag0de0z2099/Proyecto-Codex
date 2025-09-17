@@ -13,22 +13,27 @@ def main():
     email = os.environ.get("ADMIN_EMAIL")  # opcional
 
     with app.app_context():
-        existing = User.query.filter_by(username=username).first()
-        if existing:
-            print(f"[INFO] El usuario '{username}' ya existe.")
-            return
+        user = User.query.filter_by(username=username).first()
 
-        u = User(
-            username=username,
-            email=email,
-            is_admin=True,
-            is_active=True,
-        )
-        u.set_password(password)
-        db.session.add(u)
-        db.session.commit()
-
-        print(f"[OK] Usuario '{username}' creado con contraseña '{password}'")
+        if user:
+            # Actualizar contraseña existente
+            user.set_password(password)
+            if email:
+                user.email = email
+            db.session.commit()
+            print(f"[OK] Usuario '{username}' ya existía. Contraseña actualizada.")
+        else:
+            # Crear usuario nuevo
+            u = User(
+                username=username,
+                email=email,
+                is_admin=True,
+                is_active=True,
+            )
+            u.set_password(password)
+            db.session.add(u)
+            db.session.commit()
+            print(f"[OK] Usuario '{username}' creado con contraseña '{password}'")
 
 
 if __name__ == "__main__":
