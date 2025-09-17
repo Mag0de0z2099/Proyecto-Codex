@@ -5,14 +5,17 @@ from __future__ import annotations
 from app import create_app
 
 
-def test_home_renders_homepage() -> None:
-    app = create_app("test")
-    client = app.test_client()
+def test_home_renders_homepage(client) -> None:
+    """La página principal muestra el nuevo branding del SGC."""
 
-    response = client.get("/")
+    res = client.get("/")
 
-    assert response.status_code == 200
-    assert "SGC · Sistema de Gestión de Contratos".encode("utf-8") in response.data
+    assert res.status_code == 200
+
+    html = res.get_data(as_text=True)
+
+    assert "Sistema de Gestión de Calidad" in html
+    assert "Huasteca Fuel Terminal" in html
 
 
 def test_health_returns_ok() -> None:
