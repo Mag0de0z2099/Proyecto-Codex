@@ -61,12 +61,17 @@ def admin_create_user():
         flash("Acceso no autorizado.", "danger")
         return redirect(url_for("web.index"))
 
-    email = (request.form.get("email") or "").strip().lower()
+    username = (request.form.get("username") or "").strip()
+    email_raw = (request.form.get("email") or "").strip().lower()
     password = request.form.get("password") or ""
     is_admin = request.form.get("is_admin") == "on"
     force_change = request.form.get("force_change") == "on"
 
-    if not EMAIL_RE.match(email):
+    if not username:
+        flash("El nombre de usuario es obligatorio.", "danger")
+        return redirect(url_for("admin.admin_new_user"))
+
+    if email_raw and not EMAIL_RE.match(email_raw):
         flash("Email inválido.", "danger")
         return redirect(url_for("admin.admin_new_user"))
 
@@ -74,12 +79,24 @@ def admin_create_user():
         flash("La contraseña debe tener al menos 8 caracteres.", "danger")
         return redirect(url_for("admin.admin_new_user"))
 
-    exists = db.session.query(User).filter_by(email=email).one_or_none()
-    if exists:
-        flash("Este email ya está registrado.", "danger")
+    exists_username = User.query.filter_by(username=username).first()
+    if exists_username:
+        flash("Este nombre de usuario ya está en uso.", "danger")
         return redirect(url_for("admin.admin_new_user"))
 
-    u = User(email=email, is_admin=is_admin, force_change_password=force_change)
+    email = email_raw or None
+    if email:
+        exists_email = db.session.query(User).filter_by(email=email).one_or_none()
+        if exists_email:
+            flash("Este email ya está registrado.", "danger")
+            return redirect(url_for("admin.admin_new_user"))
+
+    u = User(
+        username=username,
+        email=email,
+        is_admin=is_admin,
+        force_change_password=force_change,
+    )
     u.set_password(password)
     db.session.add(u)
     db.session.commit()
@@ -107,6 +124,10 @@ def admin_user_reset_link(user_id: int):
     u = db.session.get(User, user_id)
     if not u:
         flash("Usuario no encontrado.", "danger")
+        return redirect(url_for("admin.admin_users"))
+
+    if not u.email:
+        flash("El usuario no tiene email registrado.", "warning")
         return redirect(url_for("admin.admin_users"))
 
     token = generate_reset_token(u.email)

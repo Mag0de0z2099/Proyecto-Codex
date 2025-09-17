@@ -12,7 +12,7 @@ def _create_app_with_admin(tmp_path, monkeypatch):
     app = create_app("test")
     with app.app_context():
         db.create_all()
-        admin = User(email="admin@example.com", is_admin=True)
+        admin = User(username="admin", email="admin@example.com", is_admin=True)
         admin.set_password("pass123")
         db.session.add(admin)
         db.session.commit()
@@ -31,7 +31,7 @@ def test_admin_files_listing(tmp_path, monkeypatch):
     try:
         client.post(
             "/auth/login",
-            data={"email": "admin@example.com", "password": "pass123"},
+            data={"username": "admin", "password": "pass123"},
             follow_redirects=True,
         )
 

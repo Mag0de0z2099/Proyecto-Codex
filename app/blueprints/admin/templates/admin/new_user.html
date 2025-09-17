@@ -4,8 +4,12 @@
 <h2>Crear usuario</h2>
 <form method="post" action="{{ url_for('admin.admin_create_user') }}" class="form" style="max-width:460px">
   <div style="margin:.5rem 0">
-    <label>Email</label><br>
-    <input type="email" name="email" required autofocus style="width:100%">
+    <label>Usuario</label><br>
+    <input type="text" name="username" required autofocus style="width:100%">
+  </div>
+  <div style="margin:.5rem 0">
+    <label>Email (opcional)</label><br>
+    <input type="email" name="email" style="width:100%">
   </div>
   <div style="margin:.5rem 0">
     <label>Contraseña</label><br>

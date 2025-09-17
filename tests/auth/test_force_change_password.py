@@ -8,7 +8,12 @@ def setup_app():
     with app.app_context():
         db.drop_all()
         db.create_all()
-        u = User(email="force@codex.local", is_admin=False, force_change_password=True)
+        u = User(
+            username="force",
+            email="force@codex.local",
+            is_admin=False,
+            force_change_password=True,
+        )
         u.set_password("secreto123")
         db.session.add(u)
         db.session.commit()
@@ -20,7 +25,7 @@ def test_force_change_redirects_to_change_password():
     client = app.test_client()
     response = client.post(
         "/auth/login",
-        data={"email": "force@codex.local", "password": "secreto123"},
+        data={"username": "force", "password": "secreto123"},
         follow_redirects=False,
     )
     assert response.status_code in (302, 303)
@@ -32,7 +37,7 @@ def test_change_password_clears_flag():
     client = app.test_client()
     client.post(
         "/auth/login",
-        data={"email": "force@codex.local", "password": "secreto123"},
+        data={"username": "force", "password": "secreto123"},
         follow_redirects=True,
     )
     response = client.post(
@@ -48,7 +53,7 @@ def test_change_password_clears_flag():
     client.get("/auth/logout", follow_redirects=True)
     response_login = client.post(
         "/auth/login",
-        data={"email": "force@codex.local", "password": "nuevo12345"},
+        data={"username": "force", "password": "nuevo12345"},
         follow_redirects=True,
     )
     assert response_login.status_code == 200

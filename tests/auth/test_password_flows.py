@@ -13,9 +13,9 @@ def app():
         db.drop_all()
         db.create_all()
         # admin + normal
-        admin = User(email="admin@codex.local", is_admin=True)
+        admin = User(username="admin", email="admin@codex.local", is_admin=True)
         admin.set_password("admin1234")
-        user = User(email="user@codex.local", is_admin=False)
+        user = User(username="user", email="user@codex.local", is_admin=False)
         user.set_password("user12345")
         db.session.add_all([admin, user])
         db.session.commit()
@@ -29,16 +29,16 @@ def client(app):
     return app.test_client()
 
 
-def login(client, email, password):
+def login(client, username, password):
     return client.post(
         "/auth/login",
-        data={"email": email, "password": password},
+        data={"username": username, "password": password},
         follow_redirects=True,
     )
 
 
 def test_change_password_ok(client):
-    login(client, "user@codex.local", "user12345")
+    login(client, "user", "user12345")
     r = client.post(
         "/auth/change-password",
         data={"current": "user12345", "new": "nuevo12345", "confirm": "nuevo12345"},
@@ -47,7 +47,7 @@ def test_change_password_ok(client):
     assert r.status_code == 200
     # re-login con nueva
     client.get("/auth/logout", follow_redirects=True)
-    r2 = login(client, "user@codex.local", "nuevo12345")
+    r2 = login(client, "user", "nuevo12345")
     assert r2.status_code == 200
 
 
@@ -62,5 +62,5 @@ def test_reset_password_ok(client, app):
     )
     assert r.status_code == 200
     # login con nueva
-    r2 = login(client, "user@codex.local", "rest12345")
+    r2 = login(client, "user", "rest12345")
     assert r2.status_code == 200
