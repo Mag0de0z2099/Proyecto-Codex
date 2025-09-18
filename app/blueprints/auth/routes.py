@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from http import HTTPStatus
 
-from flask import render_template, request, redirect, url_for, flash
+from flask import current_app, render_template, request, redirect, url_for, flash
 from flask_login import current_user, login_required, login_user, logout_user
 
 from app.db import db
@@ -24,20 +24,25 @@ def login():
 
 @bp_auth.post("/login")
 def login_post():
-    username = (request.form.get("username") or "").strip()
-    password = request.form.get("password") or ""
+    try:
+        username = (request.form.get("username") or "").strip()
+        password = request.form.get("password") or ""
 
-    user = User.query.filter_by(username=username).first()
-    if not user or not user.check_password(password) or not user.is_active:
-        flash("Credenciales inválidas o usuario inactivo.", "danger")
+        user = User.query.filter_by(username=username).first()
+        if not user or not user.check_password(password) or not user.is_active:
+            flash("Credenciales inválidas o usuario inactivo.", "danger")
+            return redirect(url_for("auth.login"))
+
+        login_user(user)
+        if getattr(user, "force_change_password", False):
+            flash("Debes actualizar tu contraseña antes de continuar.", "info")
+            return redirect(url_for("auth.change_password"))
+        flash("Bienvenido 👋", "success")
+        return redirect(url_for("admin.index"))
+    except Exception:
+        current_app.logger.exception("Login error")
+        flash("Error interno. Intenta de nuevo en unos minutos.", "danger")
         return redirect(url_for("auth.login"))
-
-    login_user(user)
-    if getattr(user, "force_change_password", False):
-        flash("Debes actualizar tu contraseña antes de continuar.", "info")
-        return redirect(url_for("auth.change_password"))
-    flash("Bienvenido 👋", "success")
-    return redirect(url_for("admin.index"))
 
 
 @bp_auth.get("/logout")
@@ -114,8 +119,6 @@ def forgot_password_post():
     token = generate_reset_token(user.email)
     reset_url = url_for("auth.reset_password", token=token, _external=True)
     # También lo dejamos en logs
-    from flask import current_app
-
     current_app.logger.warning("[RESET-LINK] %s -> %s", user.email, reset_url)
 
     flash("Se generó un enlace temporal. Úsalo antes de 1 hora.", "success")
