@@ -10,78 +10,84 @@ INSTANCE_DIR = PROJECT_ROOT / "instance"
 INSTANCE_DIR.mkdir(parents=True, exist_ok=True)
 DEFAULT_SQLITE = INSTANCE_DIR / "sgc.db"
 DEFAULT_SQLITE_URL = f"sqlite:///{DEFAULT_SQLITE}"
+DEFAULT_DEV_SQLITE = PROJECT_ROOT / "dev.db"
+DEFAULT_DEV_SQLITE_URL = f"sqlite:///{DEFAULT_DEV_SQLITE}"
 
 
 class BaseConfig:
+    DEBUG = False
+    TESTING = False
     SECRET_KEY = os.getenv("SECRET_KEY", "superseguro")
-    DEBUG = os.getenv("DEBUG", "False").lower() == "true"
-    SECURITY_PASSWORD_SALT = os.environ.get("SECURITY_PASSWORD_SALT", "dev-salt")
-    # Email opcional (si no se configura, se enviará a logs)
-    MAIL_SERVER = os.environ.get("MAIL_SERVER", "")
-    MAIL_PORT = int(os.environ.get("MAIL_PORT", 587 or 25))
-    MAIL_USE_TLS = os.environ.get("MAIL_USE_TLS", "true").lower() == "true"
-    MAIL_USERNAME = os.environ.get("MAIL_USERNAME", "")
-    MAIL_PASSWORD = os.environ.get("MAIL_PASSWORD", "")
-    MAIL_DEFAULT_SENDER = os.environ.get("MAIL_DEFAULT_SENDER", "no-reply@codex.local")
-    # Directorio de datos persistente (Render)
+    SECURITY_PASSWORD_SALT = os.getenv("SECURITY_PASSWORD_SALT", "dev-salt")
+    MAIL_SERVER = os.getenv("MAIL_SERVER", "")
+    MAIL_PORT = int(os.getenv("MAIL_PORT", 587))
+    MAIL_USE_TLS = os.getenv("MAIL_USE_TLS", "true").lower() in ("1", "true", "yes")
+    MAIL_USERNAME = os.getenv("MAIL_USERNAME", "")
+    MAIL_PASSWORD = os.getenv("MAIL_PASSWORD", "")
+    MAIL_DEFAULT_SENDER = os.getenv("MAIL_DEFAULT_SENDER", "no-reply@codex.local")
     DATA_DIR = os.getenv("DATA_DIR", str(PROJECT_ROOT / "data"))
-    # Construye la URI de SQLite si no hay DATABASE_URL (Postgres)
-    SQLALCHEMY_DATABASE_URI = os.getenv(
-        "DATABASE_URL",
-        DEFAULT_SQLITE_URL,
-    )
+    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", DEFAULT_SQLITE_URL)
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    # Estabilidad de conexiones
     SQLALCHEMY_ENGINE_OPTIONS = {
         "pool_pre_ping": True,
         "pool_recycle": 280,
-        # Para SQLite multi-hilo bajo Gunicorn
         "connect_args": {"check_same_thread": False}
         if str(SQLALCHEMY_DATABASE_URI).startswith("sqlite:///")
         else {},
     }
-    ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin")
+    ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin")
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "False").lower() in ("1", "true", "yes")
+    SESSION_COOKIE_SAMESITE = "Lax"
 
 
-class DevConfig(BaseConfig):
-    DEBUG = os.getenv("DEBUG", "True").lower() == "true"
-
-
-class ProdConfig(BaseConfig):
-    DEBUG = os.getenv("DEBUG", "False").lower() == "true"
+class DevelopmentConfig(BaseConfig):
+    DEBUG = True
+    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", DEFAULT_DEV_SQLITE_URL)
 
 
 class TestingConfig(BaseConfig):
     TESTING = True
     DEBUG = False
     SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
+    WTF_CSRF_ENABLED = False
     SQLALCHEMY_ENGINE_OPTIONS = {
         **BaseConfig.SQLALCHEMY_ENGINE_OPTIONS,
         "connect_args": {"check_same_thread": False},
     }
 
 
-CONFIG_MAP: dict[str, type[BaseConfig]] = {
-    "development": DevConfig,
-    "production": ProdConfig,
+class ProductionConfig(BaseConfig):
+    DEBUG = False
+    TESTING = False
+
+
+_CONFIG_MAP: dict[str, type[BaseConfig]] = {
+    "development": DevelopmentConfig,
+    "dev": DevelopmentConfig,
     "testing": TestingConfig,
+    "test": TestingConfig,
+    "production": ProductionConfig,
+    "prod": ProductionConfig,
+    "default": DevelopmentConfig,
 }
 
-ALIASES = {
-    "dev": "development",
-    "prod": "production",
-    "test": "testing",
-}
 
-
-def get_config(name: str | None) -> type[BaseConfig]:
-    env = (
+def get_config(name: str | None = None) -> type[BaseConfig]:
+    key = (
         name
-        or os.environ.get("APP_ENV")
-        or os.environ.get("FLASK_ENV")
-        or os.environ.get("FLASK_CONFIG")
-        or "production"
-    )
-    env = env.lower()
-    env = ALIASES.get(env, env)
-    return CONFIG_MAP.get(env, CONFIG_MAP["production"])
+        or os.getenv("CONFIG")
+        or os.getenv("FLASK_ENV")
+        or os.getenv("ENV")
+        or "development"
+    ).lower()
+    return _CONFIG_MAP.get(key, DevelopmentConfig)
+
+
+__all__ = [
+    "get_config",
+    "BaseConfig",
+    "DevelopmentConfig",
+    "TestingConfig",
+    "ProductionConfig",
+]
