@@ -29,7 +29,7 @@ class BaseConfig:
         "pool_recycle": 280,
         # Para SQLite multi-hilo bajo Gunicorn
         "connect_args": {"check_same_thread": False}
-        if SQLALCHEMY_DATABASE_URI.startswith("sqlite:///")
+        if str(SQLALCHEMY_DATABASE_URI).startswith("sqlite:///")
         else {},
     }
     ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin")
