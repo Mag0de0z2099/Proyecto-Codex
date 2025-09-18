@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import logging
+from pathlib import Path
+
 from flask import Flask
 from werkzeug.exceptions import HTTPException
 
@@ -22,6 +24,11 @@ from .storage import ensure_dirs
 def create_app(config_name: str | None = None) -> Flask:
     app = Flask(__name__)
     app.config.from_object(get_config(config_name))
+
+    # Asegura DATA_DIR y muestra la URI (útil en logs de Render)
+    data_dir = Path(app.config.get("DATA_DIR", "./data"))
+    data_dir.mkdir(parents=True, exist_ok=True)
+    app.logger.info("DB URI -> %s", app.config["SQLALCHEMY_DATABASE_URI"])
 
     # Directorios persistentes (DATA_DIR, instance/, etc.)
     ensure_dirs(app)

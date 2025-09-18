@@ -14,16 +14,23 @@ class BaseConfig:
     MAIL_USERNAME = os.environ.get("MAIL_USERNAME", "")
     MAIL_PASSWORD = os.environ.get("MAIL_PASSWORD", "")
     MAIL_DEFAULT_SENDER = os.environ.get("MAIL_DEFAULT_SENDER", "no-reply@codex.local")
-    # DATA_DIR: si no te dan un disco persistente, usa ./data
-    DATA_DIR = Path(os.environ.get("DATA_DIR", Path("data").resolve()))
-    SQLALCHEMY_DATABASE_URI = os.environ.get(
+    # Directorio de datos persistente (Render)
+    DATA_DIR = os.getenv("DATA_DIR", "/opt/render/project/src/data")
+    # Construye la URI de SQLite si no hay DATABASE_URL (Postgres)
+    SQLITE_PATH = Path(DATA_DIR) / "app.db"
+    SQLALCHEMY_DATABASE_URI = os.getenv(
         "DATABASE_URL",
-        f"sqlite:///{DATA_DIR / 'app.db'}",
+        f"sqlite:///{SQLITE_PATH}",
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    # Estabilidad de conexiones
     SQLALCHEMY_ENGINE_OPTIONS = {
         "pool_pre_ping": True,
         "pool_recycle": 280,
+        # Para SQLite multi-hilo bajo Gunicorn
+        "connect_args": {"check_same_thread": False}
+        if SQLALCHEMY_DATABASE_URI.startswith("sqlite:///")
+        else {},
     }
     ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin")
 
