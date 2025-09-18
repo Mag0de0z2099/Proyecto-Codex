@@ -13,7 +13,8 @@ DEFAULT_SQLITE_URL = f"sqlite:///{DEFAULT_SQLITE}"
 
 
 class BaseConfig:
-    SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret")
+    SECRET_KEY = os.getenv("SECRET_KEY", "superseguro")
+    DEBUG = os.getenv("DEBUG", "False").lower() == "true"
     SECURITY_PASSWORD_SALT = os.environ.get("SECURITY_PASSWORD_SALT", "dev-salt")
     # Email opcional (si no se configura, se enviará a logs)
     MAIL_SERVER = os.environ.get("MAIL_SERVER", "")
@@ -43,11 +44,11 @@ class BaseConfig:
 
 
 class DevConfig(BaseConfig):
-    DEBUG = True
+    DEBUG = os.getenv("DEBUG", "True").lower() == "true"
 
 
 class ProdConfig(BaseConfig):
-    DEBUG = False
+    DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 
 
 class TestingConfig(BaseConfig):
