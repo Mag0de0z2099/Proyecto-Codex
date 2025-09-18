@@ -4,14 +4,36 @@ import logging
 import re
 from http import HTTPStatus
 
-from flask import current_app, render_template, request, redirect, url_for, flash
-from flask_login import current_user, login_required, login_user, logout_user
+from flask import (
+    current_app,
+    flash,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
+)
+from flask_login import (
+    current_user,
+    login_required as flask_login_required,
+    login_user,
+    logout_user,
+)
 
 from app.db import db
 from app.models.user import User
 from app.security import generate_reset_token, parse_reset_token
 
+from app.authz import login_required as simple_login_required
+
 from . import bp_auth
+
+
+# Credenciales en memoria para el modo simple
+SIMPLE_USERS = {
+    "admin": "admin",
+    "test": "test",
+}
 
 logger = logging.getLogger(__name__)
 
@@ -31,17 +53,39 @@ def login_post():
         username = (request.form.get("username") or "").strip()
         password = request.form.get("password") or ""
 
+        if current_app.config.get("AUTH_SIMPLE", False):
+            ok = SIMPLE_USERS.get(username) == password
+            if ok:
+                session.clear()
+                session["user"] = {
+                    "username": username,
+                    "is_admin": username == "admin",
+                }
+                next_url = request.args.get("next") or url_for("admin.index")
+                flash("Bienvenido 👋", "success")
+                return redirect(next_url)
+
+            flash("Usuario o contraseña inválidos.", "danger")
+            return redirect(url_for("auth.login"))
+
         user = User.query.filter_by(username=username).first()
         if not user or not user.check_password(password) or not user.is_active:
             flash("Credenciales inválidas o usuario inactivo.", "danger")
             return redirect(url_for("auth.login"))
 
         login_user(user)
+        session["user"] = {
+            "id": user.id,
+            "username": user.username,
+            "is_admin": getattr(user, "is_admin", False),
+        }
         if getattr(user, "force_change_password", False):
             flash("Debes actualizar tu contraseña antes de continuar.", "info")
             return redirect(url_for("auth.change_password"))
+
         flash("Bienvenido 👋", "success")
-        return redirect(url_for("admin.index"))
+        next_url = request.args.get("next") or url_for("admin.index")
+        return redirect(next_url)
     except Exception:
         logger.exception("Login error")
         current_app.logger.exception("Login error")
@@ -50,15 +94,20 @@ def login_post():
 
 
 @bp_auth.get("/logout")
-@login_required
+@simple_login_required
 def logout():
-    logout_user()
+    if current_app.config.get("AUTH_SIMPLE", False):
+        session.clear()
+    else:
+        session.pop("user", None)
+        logout_user()
+
     flash("Sesión cerrada", "info")
     return redirect(url_for("auth.login"))
 
 
 @bp_auth.route("/change-password", methods=["GET", "POST"])
-@login_required
+@flask_login_required
 def change_password():
     force_change = getattr(current_user, "force_change_password", False)
     template = (

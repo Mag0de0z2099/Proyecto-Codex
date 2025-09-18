@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from flask import flash, redirect, render_template, request, url_for
-from flask_login import login_required
+
+from app.authz import login_required
 
 from app.db import db
 from app.models.folder import Folder

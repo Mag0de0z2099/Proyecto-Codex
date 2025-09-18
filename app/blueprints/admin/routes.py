@@ -3,12 +3,14 @@ from __future__ import annotations
 from pathlib import Path
 import re
 
-from flask import current_app, render_template, request, redirect, url_for, flash
-from flask_login import current_user, login_required
+from flask import current_app, flash, redirect, render_template, request, session, url_for
+from flask_login import current_user
 
 from app.db import db
 from app.models.user import User
 from app.security import generate_reset_token
+
+from app.authz import login_required
 
 from . import bp_admin
 
@@ -42,7 +44,11 @@ def list_files():
 
 
 def admin_required() -> bool:
-    return current_user.is_authenticated and current_user.is_admin
+    session_user = session.get("user")
+    if session_user:
+        return bool(session_user.get("is_admin"))
+
+    return current_user.is_authenticated and getattr(current_user, "is_admin", False)
 
 
 @bp_admin.get("/users/new")

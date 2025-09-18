@@ -4,9 +4,17 @@ import os
 from pathlib import Path
 
 
+def env_flag(name: str, default: bool = False) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value == "1"
+
+
 class BaseConfig:
     SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret")
     SECURITY_PASSWORD_SALT = os.environ.get("SECURITY_PASSWORD_SALT", "dev-salt")
+    AUTH_SIMPLE = env_flag("AUTH_SIMPLE", default=False)
     # Email opcional (si no se configura, se enviará a logs)
     MAIL_SERVER = os.environ.get("MAIL_SERVER", "")
     MAIL_PORT = int(os.environ.get("MAIL_PORT", 587 or 25))
@@ -37,6 +45,7 @@ class BaseConfig:
 
 class DevConfig(BaseConfig):
     DEBUG = True
+    AUTH_SIMPLE = env_flag("AUTH_SIMPLE", default=True)
 
 
 class ProdConfig(BaseConfig):
