@@ -16,5 +16,5 @@ def health() -> tuple[Response, int]:
     try:
         db.session.execute(text("SELECT 1 FROM users LIMIT 1"))
         return jsonify(status="ok", db="users:ready"), 200
-    except Exception:
-        return jsonify(status="ok", db="users:missing"), 200
+    except Exception as exc:
+        return jsonify(status="ok", db="users:missing", err=str(exc)), 200
