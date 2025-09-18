@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import re
 from http import HTTPStatus
 
@@ -11,6 +12,8 @@ from app.models.user import User
 from app.security import generate_reset_token, parse_reset_token
 
 from . import bp_auth
+
+logger = logging.getLogger(__name__)
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
@@ -40,6 +43,7 @@ def login_post():
         flash("Bienvenido 👋", "success")
         return redirect(url_for("admin.index"))
     except Exception:
+        logger.exception("Login error")
         current_app.logger.exception("Login error")
         flash("Error interno. Intenta de nuevo en unos minutos.", "danger")
         return redirect(url_for("auth.login"))
