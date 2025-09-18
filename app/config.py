@@ -4,6 +4,14 @@ import os
 from pathlib import Path
 
 
+BASE_DIR = Path(__file__).resolve().parent.parent
+PROJECT_ROOT = BASE_DIR.parent
+INSTANCE_DIR = PROJECT_ROOT / "instance"
+INSTANCE_DIR.mkdir(parents=True, exist_ok=True)
+DEFAULT_SQLITE = INSTANCE_DIR / "sgc.db"
+DEFAULT_SQLITE_URL = f"sqlite:///{DEFAULT_SQLITE}"
+
+
 class BaseConfig:
     SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret")
     SECURITY_PASSWORD_SALT = os.environ.get("SECURITY_PASSWORD_SALT", "dev-salt")
@@ -15,12 +23,11 @@ class BaseConfig:
     MAIL_PASSWORD = os.environ.get("MAIL_PASSWORD", "")
     MAIL_DEFAULT_SENDER = os.environ.get("MAIL_DEFAULT_SENDER", "no-reply@codex.local")
     # Directorio de datos persistente (Render)
-    DATA_DIR = os.getenv("DATA_DIR", "/opt/render/project/src/data")
+    DATA_DIR = os.getenv("DATA_DIR", str(PROJECT_ROOT / "data"))
     # Construye la URI de SQLite si no hay DATABASE_URL (Postgres)
-    SQLITE_PATH = Path(DATA_DIR) / "app.db"
     SQLALCHEMY_DATABASE_URI = os.getenv(
         "DATABASE_URL",
-        f"sqlite:///{SQLITE_PATH}",
+        DEFAULT_SQLITE_URL,
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     # Estabilidad de conexiones

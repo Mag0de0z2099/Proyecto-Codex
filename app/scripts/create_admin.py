@@ -8,7 +8,12 @@ def main():
     with app.app_context():
         u = User.query.filter_by(username="admin").first()
         if not u:
-            u = User(username="admin", email=None, is_admin=True, is_active=True)
+            u = User(
+                username="admin",
+                email=None,
+                is_admin=True,
+                is_active=True,
+            )
             u.set_password("admin123")
             db.session.add(u)
             db.session.commit()
