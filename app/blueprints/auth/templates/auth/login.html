@@ -13,9 +13,11 @@
       <input class="form-control" type="password" name="password" required>
     </label>
     <button type="submit">Entrar</button>
+    <div class="mt-4 text-center">
+      <a href="{{ url_for('auth.register') }}" class="btn btn-lg btn-outline-primary">
+        ✨ Crear un nuevo usuario
+      </a>
+    </div>
   </form>
-  <div class="mt-3 text-center">
-    <a href="{{ url_for('auth.register') }}">¿No tienes cuenta? Crear usuario</a>
-  </div>
 </article>
 {% endblock %}
