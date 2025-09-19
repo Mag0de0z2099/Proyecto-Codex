@@ -1,19 +1,42 @@
 from __future__ import with_statement
 
+import atexit
+import sys
+from contextlib import ExitStack, nullcontext
 from logging.config import fileConfig
+from pathlib import Path
 
 from alembic import context
 from flask import current_app
 from sqlalchemy import engine_from_config, pool
+
+# Asegúrate de que el paquete principal esté disponible al ejecutar Alembic
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 # Configuración de logging de Alembic (opcional)
 config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
+stack = ExitStack()
+atexit.register(stack.close)
+
+try:
+    app = current_app._get_current_object()
+    ctx = nullcontext()
+except RuntimeError:
+    from app import create_app
+
+    app = create_app()
+    ctx = app.app_context()
+
+stack.enter_context(ctx)
+
 # >>> AQUI Forzamos a usar el mismo URI que usa Flask <<<
-target_metadata = current_app.extensions["migrate"].db.metadata
-config.set_main_option("sqlalchemy.url", current_app.config["SQLALCHEMY_DATABASE_URI"])
+target_metadata = app.extensions["migrate"].db.metadata
+config.set_main_option("sqlalchemy.url", app.config["SQLALCHEMY_DATABASE_URI"])
 
 
 def run_migrations_offline():
