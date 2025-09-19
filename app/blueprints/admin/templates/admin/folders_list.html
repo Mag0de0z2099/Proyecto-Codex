@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Carpetas – SGC{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <h2>Carpetas</h2>
+  <form class="row g-2 mb-3" method="post" action="{{ url_for('admin.folders_create') }}">
+    <div class="col-md-4">
+      <label class="form-label">Proyecto</label>
+      <select class="form-select" name="project_id" required>
+        <option value="">Selecciona…</option>
+        {% for p in projects %}
+          <option value="{{ p.id }}">{{ p.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Nombre de carpeta</label>
+      <input class="form-control" name="name" required/>
+    </div>
+    <div class="col-md-4 d-flex align-items-end">
+      <button class="btn btn-primary">Crear carpeta</button>
+    </div>
+  </form>
+
+  <table class="table table-sm table-striped">
+    <thead><tr><th>Proyecto</th><th>Carpeta</th><th>Creada</th></tr></thead>
+    <tbody>
+      {% for f in folders %}
+      <tr>
+        <td>{{ f.project.name }}</td>
+        <td>{{ f.name }}</td>
+        <td>{{ f.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

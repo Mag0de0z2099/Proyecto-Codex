@@ -6,7 +6,7 @@ import pytest
 
 from app import create_app
 from app.db import db
-from app.models.user import User
+from app.models import User
 
 
 @pytest.fixture()
@@ -44,11 +44,11 @@ def test_admin_login_ok_and_access(app_with_admin):
     )
 
     assert response.status_code == 200
-    assert b"Panel Admin" in response.data
+    assert b"Dashboard SGC" in response.data
 
     dashboard = client.get("/admin/")
     assert dashboard.status_code == 200
-    assert b"Panel Admin" in dashboard.data
+    assert b"Dashboard SGC" in dashboard.data
 
     logout = client.get("/auth/logout", follow_redirects=True)
     assert logout.status_code == 200

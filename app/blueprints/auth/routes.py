@@ -220,7 +220,7 @@ def forgot_password_post():
     if current_user.is_authenticated:
         return redirect(url_for("admin.index"))
     email = (request.form.get("email") or "").strip().lower()
-    from app.models.user import User
+    from app.models import User
     user = db.session.query(User).filter_by(email=email).one_or_none()
 
     # Siempre mensaje neutro
@@ -275,7 +275,7 @@ def reset_password_post(token: str):
         flash("Las contraseñas no coinciden.", "danger")
         return redirect(url_for("auth.reset_password", token=token))
 
-    from app.models.user import User
+    from app.models import User
     user = db.session.query(User).filter_by(email=email).one_or_none()
     if not user:
         flash("El enlace no es válido o expiró.", "danger")

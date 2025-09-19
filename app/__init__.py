@@ -11,7 +11,6 @@ from werkzeug.exceptions import HTTPException
 from .blueprints.admin import bp_admin
 from .blueprints.api.v1 import bp_api_v1
 from .blueprints.auth import bp_auth
-from .blueprints.folders import bp_folders
 from .blueprints.ping import bp_ping
 from .blueprints.web import bp_web
 from .config import get_config
@@ -58,8 +57,7 @@ def create_app(config_name: str | None = None) -> Flask:
 
     app.register_blueprint(bp_auth)
     app.register_blueprint(bp_web)
-    app.register_blueprint(bp_admin, url_prefix="/admin")
-    app.register_blueprint(bp_folders, url_prefix="/folders")
+    app.register_blueprint(bp_admin)
     app.register_blueprint(bp_api_v1, url_prefix="/api/v1")
     app.register_blueprint(bp_ping)
 

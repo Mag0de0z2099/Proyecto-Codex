@@ -1,26 +1,107 @@
 from __future__ import annotations
 
-from pathlib import Path
 import re
+from functools import wraps
+from pathlib import Path
 
-from flask import current_app, render_template, request, redirect, url_for, flash, session
-from flask_login import current_user
+from flask import (
+    Blueprint,
+    current_app,
+    flash,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
+)
+from flask_login import current_user, login_required as flask_login_required
 
 from app.db import db
-from app.models.user import User
+from app.models import Folder, MetricDaily, Project, User
 from app.security import generate_reset_token
 
-from . import bp_admin
-from app.authz import login_required
-
+bp_admin = Blueprint("admin", __name__, template_folder="templates", url_prefix="/admin")
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+def login_required(view):
+    decorated = flask_login_required(view)
+
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        if current_app.config.get("AUTH_SIMPLE", True):
+            if session.get("user"):
+                return view(*args, **kwargs)
+            return redirect(url_for("auth.login", next=request.path))
+        return decorated(*args, **kwargs)
+
+    return wrapped
 
 
 @bp_admin.get("/")
 @login_required
 def index():
-    return render_template("admin/index.html")
+    projects = Project.query.all()
+    total_projects = len(projects)
+    avg_progress = (
+        round(sum(p.progress for p in projects) / total_projects, 1)
+        if total_projects
+        else 0.0
+    )
+    budget = sum(p.budget for p in projects)
+    spent = sum(p.spent for p in projects)
+    proj = projects[0] if projects else None
+    return render_template(
+        "admin/index.html",
+        projects=projects,
+        total_projects=total_projects,
+        avg_progress=avg_progress,
+        budget=budget,
+        spent=spent,
+        main_project=proj,
+    )
+
+
+@bp_admin.get("/kpi/<int:project_id>.json")
+@login_required
+def kpi_json(project_id: int):
+    rows = (
+        MetricDaily.query.filter_by(project_id=project_id)
+        .order_by(MetricDaily.date)
+        .all()
+    )
+    labels = [r.date.isoformat() for r in rows if r.kpi_name == "progreso"]
+    progreso = [r.value for r in rows if r.kpi_name == "progreso"]
+    gasto = [r.value for r in rows if r.kpi_name == "gasto"]
+    return jsonify({"labels": labels, "progreso": progreso, "gasto": gasto})
+
+
+@bp_admin.get("/folders")
+@login_required
+def folders_list():
+    folders = Folder.query.order_by(Folder.created_at.desc()).all()
+    projects = Project.query.all()
+    return render_template(
+        "admin/folders_list.html", folders=folders, projects=projects
+    )
+
+
+@bp_admin.post("/folders")
+@login_required
+def folders_create():
+    project_id = request.form.get("project_id")
+    name = (request.form.get("name") or "").strip()
+    if not project_id or not name:
+        flash("Proyecto y nombre son obligatorios.", "warning")
+        return redirect(url_for("admin.folders_list"))
+
+    folder = Folder(project_id=int(project_id), name=name, created_by="admin")
+    db.session.add(folder)
+    db.session.commit()
+    flash("Carpeta creada.", "success")
+    return redirect(url_for("admin.folders_list"))
 
 
 @bp_admin.get("/files")
@@ -46,7 +127,7 @@ def admin_required() -> bool:
     if current_app.config.get("AUTH_SIMPLE", False):
         user = session.get("user") or {}
         return bool(user.get("is_admin"))
-    return current_user.is_authenticated and current_user.is_admin
+    return current_user.is_authenticated and bool(getattr(current_user, "is_admin", False))
 
 
 @bp_admin.get("/users/new")
@@ -95,14 +176,14 @@ def admin_create_user():
             flash("Este email ya está registrado.", "danger")
             return redirect(url_for("admin.admin_new_user"))
 
-    u = User(
+    user = User(
         username=username,
         email=email,
         is_admin=is_admin,
         force_change_password=force_change,
     )
-    u.set_password(password)
-    db.session.add(u)
+    user.set_password(password)
+    db.session.add(user)
     db.session.commit()
     flash("Usuario creado correctamente.", "success")
     return redirect(url_for("admin.index"))
@@ -114,8 +195,8 @@ def admin_users():
     if not admin_required():
         flash("Acceso no autorizado.", "danger")
         return redirect(url_for("web.index"))
-    q = User.query.order_by(User.id.desc()).all()
-    return render_template("admin/users.html", users=q)
+    users = User.query.order_by(User.id.desc()).all()
+    return render_template("admin/users.html", users=users)
 
 
 @bp_admin.post("/users/<int:user_id>/reset-link")
@@ -125,21 +206,21 @@ def admin_user_reset_link(user_id: int):
         flash("Acceso no autorizado.", "danger")
         return redirect(url_for("web.index"))
 
-    u = db.session.get(User, user_id)
-    if not u:
+    user = db.session.get(User, user_id)
+    if not user:
         flash("Usuario no encontrado.", "danger")
         return redirect(url_for("admin.admin_users"))
 
-    if not u.email:
+    if not user.email:
         flash("El usuario no tiene email registrado.", "warning")
         return redirect(url_for("admin.admin_users"))
 
-    token = generate_reset_token(u.email)
+    token = generate_reset_token(user.email)
     reset_url = url_for("auth.reset_password", token=token, _external=True)
 
-    current_app.logger.warning("[ADMIN-RESET] %s -> %s", u.email, reset_url)
+    current_app.logger.warning("[ADMIN-RESET] %s -> %s", user.email, reset_url)
 
-    return render_template("admin/reset_link.html", user=u, reset_url=reset_url)
+    return render_template("admin/reset_link.html", user=user, reset_url=reset_url)
 
 
 @bp_admin.post("/users/<int:user_id>/toggle-force")
@@ -149,12 +230,16 @@ def admin_user_toggle_force(user_id: int):
         flash("Acceso no autorizado.", "danger")
         return redirect(url_for("web.index"))
 
-    u = db.session.get(User, user_id)
-    if not u:
+    user = db.session.get(User, user_id)
+    if not user:
         flash("Usuario no encontrado.", "danger")
         return redirect(url_for("admin.admin_users"))
 
-    u.force_change_password = not bool(u.force_change_password)
+    user.force_change_password = not bool(user.force_change_password)
     db.session.commit()
-    flash(("Activado" if u.force_change_password else "Desactivado") + " el requisito de cambio de contraseña.", "info")
+    flash(
+        ("Activado" if user.force_change_password else "Desactivado")
+        + " el requisito de cambio de contraseña.",
+        "info",
+    )
     return redirect(url_for("admin.admin_users"))

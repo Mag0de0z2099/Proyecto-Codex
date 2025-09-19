@@ -4,7 +4,7 @@ from flask import jsonify, request
 from werkzeug.exceptions import BadRequest
 
 from ...db import db
-from ...models.todo import Todo
+from ...models import Todo
 from . import bp
 
 
