@@ -16,6 +16,7 @@ from .blueprints.web import bp_web
 from .config import get_config
 from .db import db
 from .extensions import init_auth_extensions
+from .cli import register_cli
 from .migrate_ext import init_migrations
 from .storage import ensure_dirs
 
@@ -67,6 +68,8 @@ def create_app(config_name: str | None = None) -> Flask:
     app.register_blueprint(bp_admin)
     app.register_blueprint(bp_api_v1, url_prefix="/api/v1")
     app.register_blueprint(bp_ping)
+
+    register_cli(app)
 
     @app.errorhandler(Exception)
     def handle_any_error(err):  # pragma: no cover - logging side-effect
