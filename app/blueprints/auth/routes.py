@@ -1,28 +1,26 @@
 from __future__ import annotations
 
-import logging
 import re
 from http import HTTPStatus
-
-from flask import current_app, render_template, request, redirect, url_for, flash
-from flask_login import current_user, login_required, login_user, logout_user
+from flask import (
+    Blueprint,
+    current_app,
+    flash,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
+)
+from flask_login import current_user, login_required as flask_login_required, login_user, logout_user
 
 from app.db import db
 from app.models.user import User
 from app.security import generate_reset_token, parse_reset_token
 
-from . import bp_auth
+bp_auth = Blueprint("auth", __name__, url_prefix="/auth", template_folder="templates")
 
-logger = logging.getLogger(__name__)
-
-EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
-
-
-@bp_auth.get("/login")
-def login():
-    if current_user.is_authenticated:
-        return redirect(url_for("admin.index"))
-    return render_template("auth/login.html")
+SIMPLE_USERS = {"admin": "admin", "test": "test"}
 
 
 @bp_auth.post("/login")
@@ -31,34 +29,80 @@ def login_post():
         username = (request.form.get("username") or "").strip()
         password = request.form.get("password") or ""
 
-        user = User.query.filter_by(username=username).first()
-        if not user or not user.check_password(password) or not user.is_active:
-            flash("Credenciales inválidas o usuario inactivo.", "danger")
+        # === MODO SIMPLE: SIN DB ===
+        if current_app.config.get("AUTH_SIMPLE", False):
+            if SIMPLE_USERS.get(username) == password:
+                session["user"] = {
+                    "username": username,
+                    "is_admin": username == "admin",
+                }
+                return redirect(request.args.get("next") or url_for("admin.index"))
+            flash("Usuario o contraseña inválidos.", "danger")
             return redirect(url_for("auth.login"))
 
-        login_user(user)
-        if getattr(user, "force_change_password", False):
-            flash("Debes actualizar tu contraseña antes de continuar.", "info")
-            return redirect(url_for("auth.change_password"))
-        flash("Bienvenido 👋", "success")
-        return redirect(url_for("admin.index"))
+        # ===== MODO NORMAL (DB) — dejar comentado por ahora =====
+        # user = User.query.filter_by(username=username).first()
+        # if user and user.check_password(password) and user.is_active:
+        #     session["user"] = {"id": user.id, "username": user.username, "is_admin": user.is_admin}
+        #     return redirect(request.args.get("next") or url_for("admin.index"))
+        # flash("Usuario o contraseña inválidos.", "danger")
+        # return redirect(url_for("auth.login"))
+
+        user = User.query.filter_by(username=username).first()
+        if user and user.check_password(password) and user.is_active:
+            login_user(user)
+            if getattr(user, "force_change_password", False):
+                flash("Debes actualizar tu contraseña antes de continuar.", "info")
+                return redirect(url_for("auth.change_password"))
+            flash("Bienvenido 👋", "success")
+            return redirect(request.args.get("next") or url_for("admin.index"))
+
+        flash("Usuario o contraseña inválidos.", "danger")
+        return redirect(url_for("auth.login"))
+
     except Exception:
-        logger.exception("Login error")
         current_app.logger.exception("Login error")
-        flash("Error interno. Intenta de nuevo en unos minutos.", "danger")
+        flash("Error interno. Intenta de nuevo.", "danger")
         return redirect(url_for("auth.login"))
 
 
+EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+@bp_auth.before_app_request
+def _enforce_force_change_password():
+    allowed = {"auth.logout", "auth.change_password", "static"}
+    if (
+        current_user.is_authenticated
+        and getattr(current_user, "force_change_password", False)
+    ):
+        endpoint = request.endpoint or ""
+        if endpoint not in allowed:
+            return redirect(url_for("auth.change_password"))
+
+
+@bp_auth.get("/login")
+def login():
+    if current_app.config.get("AUTH_SIMPLE", False) and session.get("user"):
+        return redirect(url_for("admin.index"))
+    if current_user.is_authenticated:
+        return redirect(url_for("admin.index"))
+    return render_template("auth/login.html")
+
+
 @bp_auth.get("/logout")
-@login_required
 def logout():
+    if current_app.config.get("AUTH_SIMPLE", False):
+        session.pop("user", None)
+        flash("Sesión cerrada", "info")
+        return redirect(url_for("auth.login"))
     logout_user()
     flash("Sesión cerrada", "info")
     return redirect(url_for("auth.login"))
 
 
 @bp_auth.route("/change-password", methods=["GET", "POST"])
-@login_required
+@flask_login_required
 def change_password():
     force_change = getattr(current_user, "force_change_password", False)
     template = (
