@@ -46,6 +46,14 @@
             <li class="nav-item">
               <a class="nav-link" href="{{ url_for('auth.login') }}">Entrar</a>
             </li>
+            {% if config.get('AUTH_SIMPLE', True) %}
+              <li class="nav-item">
+                <a class="btn btn-sm btn-outline-secondary ms-lg-3 mt-3 mt-lg-0"
+                   href="{{ url_for('auth.register') }}">
+                  Crear usuario
+                </a>
+              </li>
+            {% endif %}
             <li class="nav-item">
               <a class="btn btn-outline-primary ms-lg-3" href="{{ url_for('admin.index') }}">Panel Admin</a>
             </li>

@@ -50,7 +50,7 @@ def create_app(config_name: str | None = None) -> Flask:
             has_web_index = "web.index" in app.view_functions
         except Exception:
             has_web_index = False
-        return {"has_web_index": has_web_index}
+        return {"has_web_index": has_web_index, "config": app.config}
 
     # Blueprints
     from . import models  # noqa: F401
