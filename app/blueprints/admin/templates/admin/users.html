@@ -1,47 +1,59 @@
-{% extends "base.html" %}
-{% block title %}Usuarios{% endblock %}
-{% block content %}
-<article>
-  <h2>Usuarios</h2>
-  <p><a href="{{ url_for('admin.admin_new_user') }}" role="button">➕ Crear usuario</a></p>
-  <table>
-    <thead>
-      <tr>
-        <th>ID</th>
-        <th>Usuario</th>
-        <th>Email</th>
-        <th>Rol</th>
-        <th>Cargo</th>
-        <th>Admin</th>
-        <th>Forzar cambio</th>
-        <th>Acciones</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for u in users %}
-      <tr>
-        <td>{{ u.id }}</td>
-        <td>{{ u.username }}</td>
-        <td>{{ u.email or '—' }}</td>
-        <td>{{ u.role|capitalize }}</td>
-        <td>{{ u.title or '—' }}</td>
-        <td>{{ 'Sí' if u.is_admin else 'No' }}</td>
-        <td>{{ 'Sí' if u.force_change_password else 'No' }}</td>
-        <td>
-          <form method="post" action="{{ url_for('admin.admin_user_reset_link', user_id=u.id) }}" style="display:inline">
-            <button>🔗 Reset</button>
+{% extends "admin/_base_admin.html" %}
+{% block admin_content %}
+<h1>Usuarios</h1>
+<p><a class="btn btn-secondary" href="{{ url_for('admin.admin_new_user') }}">➕ Crear usuario</a></p>
+
+<table class="table">
+  <thead>
+    <tr>
+      <th>Usuario</th>
+      <th>Rol</th>
+      <th>Activo</th>
+      <th>Cambiar rol</th>
+      <th>Alternar</th>
+      <th>Acciones</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for u in users %}
+    <tr>
+      <td>
+        <div class="fw-bold">{{ u.username }}</div>
+        <div class="text-muted">{{ u.email or '—' }}</div>
+      </td>
+      <td><span class="badge">{{ u.role or 'viewer' }}</span></td>
+      <td>{{ 'Sí' if u.is_active else 'No' }}</td>
+      <td>
+        <form method="post" action="{{ url_for('admin.users_set_role') }}" style="display:flex;gap:.4rem">
+          <input type="hidden" name="user_id" value="{{ u.id }}">
+          <select name="role" class="form-select">
+            {% for r in ROLES %}
+              <option value="{{ r }}" {% if (u.role or 'viewer')==r %}selected{% endif %}>{{ r }}</option>
+            {% endfor %}
+          </select>
+          <button class="btn btn-primary">Guardar</button>
+        </form>
+      </td>
+      <td>
+        <form method="post" action="{{ url_for('admin.users_toggle_active') }}">
+          <input type="hidden" name="user_id" value="{{ u.id }}">
+          <button class="btn btn-outline">{{ 'Desactivar' if u.is_active else 'Activar' }}</button>
+        </form>
+      </td>
+      <td>
+        <div style="display:flex;gap:.4rem">
+          <form method="post" action="{{ url_for('admin.admin_user_reset_link', user_id=u.id) }}">
+            <button class="btn btn-outline-secondary">Enviar reset</button>
           </form>
-          <form method="post" action="{{ url_for('admin.admin_user_toggle_force', user_id=u.id) }}" style="display:inline">
-            {% if u.force_change_password %}
-              <button>❎ Quitar</button>
-            {% else %}
-              <button>✅ Forzar</button>
-            {% endif %}
+          <form method="post" action="{{ url_for('admin.admin_user_toggle_force', user_id=u.id) }}">
+            <button class="btn btn-outline-secondary">
+              {{ 'Quitar forzar' if u.force_change_password else 'Forzar cambio' }}
+            </button>
           </form>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</article>
+        </div>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
 {% endblock %}
