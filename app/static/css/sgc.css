@@ -103,3 +103,12 @@ footer a:hover {
 .btn-nom:hover {
   background: #0056b3;
 }
+.admin-layout{display:grid;grid-template-columns:240px 1fr;min-height:70vh;gap:1rem}
+.admin-sidebar{border-right:1px solid #e5e7eb;padding:1rem}
+.admin-sidebar .brand{font-weight:700;margin-bottom:1rem}
+.admin-sidebar nav a{display:block;padding:.5rem .25rem;border-radius:.5rem;color:#111827;text-decoration:none}
+.admin-sidebar nav a:hover{background:#f3f4f6}
+.admin-main{padding:1rem}
+.table{width:100%;border-collapse:collapse}
+.table th,.table td{border-bottom:1px solid #eee;padding:.5rem .4rem;font-size:.95rem}
+.badge{display:inline-block;border:1px solid #e5e7eb;border-radius:999px;padding:.15rem .5rem;font-size:.8rem}

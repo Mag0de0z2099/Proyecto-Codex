@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from datetime import date
 from functools import wraps
 from pathlib import Path
 
@@ -18,9 +19,19 @@ from flask import (
 from flask_login import login_required as flask_login_required
 
 from app.db import db
-from app.models import Folder, MetricDaily, Project, User
+from app.models import (
+    Bitacora,
+    ChecklistTemplate,
+    ChecklistTemplateItem,
+    DailyChecklist,
+    DailyChecklistItem,
+    Folder,
+    MetricDaily,
+    Project,
+    User,
+)
 from app.security import generate_reset_token
-from app.auth.roles import ROLES, admin_required
+from app.auth.roles import ROLES, admin_required, role_required
 
 bp_admin = Blueprint("admin", __name__, template_folder="templates", url_prefix="/admin")
 
@@ -43,7 +54,6 @@ def login_required(view):
 
 @bp_admin.get("/")
 @login_required
-@admin_required
 def index():
     projects = Project.query.all()
     total_projects = len(projects)
@@ -54,15 +64,17 @@ def index():
     )
     budget = sum(p.budget for p in projects)
     spent = sum(p.spent for p in projects)
-    proj = projects[0] if projects else None
+    ultimas_logs = (
+        Bitacora.query.order_by(Bitacora.created_at.desc()).limit(5).all()
+    )
     return render_template(
         "admin/index.html",
-        projects=projects,
         total_projects=total_projects,
         avg_progress=avg_progress,
         budget=budget,
         spent=spent,
-        main_project=proj,
+        ultimas=ultimas_logs,
+        projects=projects,
     )
 
 
@@ -79,6 +91,212 @@ def kpi_json(project_id: int):
     progreso = [r.value for r in rows if r.kpi_name == "progreso"]
     gasto = [r.value for r in rows if r.kpi_name == "gasto"]
     return jsonify({"labels": labels, "progreso": progreso, "gasto": gasto})
+
+
+# PROYECTOS (listar/crear rápido)
+@bp_admin.get("/projects")
+@login_required
+@role_required("admin", "supervisor")
+def projects():
+    data = Project.query.order_by(Project.created_at.desc()).all()
+    return render_template("admin/projects.html", projects=data)
+
+
+@bp_admin.post("/projects")
+@login_required
+@role_required("admin", "supervisor")
+def projects_create():
+    name = request.form.get("name", "").strip()
+    client = request.form.get("client", "").strip()
+    if not name:
+        flash("Nombre de proyecto requerido", "warning")
+        return redirect(url_for("admin.projects"))
+    project = Project(
+        name=name,
+        client=client or None,
+        status="activo",
+        progress=0.0,
+        budget=0.0,
+        spent=0.0,
+    )
+    db.session.add(project)
+    db.session.commit()
+    flash("Proyecto creado", "success")
+    return redirect(url_for("admin.projects"))
+
+
+# BITÁCORAS (listar/crear)
+@bp_admin.get("/bitacoras")
+@login_required
+@role_required("admin", "supervisor", "editor")
+def bitacoras():
+    logs = (
+        Bitacora.query.order_by(Bitacora.date.desc(), Bitacora.created_at.desc())
+        .limit(50)
+        .all()
+    )
+    projects = Project.query.order_by(Project.name).all()
+    return render_template(
+        "admin/bitacoras.html", logs=logs, projects=projects, now=date.today()
+    )
+
+
+@bp_admin.post("/bitacoras")
+@login_required
+@role_required("admin", "supervisor", "editor")
+def bitacoras_create():
+    project_id = request.form.get("project_id")
+    if not project_id:
+        flash("Selecciona un proyecto", "warning")
+        return redirect(url_for("admin.bitacoras"))
+    try:
+        project_id_int = int(project_id)
+    except (TypeError, ValueError):
+        flash("Proyecto inválido", "warning")
+        return redirect(url_for("admin.bitacoras"))
+    author = request.form.get("author", "")
+    text = request.form.get("text", "")
+    date_input = request.form.get("date")
+    try:
+        log_date = date.fromisoformat(date_input) if date_input else date.today()
+    except ValueError:
+        log_date = date.today()
+    bitacora = Bitacora(
+        project_id=project_id_int,
+        author=author or "sistema",
+        text=text,
+        date=log_date,
+    )
+    db.session.add(bitacora)
+    db.session.commit()
+    flash("Bitácora registrada", "success")
+    return redirect(url_for("admin.bitacoras"))
+
+
+# CHECKLISTS (plantillas y diarios)
+@bp_admin.get("/checklists")
+@login_required
+@role_required("admin", "supervisor", "editor")
+def checklists():
+    templates = ChecklistTemplate.query.order_by(ChecklistTemplate.name).all()
+    projects = Project.query.order_by(Project.name).all()
+    recientes = (
+        DailyChecklist.query.order_by(DailyChecklist.date.desc()).limit(10).all()
+    )
+    return render_template(
+        "admin/checklists.html", templates=templates, projects=projects, recientes=recientes
+    )
+
+
+@bp_admin.post("/checklists/template")
+@login_required
+@role_required("admin", "supervisor")
+def checklist_template_create():
+    name = request.form.get("name", "").strip()
+    project_id = request.form.get("project_id") or None
+    if not name:
+        flash("Nombre de plantilla requerido", "warning")
+        return redirect(url_for("admin.checklists"))
+    project_id_value = None
+    if project_id:
+        try:
+            project_id_value = int(project_id)
+        except (TypeError, ValueError):
+            flash("Proyecto inválido", "warning")
+            return redirect(url_for("admin.checklists"))
+    template = ChecklistTemplate(name=name, project_id=project_id_value)
+    db.session.add(template)
+    db.session.commit()
+    base_items = [
+        "Personal con EPP completo",
+        "Revisión de combustible/aceites",
+        "Señalización en tierra",
+        "Control de residuos (RP/RSU)",
+        "Revisión de clima/oleaje",
+    ]
+    for order, text in enumerate(base_items):
+        db.session.add(
+            ChecklistTemplateItem(template_id=template.id, text=text, order=order)
+        )
+    db.session.commit()
+    flash("Plantilla creada con items de ejemplo", "success")
+    return redirect(url_for("admin.checklists"))
+
+
+@bp_admin.post("/checklists/daily")
+@login_required
+@role_required("admin", "supervisor", "editor")
+def checklist_daily_create():
+    project_id = request.form.get("project_id")
+    template_id = request.form.get("template_id")
+    if not project_id or not template_id:
+        flash("Proyecto y plantilla son requeridos", "warning")
+        return redirect(url_for("admin.checklists"))
+    try:
+        project_id_int = int(project_id)
+        template_id_int = int(template_id)
+    except (TypeError, ValueError):
+        flash("Datos inválidos", "warning")
+        return redirect(url_for("admin.checklists"))
+    created_by = request.form.get("created_by") or "sistema"
+    date_input = request.form.get("date")
+    try:
+        checklist_date = (
+            date.fromisoformat(date_input) if date_input else date.today()
+        )
+    except ValueError:
+        checklist_date = date.today()
+    checklist = DailyChecklist(
+        project_id=project_id_int,
+        date=checklist_date,
+        created_by=created_by,
+        status="en_progreso",
+    )
+    db.session.add(checklist)
+    db.session.commit()
+    template_items = (
+        ChecklistTemplateItem.query.filter_by(template_id=template_id_int)
+        .order_by(ChecklistTemplateItem.order)
+        .all()
+    )
+    for item in template_items:
+        db.session.add(
+            DailyChecklistItem(checklist_id=checklist.id, text=item.text, done=False)
+        )
+    db.session.commit()
+    flash("Checklist diario creado", "success")
+    return redirect(url_for("admin.checklist_detail", checklist_id=checklist.id))
+
+
+@bp_admin.get("/checklists/<int:checklist_id>")
+@login_required
+@role_required("admin", "supervisor", "editor")
+def checklist_detail(checklist_id: int):
+    checklist = DailyChecklist.query.get_or_404(checklist_id)
+    return render_template("admin/checklist_detail.html", c=checklist)
+
+
+@bp_admin.post("/checklists/<int:checklist_id>/toggle")
+@login_required
+@role_required("admin", "supervisor", "editor")
+def checklist_toggle(checklist_id: int):
+    item_id = request.form.get("item_id")
+    if not item_id:
+        flash("Ítem no válido", "warning")
+        return redirect(url_for("admin.checklist_detail", checklist_id=checklist_id))
+    item = DailyChecklistItem.query.get_or_404(int(item_id))
+    if item.checklist_id != checklist_id:
+        flash("Ítem no válido", "warning")
+        return redirect(url_for("admin.checklist_detail", checklist_id=checklist_id))
+    item.done = not item.done
+    db.session.commit()
+    checklist = DailyChecklist.query.get(checklist_id)
+    if checklist:
+        checklist.status = (
+            "completo" if all(entry.done for entry in checklist.items) else "en_progreso"
+        )
+        db.session.commit()
+    return redirect(url_for("admin.checklist_detail", checklist_id=checklist_id))
 
 
 @bp_admin.get("/folders")

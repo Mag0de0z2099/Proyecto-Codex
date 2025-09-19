@@ -1,0 +1,25 @@
+{% extends "admin/_base_admin.html" %}
+{% block admin_title %}Proyectos · Admin · SGC{% endblock %}
+{% block admin_content %}
+<h1>Proyectos</h1>
+
+<form class="row g-2 mb-3" method="post" action="{{ url_for('admin.projects_create') }}" style="display:grid;grid-template-columns:1fr 1fr auto;gap:.5rem;max-width:800px">
+  <input class="form-control" name="name" placeholder="Nombre del proyecto" required>
+  <input class="form-control" name="client" placeholder="Cliente (opcional)">
+  <button class="btn btn-primary">Crear</button>
+</form>
+
+<table class="table">
+  <thead><tr><th>Nombre</th><th>Cliente</th><th>Progreso</th><th>Estado</th></tr></thead>
+  <tbody>
+    {% for p in projects %}
+    <tr>
+      <td>{{ p.name }}</td>
+      <td>{{ p.client or "-" }}</td>
+      <td>{{ p.progress }}%</td>
+      <td><span class="badge">{{ p.status }}</span></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
