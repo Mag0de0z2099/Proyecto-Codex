@@ -56,7 +56,7 @@ def create_app(config_name: str | None = None) -> Flask:
     from . import models  # noqa: F401
     from .api import v1 as _api_v1  # noqa: F401
 
-    app.register_blueprint(bp_auth, url_prefix="/auth")
+    app.register_blueprint(bp_auth)
     app.register_blueprint(bp_web)
     app.register_blueprint(bp_admin, url_prefix="/admin")
     app.register_blueprint(bp_folders, url_prefix="/folders")

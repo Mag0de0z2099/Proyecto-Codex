@@ -36,6 +36,7 @@ class BaseConfig:
         else {},
     }
     ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin")
+    AUTH_SIMPLE = os.getenv("AUTH_SIMPLE", "0").lower() in ("1", "true", "yes")
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "False").lower() in ("1", "true", "yes")
     SESSION_COOKIE_SAMESITE = "Lax"

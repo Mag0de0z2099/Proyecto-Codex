@@ -3,14 +3,15 @@ from __future__ import annotations
 from pathlib import Path
 import re
 
-from flask import current_app, render_template, request, redirect, url_for, flash
-from flask_login import current_user, login_required
+from flask import current_app, render_template, request, redirect, url_for, flash, session
+from flask_login import current_user
 
 from app.db import db
 from app.models.user import User
 from app.security import generate_reset_token
 
 from . import bp_admin
+from app.authz import login_required
 
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
@@ -42,6 +43,9 @@ def list_files():
 
 
 def admin_required() -> bool:
+    if current_app.config.get("AUTH_SIMPLE", False):
+        user = session.get("user") or {}
+        return bool(user.get("is_admin"))
     return current_user.is_authenticated and current_user.is_admin
 
 
