@@ -31,3 +31,30 @@ En producción la aplicación fuerza cookies `Secure`, `HttpOnly` y `SameSite=La
 - **Rate limiting:** `/auth/forgot-password` limita solicitudes a `5/minuto` y `30/hora` por IP.
 
 Revisa los logs durante los primeros minutos tras cada deploy para detectar errores de integridad o restablecimientos de contraseña. Cada reset exitoso registra el `user_id` asociado (sin exponer el token).
+
+## Procfile y procesos
+
+- **Procfile básico (`Procfile`):**
+
+  ```
+  web: gunicorn -w 3 -t 60 app.main:app
+  ```
+
+  - `web` es el proceso que recibirá tráfico HTTP.
+  - `gunicorn -w 3` levanta 3 workers (ajusta según los recursos disponibles).
+  - `-t 60` define un timeout de 60 s.
+  - `app.main:app` apunta a la aplicación Flask principal (actualízalo si cambias el módulo).
+
+  Render utiliza el mismo comando como “Start Command”; si lo eliminas en el panel, conservar el Procfile bastará para que lo detecte automáticamente.
+
+- **Procfile extendido (opcional):**
+
+  ```
+  web: gunicorn -w 3 -t 60 app.main:app
+  worker: python worker.py
+  ```
+
+  - Añade un proceso `worker` para ejecutar tareas en segundo plano (por ejemplo, colas con RQ/Celery, envíos de correos, etc.).
+  - Render puede ignorar este proceso si no está configurado, pero si migras a plataformas que sí leen el Procfile (Heroku, Fly.io), podrás levantar web y worker sin cambios adicionales.
+
+Documentar estos comandos en el repositorio evita dudas al desplegar en diferentes proveedores.
