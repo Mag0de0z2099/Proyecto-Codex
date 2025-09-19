@@ -2,6 +2,24 @@ services:
   - type: web
     name: proyecto-codex
     env: python
-    buildCommand: pip install -r requirements.txt
-    preDeployCommand: python -m app.scripts.db_upgrade && python -m app.scripts.create_admin && python -m app.scripts.seed_demo
+    envVars:
+      - key: SECRET_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: FLASK_ENV
+        value: production
+      - key: FLASK_DEBUG
+        value: "0"
+      - key: LOG_LEVEL
+        value: INFO
+      - key: FLASK_APP
+        value: app:create_app
+    buildCommand: |
+      pip install --upgrade pip
+      pip install -r requirements.txt
+    preDeployCommand: |
+      alembic upgrade head
+      flask seed-admin --email admin@admin.com --password admin123
     startCommand: gunicorn -w 3 -t 60 app.main:app
+    healthCheckPath: /healthz
