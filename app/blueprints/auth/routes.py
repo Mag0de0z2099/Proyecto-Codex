@@ -4,7 +4,6 @@ import re
 from http import HTTPStatus
 from flask import (
     Blueprint,
-    abort,
     current_app,
     flash,
     redirect,
@@ -17,7 +16,8 @@ from flask_login import current_user, login_required as flask_login_required, lo
 
 from app.db import db
 from app.security import generate_reset_token, parse_reset_token
-from app.simple_auth.store import add_user, ensure_bootstrap_admin, verify
+from app.models import User
+from app.simple_auth.store import ensure_bootstrap_admin, verify
 
 bp_auth = Blueprint("auth", __name__, url_prefix="/auth", template_folder="templates")
 
@@ -45,8 +45,6 @@ def login_post():
         #     return redirect(request.args.get("next") or url_for("admin.index"))
         # flash("Usuario o contraseña inválidos.", "danger")
         # return redirect(url_for("auth.login"))
-
-        from app.models.user import User
 
         user = User.query.filter_by(username=username).first()
         if user and user.check_password(password) and user.is_active:
@@ -102,43 +100,43 @@ def logout():
 
 
 # -------- Registro (crear usuario) --------
-@bp_auth.route("/register", methods=["GET", "POST"])
+@bp_auth.get("/register")
 def register():
-    if not current_app.config.get("AUTH_SIMPLE", True):
-        abort(404)
+    return render_template("auth/register.html")
 
-    allow_open = current_app.config.get("AUTH_SIMPLE_SELF_REGISTER", "1") == "1"
-    is_admin = bool(session.get("user", {}).get("is_admin"))
 
-    if request.method == "POST":
-        if not allow_open and not is_admin:
-            flash("Solo el administrador puede crear usuarios.", "warning")
-            return redirect(url_for("auth.login"))
+@bp_auth.post("/register")
+def register_post():
+    username = (request.form.get("username") or "").strip()
+    password = request.form.get("password") or ""
+    confirm = request.form.get("confirm") or ""
 
-        username = (request.form.get("username") or "").strip()
-        password = request.form.get("password") or ""
-        confirm = request.form.get("confirm") or ""
-        make_admin = bool(request.form.get("is_admin")) if is_admin else False
+    if not username or not password:
+        flash("Usuario y contraseña son obligatorios.", "warning")
+        return redirect(url_for("auth.register"))
 
-        if len(username) < 3:
-            flash("El usuario debe tener al menos 3 caracteres.", "warning")
-            return render_template("auth/register.html", is_admin=is_admin)
-        if len(password) < 4:
-            flash("La contraseña debe tener al menos 4 caracteres.", "warning")
-            return render_template("auth/register.html", is_admin=is_admin)
-        if password != confirm:
-            flash("Las contraseñas no coinciden.", "warning")
-            return render_template("auth/register.html", is_admin=is_admin)
+    if password != confirm:
+        flash("Las contraseñas no coinciden.", "warning")
+        return redirect(url_for("auth.register"))
 
-        try:
-            add_user(current_app, username, password, make_admin)
-            flash("Usuario creado. Ya puedes iniciar sesión.", "success")
-            return redirect(url_for("auth.login"))
-        except ValueError as e:
-            flash(str(e), "danger")
-            return render_template("auth/register.html", is_admin=is_admin)
+    existing = User.query.filter_by(username=username).first()
+    if existing:
+        flash("Ese usuario ya existe. Elige otro.", "warning")
+        return redirect(url_for("auth.register"))
 
-    return render_template("auth/register.html", is_admin=is_admin)
+    user = User(
+        username=username,
+        email=None,
+        is_admin=False,
+        is_active=True,
+        force_change_password=False,
+    )
+    user.set_password(password)
+    db.session.add(user)
+    db.session.commit()
+
+    flash("Usuario creado. Ya puedes iniciar sesión.", "success")
+    return redirect(url_for("auth.login"))
 
 
 @bp_auth.route("/change-password", methods=["GET", "POST"])
