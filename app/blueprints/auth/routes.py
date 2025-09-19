@@ -4,6 +4,7 @@ import re
 from http import HTTPStatus
 from flask import (
     Blueprint,
+    abort,
     current_app,
     flash,
     redirect,
@@ -15,12 +16,10 @@ from flask import (
 from flask_login import current_user, login_required as flask_login_required, login_user, logout_user
 
 from app.db import db
-from app.models.user import User
 from app.security import generate_reset_token, parse_reset_token
+from app.simple_auth.store import add_user, ensure_bootstrap_admin, verify
 
 bp_auth = Blueprint("auth", __name__, url_prefix="/auth", template_folder="templates")
-
-SIMPLE_USERS = {"admin": "admin", "test": "test"}
 
 
 @bp_auth.post("/login")
@@ -30,12 +29,11 @@ def login_post():
         password = request.form.get("password") or ""
 
         # === MODO SIMPLE: SIN DB ===
-        if current_app.config.get("AUTH_SIMPLE", False):
-            if SIMPLE_USERS.get(username) == password:
-                session["user"] = {
-                    "username": username,
-                    "is_admin": username == "admin",
-                }
+        if current_app.config.get("AUTH_SIMPLE", True):
+            ensure_bootstrap_admin(current_app)
+            user = verify(current_app, username, password)
+            if user:
+                session["user"] = user
                 return redirect(request.args.get("next") or url_for("admin.index"))
             flash("Usuario o contraseña inválidos.", "danger")
             return redirect(url_for("auth.login"))
@@ -47,6 +45,8 @@ def login_post():
         #     return redirect(request.args.get("next") or url_for("admin.index"))
         # flash("Usuario o contraseña inválidos.", "danger")
         # return redirect(url_for("auth.login"))
+
+        from app.models.user import User
 
         user = User.query.filter_by(username=username).first()
         if user and user.check_password(password) and user.is_active:
@@ -83,7 +83,7 @@ def _enforce_force_change_password():
 
 @bp_auth.get("/login")
 def login():
-    if current_app.config.get("AUTH_SIMPLE", False) and session.get("user"):
+    if current_app.config.get("AUTH_SIMPLE", True) and session.get("user"):
         return redirect(url_for("admin.index"))
     if current_user.is_authenticated:
         return redirect(url_for("admin.index"))
@@ -92,13 +92,53 @@ def login():
 
 @bp_auth.get("/logout")
 def logout():
-    if current_app.config.get("AUTH_SIMPLE", False):
-        session.pop("user", None)
-        flash("Sesión cerrada", "info")
-        return redirect(url_for("auth.login"))
+    if current_app.config.get("AUTH_SIMPLE", True):
+        session.clear()
+        flash("Sesión cerrada.", "info")
+        return redirect(url_for("web.index"))
     logout_user()
     flash("Sesión cerrada", "info")
     return redirect(url_for("auth.login"))
+
+
+# -------- Registro (crear usuario) --------
+@bp_auth.route("/register", methods=["GET", "POST"])
+def register():
+    if not current_app.config.get("AUTH_SIMPLE", True):
+        abort(404)
+
+    allow_open = current_app.config.get("AUTH_SIMPLE_SELF_REGISTER", "1") == "1"
+    is_admin = bool(session.get("user", {}).get("is_admin"))
+
+    if request.method == "POST":
+        if not allow_open and not is_admin:
+            flash("Solo el administrador puede crear usuarios.", "warning")
+            return redirect(url_for("auth.login"))
+
+        username = (request.form.get("username") or "").strip()
+        password = request.form.get("password") or ""
+        confirm = request.form.get("confirm") or ""
+        make_admin = bool(request.form.get("is_admin")) if is_admin else False
+
+        if len(username) < 3:
+            flash("El usuario debe tener al menos 3 caracteres.", "warning")
+            return render_template("auth/register.html", is_admin=is_admin)
+        if len(password) < 4:
+            flash("La contraseña debe tener al menos 4 caracteres.", "warning")
+            return render_template("auth/register.html", is_admin=is_admin)
+        if password != confirm:
+            flash("Las contraseñas no coinciden.", "warning")
+            return render_template("auth/register.html", is_admin=is_admin)
+
+        try:
+            add_user(current_app, username, password, make_admin)
+            flash("Usuario creado. Ya puedes iniciar sesión.", "success")
+            return redirect(url_for("auth.login"))
+        except ValueError as e:
+            flash(str(e), "danger")
+            return render_template("auth/register.html", is_admin=is_admin)
+
+    return render_template("auth/register.html", is_admin=is_admin)
 
 
 @bp_auth.route("/change-password", methods=["GET", "POST"])
@@ -153,6 +193,7 @@ def forgot_password_post():
     if current_user.is_authenticated:
         return redirect(url_for("admin.index"))
     email = (request.form.get("email") or "").strip().lower()
+    from app.models.user import User
     user = db.session.query(User).filter_by(email=email).one_or_none()
 
     # Siempre mensaje neutro
@@ -207,6 +248,7 @@ def reset_password_post(token: str):
         flash("Las contraseñas no coinciden.", "danger")
         return redirect(url_for("auth.reset_password", token=token))
 
+    from app.models.user import User
     user = db.session.query(User).filter_by(email=email).one_or_none()
     if not user:
         flash("El enlace no es válido o expiró.", "danger")

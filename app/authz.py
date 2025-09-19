@@ -12,7 +12,7 @@ F = TypeVar("F", bound=Callable[..., Any])
 def login_required(view: F) -> F:
     @wraps(view)
     def wrapped(*args: Any, **kwargs: Any):
-        if current_app.config.get("AUTH_SIMPLE", False):
+        if current_app.config.get("AUTH_SIMPLE", True):
             return view(*args, **kwargs)
         if session.get("user") or current_user.is_authenticated:
             return view(*args, **kwargs)
