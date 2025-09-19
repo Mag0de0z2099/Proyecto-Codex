@@ -409,12 +409,48 @@ def admin_create_user():
     return redirect(url_for("admin.index"))
 
 
+# --- Gestión de usuarios (solo admin) ---
+
+
 @bp_admin.get("/users")
 @login_required
 @admin_required
-def admin_users():
-    users = User.query.order_by(User.id.desc()).all()
-    return render_template("admin/users.html", users=users)
+def users():
+    users = User.query.order_by(User.username).all()
+    roles = list(ROLES)
+    return render_template("admin/users.html", users=users, ROLES=roles)
+
+
+@bp_admin.post("/users/role")
+@login_required
+@admin_required
+def users_set_role():
+    user_id = int(request.form["user_id"])
+    role = request.form["role"]
+    user = User.query.get_or_404(user_id)
+    if role not in ROLES:
+        flash("Rol inválido", "warning")
+        return redirect(url_for("admin.users"))
+    user.role = role
+    user.is_admin = role == "admin"
+    db.session.commit()
+    flash(f"Rol de {user.username} → {role}", "success")
+    return redirect(url_for("admin.users"))
+
+
+@bp_admin.post("/users/toggle")
+@login_required
+@admin_required
+def users_toggle_active():
+    user_id = int(request.form["user_id"])
+    user = User.query.get_or_404(user_id)
+    user.is_active = not user.is_active
+    db.session.commit()
+    flash(
+        f"Estado de {user.username} → {'activo' if user.is_active else 'inactivo'}",
+        "success",
+    )
+    return redirect(url_for("admin.users"))
 
 
 @bp_admin.post("/users/<int:user_id>/reset-link")
@@ -425,11 +461,11 @@ def admin_user_reset_link(user_id: int):
     user = db.session.get(User, user_id)
     if not user:
         flash("Usuario no encontrado.", "danger")
-        return redirect(url_for("admin.admin_users"))
+        return redirect(url_for("admin.users"))
 
     if not user.email:
         flash("El usuario no tiene email registrado.", "warning")
-        return redirect(url_for("admin.admin_users"))
+        return redirect(url_for("admin.users"))
 
     token = generate_reset_token(user.email)
     reset_url = url_for("auth.reset_password", token=token, _external=True)
@@ -447,7 +483,7 @@ def admin_user_toggle_force(user_id: int):
     user = db.session.get(User, user_id)
     if not user:
         flash("Usuario no encontrado.", "danger")
-        return redirect(url_for("admin.admin_users"))
+        return redirect(url_for("admin.users"))
 
     user.force_change_password = not bool(user.force_change_password)
     db.session.commit()
@@ -456,4 +492,4 @@ def admin_user_toggle_force(user_id: int):
         + " el requisito de cambio de contraseña.",
         "info",
     )
-    return redirect(url_for("admin.admin_users"))
+    return redirect(url_for("admin.users"))
