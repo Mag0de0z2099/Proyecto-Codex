@@ -17,6 +17,7 @@ from flask import (
     url_for,
 )
 from flask_login import login_required as flask_login_required
+from sqlalchemy.exc import IntegrityError
 
 from app.db import db
 from app.models import (
@@ -106,11 +107,31 @@ def projects():
 @login_required
 @role_required("admin", "supervisor")
 def projects_create():
-    name = request.form.get("name", "").strip()
-    client = request.form.get("client", "").strip()
+    payload = request.get_json(silent=True)
+    is_json = isinstance(payload, dict)
+    data = payload if is_json else request.form
+
+    name = (data.get("name") or "").strip()
+    client = (data.get("client") or "").strip()
+
     if not name:
+        if is_json:
+            return (
+                jsonify({"ok": False, "error": "El nombre es obligatorio."}),
+                400,
+            )
         flash("Nombre de proyecto requerido", "warning")
         return redirect(url_for("admin.projects"))
+
+    if Project.query.filter_by(name=name).first():
+        if is_json:
+            return (
+                jsonify({"ok": False, "error": "Ya existe un proyecto con ese nombre."}),
+                409,
+            )
+        flash("Ya existe un proyecto con ese nombre.", "warning")
+        return redirect(url_for("admin.projects"))
+
     project = Project(
         name=name,
         client=client or None,
@@ -120,7 +141,25 @@ def projects_create():
         spent=0.0,
     )
     db.session.add(project)
-    db.session.commit()
+
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        if is_json:
+            return (
+                jsonify({"ok": False, "error": "Ya existe un proyecto con ese nombre."}),
+                409,
+            )
+        flash("Ya existe un proyecto con ese nombre.", "warning")
+        return redirect(url_for("admin.projects"))
+
+    if is_json:
+        return (
+            jsonify({"ok": True, "project": {"id": project.id, "name": project.name}}),
+            201,
+        )
+
     flash("Proyecto creado", "success")
     return redirect(url_for("admin.projects"))
 
