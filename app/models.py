@@ -31,6 +31,10 @@ class Project(db.Model):
     reports = db.relationship("Report", backref="project", lazy=True)
     logs = db.relationship("Bitacora", backref="project", lazy=True)
     metrics = db.relationship("MetricDaily", backref="project", lazy=True)
+    checklist_templates = db.relationship(
+        "ChecklistTemplate", backref="project", lazy=True
+    )
+    daily_checklists = db.relationship("DailyChecklist", backref="project", lazy=True)
 
 
 class Folder(db.Model):
@@ -76,6 +80,51 @@ class MetricDaily(db.Model):
     date = db.Column(db.Date, nullable=False)
     value = db.Column(db.Float, nullable=False, default=0.0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+# --- MODELOS DE CHECKLISTS ---
+class ChecklistTemplate(db.Model):
+    __tablename__ = "checklist_templates"
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(160), nullable=False, unique=True)
+    project_id = db.Column(db.Integer, db.ForeignKey("projects.id"), nullable=True)
+    items = db.relationship(
+        "ChecklistTemplateItem", backref="template", cascade="all,delete-orphan"
+    )
+
+
+class ChecklistTemplateItem(db.Model):
+    __tablename__ = "checklist_template_items"
+    id = db.Column(db.Integer, primary_key=True)
+    template_id = db.Column(
+        db.Integer, db.ForeignKey("checklist_templates.id"), nullable=False
+    )
+    text = db.Column(db.String(255), nullable=False)
+    order = db.Column(db.Integer, default=0)
+
+
+class DailyChecklist(db.Model):
+    __tablename__ = "daily_checklists"
+    id = db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(db.Integer, db.ForeignKey("projects.id"), nullable=False)
+    date = db.Column(db.Date, nullable=False)
+    created_by = db.Column(db.String(80))
+    status = db.Column(
+        db.String(20), default="en_progreso"
+    )  # en_progreso / completo
+    items = db.relationship(
+        "DailyChecklistItem", backref="checklist", cascade="all,delete-orphan"
+    )
+
+
+class DailyChecklistItem(db.Model):
+    __tablename__ = "daily_checklist_items"
+    id = db.Column(db.Integer, primary_key=True)
+    checklist_id = db.Column(
+        db.Integer, db.ForeignKey("daily_checklists.id"), nullable=False
+    )
+    text = db.Column(db.String(255), nullable=False)
+    done = db.Column(db.Boolean, default=False)
 
 
 class Todo(db.Model):
@@ -173,6 +222,10 @@ __all__ = [
     "Report",
     "Bitacora",
     "MetricDaily",
+    "ChecklistTemplate",
+    "ChecklistTemplateItem",
+    "DailyChecklist",
+    "DailyChecklistItem",
     "Todo",
     "User",
 ]

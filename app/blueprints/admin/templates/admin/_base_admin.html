@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}{% block admin_title %}SGC · Admin{% endblock %}{% endblock %}
+{% block content %}
+<div class="admin-layout">
+  <aside class="admin-sidebar">
+    <div class="brand">SGC · Admin</div>
+    <nav>
+      <a href="{{ url_for('admin.index') }}">📊 Dashboard</a>
+      <a href="{{ url_for('admin.projects') }}">🏗️ Proyectos</a>
+      <a href="{{ url_for('admin.bitacoras') }}">📝 Bitácoras</a>
+      <a href="{{ url_for('admin.checklists') }}">✅ Checklists</a>
+    </nav>
+  </aside>
+  <main class="admin-main">
+    {% block admin_content %}{% endblock %}
+  </main>
+</div>
+{% endblock %}

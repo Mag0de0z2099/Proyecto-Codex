@@ -1,0 +1,30 @@
+{% extends "admin/_base_admin.html" %}
+{% block admin_title %}Bitácoras · Admin · SGC{% endblock %}
+{% block admin_content %}
+<h1>Bitácoras</h1>
+
+<form class="row g-2 mb-3" method="post" action="{{ url_for('admin.bitacoras_create') }}" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem">
+  <select class="form-select" name="project_id" required>
+    <option value="">Proyecto…</option>
+    {% for p in projects %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}
+  </select>
+  <input class="form-control" name="author" placeholder="Autor (opcional)">
+  <input class="form-control" name="date" type="date" value="{{ (now or none)|default('', true) }}">
+  <textarea class="form-control" name="text" placeholder="Descripción..." style="grid-column:1/-1" required></textarea>
+  <div><button class="btn btn-primary">Guardar bitácora</button></div>
+</form>
+
+<table class="table">
+  <thead><tr><th>Fecha</th><th>Proyecto</th><th>Autor</th><th>Texto</th></tr></thead>
+  <tbody>
+    {% for b in logs %}
+    <tr>
+      <td>{{ b.date }}</td>
+      <td>{{ b.project.name }}</td>
+      <td>{{ b.author or "-" }}</td>
+      <td>{{ b.text[:140] }}{% if b.text|length>140 %}…{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

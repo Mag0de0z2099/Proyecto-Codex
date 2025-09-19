@@ -1,0 +1,53 @@
+{% extends "admin/_base_admin.html" %}
+{% block admin_title %}Checklists · Admin · SGC{% endblock %}
+{% block admin_content %}
+<h1>Checklists</h1>
+
+<h3 class="mt-2">Plantillas</h3>
+<form class="row g-2 mb-3" method="post" action="{{ url_for('admin.checklist_template_create') }}" style="display:grid;grid-template-columns:1fr 1fr auto;gap:.5rem;max-width:900px">
+  <input class="form-control" name="name" placeholder="Nombre de la plantilla (ej. Checklist diario de dragado)" required>
+  <select class="form-select" name="project_id">
+    <option value="">(Opcional) Proyecto específico</option>
+    {% for p in projects %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}
+  </select>
+  <button class="btn btn-primary">Crear plantilla</button>
+</form>
+
+<ul>
+  {% for t in templates %}
+    <li>{{ t.name }} {% if t.project_id %} — <span class="badge">Proyecto: {{ t.project.name }}</span>{% endif %} ({{ t.items|length }} ítems)</li>
+  {% endfor %}
+</ul>
+
+<hr>
+
+<h3 class="mt-2">Checklist diario</h3>
+<form class="row g-2 mb-3" method="post" action="{{ url_for('admin.checklist_daily_create') }}" style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:.5rem;max-width:900px">
+  <select class="form-select" name="project_id" required>
+    <option value="">Proyecto…</option>
+    {% for p in projects %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}
+  </select>
+  <select class="form-select" name="template_id" required>
+    <option value="">Plantilla…</option>
+    {% for t in templates %}<option value="{{ t.id }}">{{ t.name }}</option>{% endfor %}
+  </select>
+  <input class="form-control" type="date" name="date" value="">
+  <input class="form-control" name="created_by" placeholder="Creado por (opcional)">
+  <button class="btn btn-primary" style="grid-column:1/-1;max-width:220px">Crear checklist</button>
+</form>
+
+<h4>Recientes</h4>
+<table class="table">
+  <thead><tr><th>Fecha</th><th>Proyecto</th><th>Estado</th><th></th></tr></thead>
+  <tbody>
+    {% for c in recientes %}
+    <tr>
+      <td>{{ c.date }}</td>
+      <td>{{ c.project.name }}</td>
+      <td><span class="badge">{{ c.status }}</span></td>
+      <td><a class="btn btn-outline" href="{{ url_for('admin.checklist_detail', checklist_id=c.id) }}">Abrir</a></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
