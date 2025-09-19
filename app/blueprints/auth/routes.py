@@ -12,7 +12,15 @@ from flask import (
     session,
     url_for,
 )
-from flask_login import current_user, login_required as flask_login_required, login_user, logout_user
+from flask_login import (
+    current_user,
+    login_required as flask_login_required,
+    login_user,
+    logout_user,
+)
+from sqlalchemy import inspect
+from sqlalchemy.exc import IntegrityError
+from werkzeug.security import generate_password_hash
 
 from app.db import db
 from app.security import generate_reset_token, parse_reset_token
@@ -102,6 +110,17 @@ def logout():
 # -------- Registro (crear usuario) --------
 @bp_auth.get("/register")
 def register():
+    try:
+        insp = inspect(db.engine)
+        if not insp.has_table("users"):
+            db.create_all()
+    except Exception:  # pragma: no cover - logging + flash side-effect
+        current_app.logger.exception("Unable to ensure users table exists")
+        flash(
+            "No se pudo verificar/crear tablas. Reintenta o ejecuta migraciones.",
+            "warning",
+        )
+
     return render_template("auth/register.html")
 
 
@@ -119,23 +138,33 @@ def register_post():
         flash("Las contraseñas no coinciden.", "warning")
         return redirect(url_for("auth.register"))
 
-    existing = User.query.filter_by(username=username).first()
-    if existing:
+    try:
+        insp = inspect(db.engine)
+        if not insp.has_table("users"):
+            db.create_all()
+
+        new_user = User(
+            username=username,
+            email=None,
+            password_hash=generate_password_hash(password),
+            is_admin=False,
+            is_active=True,
+            force_change_password=False,
+        )
+        db.session.add(new_user)
+        db.session.commit()
+
+    except IntegrityError:
+        db.session.rollback()
         flash("Ese usuario ya existe. Elige otro.", "warning")
         return redirect(url_for("auth.register"))
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception("Unable to create user from register form")
+        flash("No se pudo crear el usuario. Inténtalo de nuevo.", "danger")
+        return redirect(url_for("auth.register"))
 
-    user = User(
-        username=username,
-        email=None,
-        is_admin=False,
-        is_active=True,
-        force_change_password=False,
-    )
-    user.set_password(password)
-    db.session.add(user)
-    db.session.commit()
-
-    flash("Usuario creado. Ya puedes iniciar sesión.", "success")
+    flash("Usuario creado con éxito. Ya puedes iniciar sesión.", "success")
     return redirect(url_for("auth.login"))
 
 
