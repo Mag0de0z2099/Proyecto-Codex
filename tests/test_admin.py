@@ -4,7 +4,7 @@ from pathlib import Path
 
 from app import create_app
 from app.db import db
-from app.models.user import User
+from app.models import User
 
 
 def _create_app_with_admin(tmp_path, monkeypatch):

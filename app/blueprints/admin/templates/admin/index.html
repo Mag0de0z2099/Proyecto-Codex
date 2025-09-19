@@ -1,6 +1,78 @@
 {% extends "base.html" %}
-{% block title %}Panel Admin{% endblock %}
+{% block title %}Dashboard – SGC{% endblock %}
 {% block content %}
-<h2>Panel Admin</h2>
-<p>Bienvenido al panel. Usa el menú para navegar.</p>
+<div class="container py-4">
+  <h1 class="mb-3">Dashboard SGC</h1>
+
+  <div class="row g-3">
+    <div class="col-md-3">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <div class="fw-bold text-muted">Proyectos</div>
+          <div class="fs-3">{{ total_projects }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <div class="fw-bold text-muted">Avance promedio</div>
+          <div class="fs-3">{{ avg_progress }}%</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <div class="fw-bold text-muted">Presupuesto</div>
+          <div class="fs-5">${{ "{:,.0f}".format(budget) }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <div class="fw-bold text-muted">Gastado</div>
+          <div class="fs-5">${{ "{:,.0f}".format(spent) }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if main_project %}
+  <div class="mt-4">
+    <h5>{{ main_project.name }} — KPIs últimos 30 días</h5>
+    <canvas id="kpiChart" height="90"></canvas>
+  </div>
+  {% endif %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% if main_project %}
+<script>
+(async function(){
+  const res = await fetch("{{ url_for('admin.kpi_json', project_id=main_project.id) }}");
+  const data = await res.json();
+  const ctx = document.getElementById('kpiChart');
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: data.labels,
+      datasets: [
+        { label: 'Progreso (%)', data: data.progreso, borderWidth: 2 },
+        { label: 'Gasto (MXN)', data: data.gasto, borderWidth: 2 }
+      ]
+    },
+    options: {
+      responsive: true,
+      interaction: { mode: 'index', intersect: false },
+      scales: { y: { beginAtZero: true } }
+    }
+  });
+})();
+</script>
+{% endif %}
 {% endblock %}

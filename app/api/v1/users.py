@@ -7,7 +7,7 @@ from flask import jsonify, request
 from werkzeug.exceptions import BadRequest, NotFound
 
 from ...db import db
-from ...models.user import User
+from ...models import User
 from . import bp
 
 

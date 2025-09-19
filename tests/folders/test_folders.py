@@ -1,7 +1,6 @@
 from app import create_app
 from app.db import db
-from app.models.folder import Folder
-from app.models.user import User
+from app.models import Folder, Project, User
 
 
 def setup_app():
@@ -12,29 +11,41 @@ def setup_app():
         user = User(username="admin", is_admin=True, is_active=True)
         user.set_password("admin")
         db.session.add(user)
+        project = Project(name="Terminal", status="activo")
+        db.session.add(project)
         db.session.commit()
     return app
 
 
 def login(client):
     return client.post(
-        "/auth/login", data={"username": "admin", "password": "admin"}, follow_redirects=True
+        "/auth/login",
+        data={"username": "admin", "password": "admin"},
+        follow_redirects=True,
     )
 
 
-def test_create_folder_happy_path():
+def test_admin_can_create_folder():
     app = setup_app()
     client = app.test_client()
     login(client)
-    client.get("/folders/")
+
+    response = client.get("/admin/folders")
+    assert response.status_code == 200
+    assert b"Carpetas" in response.data
+
     with app.app_context():
-        root = Folder.query.filter_by(is_root=True).first()
-        assert root is not None
-        response = client.post(
-            "/folders/create",
-            data={"parent_id": root.id, "name": "Calidad"},
-            follow_redirects=True,
-        )
-        assert response.status_code == 200
-        folder = Folder.query.filter_by(parent_id=root.id, slug="calidad").one_or_none()
+        project = Project.query.filter_by(name="Terminal").first()
+        assert project is not None
+
+    create = client.post(
+        "/admin/folders",
+        data={"project_id": project.id, "name": "Planos"},
+        follow_redirects=True,
+    )
+    assert create.status_code == 200
+    assert b"Carpeta creada" in create.data
+
+    with app.app_context():
+        folder = Folder.query.filter_by(project_id=project.id, name="Planos").first()
         assert folder is not None
