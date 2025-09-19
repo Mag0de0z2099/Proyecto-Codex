@@ -4,6 +4,7 @@
 <div class="container py-4">
   <h2>Carpetas</h2>
   <form class="row g-2 mb-3" method="post" action="{{ url_for('admin.folders_create') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="col-md-4">
       <label class="form-label">Proyecto</label>
       <select class="form-select" name="project_id" required>

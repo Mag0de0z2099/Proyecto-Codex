@@ -11,3 +11,9 @@ bp_ping = Blueprint("ping", __name__)
 def ping() -> Response:
     """Responde con un texto plano para los healthchecks externos."""
     return Response("pong", 200, {"Content-Type": "text/plain; charset=utf-8"})
+
+
+@bp_ping.get("/healthz")
+def healthz():
+    """Healthcheck rápido para plataformas como Render."""
+    return {"ok": True}, 200

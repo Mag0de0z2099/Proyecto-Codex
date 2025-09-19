@@ -146,6 +146,9 @@ def projects_create():
         db.session.commit()
     except IntegrityError:
         db.session.rollback()
+        current_app.logger.warning(
+            "Duplicate project creation attempt", extra={"name": name}
+        )
         if is_json:
             return (
                 jsonify({"ok": False, "error": "Ya existe un proyecto con ese nombre."}),

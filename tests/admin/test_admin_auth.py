@@ -73,5 +73,5 @@ def test_admin_login_wrong_password(app_with_admin):
         follow_redirects=False,
     )
 
-    assert response.status_code == 302
-    assert "/auth/login" in (response.headers.get("Location") or "")
+    assert response.status_code == 401
+    assert b"Usuario o contrase\xc3\xb1a inv\xc3\xa1lidos" in response.data

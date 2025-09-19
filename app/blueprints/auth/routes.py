@@ -7,6 +7,7 @@ from flask import (
     Blueprint,
     current_app,
     flash,
+    jsonify,
     redirect,
     render_template,
     request,
@@ -24,6 +25,7 @@ from sqlalchemy.exc import IntegrityError
 from werkzeug.security import generate_password_hash
 
 from app.db import db
+from app.extensions import limiter
 from app.security import generate_reset_token, parse_reset_token
 from app.models import User
 from app.utils.strings import normalize_email
@@ -81,7 +83,7 @@ def login_post():
                 session["user"] = {**user, "role": role}
                 return _redirect_for_role(role, request.args.get("next"))
             flash("Usuario o contraseña inválidos.", "danger")
-            return redirect(url_for("auth.login"))
+            return render_template("auth/login.html"), HTTPStatus.UNAUTHORIZED
 
         # ===== MODO NORMAL (DB) — dejar comentado por ahora =====
         # user = User.query.filter_by(username=username).first()
@@ -102,12 +104,12 @@ def login_post():
             return _redirect_for_role(role, request.args.get("next"))
 
         flash("Usuario o contraseña inválidos.", "danger")
-        return redirect(url_for("auth.login"))
+        return render_template("auth/login.html"), HTTPStatus.UNAUTHORIZED
 
     except Exception:
         current_app.logger.exception("Login error")
         flash("Error interno. Intenta de nuevo.", "danger")
-        return redirect(url_for("auth.login"))
+        return render_template("auth/login.html"), HTTPStatus.INTERNAL_SERVER_ERROR
 
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
@@ -197,6 +199,9 @@ def register_post():
 
     except IntegrityError:
         db.session.rollback()
+        current_app.logger.warning(
+            "Duplicate user attempted to register", extra={"username": username}
+        )
         flash("Ese usuario ya existe. Elige otro.", "warning")
         return redirect(url_for("auth.register"))
     except Exception:
@@ -226,7 +231,11 @@ def change_password():
                 flash("Tu contraseña actual no es correcta.", "warning")
                 return render_template(template)
 
-        new_password = (request.form.get("new_password") or "").strip()
+        new_password = (
+            request.form.get("new_password")
+            or request.form.get("new")
+            or ""
+        ).strip()
         confirm = (request.form.get("confirm") or "").strip()
 
         if len(new_password) < 8:
@@ -259,12 +268,31 @@ def forgot_password():
 
 
 @bp_auth.post("/forgot-password")
+@limiter.limit("5/minute;30/hour")
 def forgot_password_post():
     if current_user.is_authenticated:
         role = _resolve_role(current_user)
         return redirect(url_for(_endpoint_for_role(role)))
-    raw_email = request.form.get("email")
+    payload = request.get_json(silent=True) if request.is_json else None
+    if isinstance(payload, Mapping):
+        raw_email = payload.get("email")
+        wants_json = True
+    else:
+        raw_email = request.form.get("email")
+        wants_json = False
+
     email = normalize_email(raw_email)
+    if not email or not EMAIL_RE.match(email):
+        if wants_json:
+            return (
+                jsonify({"ok": False, "error": "Email inválido."}),
+                HTTPStatus.BAD_REQUEST,
+            )
+        flash("Proporciona un email válido.", "warning")
+        return (
+            render_template("auth/forgot_password.html"),
+            HTTPStatus.BAD_REQUEST,
+        )
     from app.models import User
     user = None
     if email:
@@ -276,17 +304,27 @@ def forgot_password_post():
 
     # Siempre mensaje neutro
     if not user:
-        flash("Si la cuenta existe, se generó un enlace temporal.", "info")
+        message = "Si la cuenta existe, se generó un enlace temporal."
+        if wants_json:
+            return jsonify({"ok": True, "message": message}), HTTPStatus.OK
+        flash(message, "info")
         return (
             render_template("auth/forgot_password_sent.html", reset_url=None),
             HTTPStatus.OK,
         )
 
-    # Generar token y MOSTRAR el link en pantalla (sin correo)
     token = generate_reset_token(user.email)
     reset_url = url_for("auth.reset_password", token=token, _external=True)
-    # También lo dejamos en logs
-    current_app.logger.warning("[RESET-LINK] %s -> %s", user.email, reset_url)
+    current_app.logger.info(
+        "Password reset link issued",
+        extra={"user_id": user.id, "token_prefix": token[:8]},
+    )
+
+    if wants_json:
+        return (
+            jsonify({"ok": True, "reset_url": reset_url}),
+            HTTPStatus.OK,
+        )
 
     flash("Se generó un enlace temporal. Úsalo antes de 1 hora.", "success")
     return (
@@ -336,5 +374,8 @@ def reset_password_post(token: str):
 
     user.set_password(new)
     db.session.commit()
+    current_app.logger.info(
+        "Password reset completed", extra={"user_id": user.id}
+    )
     flash("Tu contraseña fue restablecida. Ya puedes iniciar sesión.", "success")
     return redirect(url_for("auth.login"))

@@ -4,6 +4,7 @@
 <h1>Bitácoras</h1>
 
 <form class="row g-2 mb-3" method="post" action="{{ url_for('admin.bitacoras_create') }}" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <select class="form-select" name="project_id" required>
     <option value="">Proyecto…</option>
     {% for p in projects %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}

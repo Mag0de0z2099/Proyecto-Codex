@@ -5,6 +5,7 @@
 
 <h3 class="mt-2">Plantillas</h3>
 <form class="row g-2 mb-3" method="post" action="{{ url_for('admin.checklist_template_create') }}" style="display:grid;grid-template-columns:1fr 1fr auto;gap:.5rem;max-width:900px">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <input class="form-control" name="name" placeholder="Nombre de la plantilla (ej. Checklist diario de dragado)" required>
   <select class="form-select" name="project_id">
     <option value="">(Opcional) Proyecto específico</option>
@@ -23,6 +24,7 @@
 
 <h3 class="mt-2">Checklist diario</h3>
 <form class="row g-2 mb-3" method="post" action="{{ url_for('admin.checklist_daily_create') }}" style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:.5rem;max-width:900px">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <select class="form-select" name="project_id" required>
     <option value="">Proyecto…</option>
     {% for p in projects %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}

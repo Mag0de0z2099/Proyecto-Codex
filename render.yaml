@@ -4,4 +4,4 @@ services:
     env: python
     buildCommand: pip install -r requirements.txt
     preDeployCommand: python -m app.scripts.db_upgrade && python -m app.scripts.create_admin && python -m app.scripts.seed_demo
-    startCommand: gunicorn "app:create_app()"
+    startCommand: gunicorn -w 3 -t 60 app.main:app
