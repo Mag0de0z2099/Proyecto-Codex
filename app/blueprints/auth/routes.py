@@ -19,13 +19,14 @@ from flask_login import (
     login_user,
     logout_user,
 )
-from sqlalchemy import inspect
+from sqlalchemy import func, inspect
 from sqlalchemy.exc import IntegrityError
 from werkzeug.security import generate_password_hash
 
 from app.db import db
 from app.security import generate_reset_token, parse_reset_token
 from app.models import User
+from app.utils.strings import normalize_email
 from app.simple_auth.store import ensure_bootstrap_admin, verify
 
 bp_auth = Blueprint("auth", __name__, url_prefix="/auth", template_folder="templates")
@@ -262,9 +263,16 @@ def forgot_password_post():
     if current_user.is_authenticated:
         role = _resolve_role(current_user)
         return redirect(url_for(_endpoint_for_role(role)))
-    email = (request.form.get("email") or "").strip().lower()
+    raw_email = request.form.get("email")
+    email = normalize_email(raw_email)
     from app.models import User
-    user = db.session.query(User).filter_by(email=email).one_or_none()
+    user = None
+    if email:
+        user = (
+            db.session.query(User)
+            .filter(func.lower(User.email) == email)
+            .one_or_none()
+        )
 
     # Siempre mensaje neutro
     if not user:

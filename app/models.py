@@ -4,13 +4,24 @@ from datetime import datetime
 from typing import Any
 
 from flask_login import UserMixin
-from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Index, String, Text
+from sqlalchemy import (
+    Boolean,
+    Date,
+    DateTime,
+    Float,
+    ForeignKey,
+    Index,
+    String,
+    Text,
+    event,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import expression
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from app.db import db
 from app.extensions import bcrypt, login_manager
+from app.utils.strings import normalize_email
 
 
 class Project(db.Model):
@@ -206,6 +217,16 @@ class User(db.Model, UserMixin):
 
     def __repr__(self) -> str:
         return f"<User {self.username}>"
+
+
+@event.listens_for(User, "before_insert", propagate=True)
+def _user_before_insert(mapper, connection, target):  # pragma: no cover - SQLAlchemy hook
+    target.email = normalize_email(target.email)
+
+
+@event.listens_for(User, "before_update", propagate=True)
+def _user_before_update(mapper, connection, target):  # pragma: no cover - SQLAlchemy hook
+    target.email = normalize_email(target.email)
 
 
 @login_manager.user_loader
