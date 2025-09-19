@@ -4,6 +4,7 @@
 <article>
   <h2>Iniciar sesión</h2>
   <form method="post" action="{{ url_for('auth.login_post') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <label class="form-label">
       Usuario
       <input class="form-control" type="text" name="username" required autofocus>

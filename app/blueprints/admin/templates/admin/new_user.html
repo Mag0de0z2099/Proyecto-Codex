@@ -3,6 +3,7 @@
 {% block content %}
 <h2>Crear usuario</h2>
 <form method="post" action="{{ url_for('admin.admin_create_user') }}" class="form" style="max-width:460px">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <div style="margin:.5rem 0">
     <label>Usuario</label><br>
     <input type="text" name="username" required autofocus style="width:100%">

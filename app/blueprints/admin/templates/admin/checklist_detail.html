@@ -5,6 +5,7 @@
 <p>Estado: <span class="badge">{{ c.status }}</span> · Creado por: {{ c.created_by or "-" }}</p>
 
 <form method="post" action="{{ url_for('admin.checklist_toggle', checklist_id=c.id) }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <table class="table">
     <thead><tr><th>Hecho</th><th>Ítem</th></tr></thead>
     <tbody>

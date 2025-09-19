@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from datetime import timedelta
 from pathlib import Path
 
 
@@ -38,8 +39,17 @@ class BaseConfig:
     ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin")
     AUTH_SIMPLE = os.getenv("AUTH_SIMPLE", "0").lower() in ("1", "true", "yes")
     SESSION_COOKIE_HTTPONLY = True
-    SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "False").lower() in ("1", "true", "yes")
-    SESSION_COOKIE_SAMESITE = "Lax"
+    _secure_cookies_flag = os.getenv("SECURE_COOKIES")
+    SESSION_COOKIE_SECURE = (
+        os.getenv("SESSION_COOKIE_SECURE", _secure_cookies_flag or "False")
+        .lower()
+        in ("1", "true", "yes")
+    )
+    SESSION_COOKIE_SAMESITE = os.getenv("SESSION_COOKIE_SAMESITE", "Lax")
+    REMEMBER_COOKIE_DURATION = timedelta(
+        seconds=int(os.getenv("REMEMBER_COOKIE_DURATION", "86400"))
+    )
+    LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 
 
 class DevelopmentConfig(BaseConfig):
@@ -61,6 +71,8 @@ class TestingConfig(BaseConfig):
 class ProductionConfig(BaseConfig):
     DEBUG = False
     TESTING = False
+    SESSION_COOKIE_SECURE = True
+    SESSION_COOKIE_SAMESITE = "Lax"
 
 
 _CONFIG_MAP: dict[str, type[BaseConfig]] = {
