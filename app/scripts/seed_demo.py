@@ -1,53 +1,33 @@
-from datetime import date, timedelta
-from random import randint
+from __future__ import annotations
 
 from app import create_app
 from app.db import db
-from app.models import MetricDaily, Project
+from app.models import User
+
+
+def ensure_user(username: str, password: str, role: str, title: str | None = None):
+    u = User.query.filter_by(username=username).first()
+    if not u:
+        u = User(username=username, role=role, title=title)
+        u.set_password(password)
+        if role == "admin":
+            u.is_admin = True
+        db.session.add(u)
+        print(f"Created user: {username} ({role})")
+    else:
+        print(f"User already exists: {username} ({u.role})")
 
 
 def main():
     app = create_app()
     with app.app_context():
-        if not Project.query.filter_by(name="Huasteca Fuel Terminal").first():
-            project = Project(
-                name="Huasteca Fuel Terminal",
-                client="Gas Natural",
-                status="activo",
-                progress=35.0,
-                budget=4_000_000,
-                spent=1_450_000,
-                start_date=date.today() - timedelta(days=60),
-            )
-            db.session.add(project)
-            db.session.commit()
+        ensure_user("admin", "admin", "admin", "Administrador")
+        ensure_user("julia", "super123", "supervisor", "Supervisor de obra")
+        ensure_user("carlos", "edit123", "editor", "Editor de reportes")
+        ensure_user("sofia", "view123", "viewer", "Consulta")
 
-            base = date.today() - timedelta(days=29)
-            progreso = 5.0
-            gasto = 900_000
-            for i in range(30):
-                current_date = base + timedelta(days=i)
-                progreso = min(100.0, progreso + randint(0, 3))
-                gasto += randint(10_000, 40_000)
-                db.session.add(
-                    MetricDaily(
-                        project_id=project.id,
-                        kpi_name="progreso",
-                        date=current_date,
-                        value=progreso,
-                    )
-                )
-                db.session.add(
-                    MetricDaily(
-                        project_id=project.id,
-                        kpi_name="gasto",
-                        date=current_date,
-                        value=gasto,
-                    )
-                )
-
-            db.session.commit()
-            print("Seed demo listo.")
+        db.session.commit()
+        print("Seed done.")
 
 
 if __name__ == "__main__":

@@ -20,6 +20,7 @@ def main() -> None:
                 username="admin",
                 email=None,
                 password_hash=generate_password_hash("admin"),
+                role="admin",
                 is_admin=True,
                 is_active=True,
                 force_change_password=False,

@@ -28,6 +28,7 @@ def main() -> None:
         user = User(
             username=username,
             email=email,
+            role="admin",
             is_admin=True,
             is_active=True,
         )

@@ -8,7 +8,13 @@ def setup_app():
     with app.app_context():
         db.drop_all()
         db.create_all()
-        u = User(username="admin", email=None, is_admin=True, is_active=True)
+        u = User(
+            username="admin",
+            email=None,
+            role="admin",
+            is_admin=True,
+            is_active=True,
+        )
         u.set_password("admin")
         db.session.add(u)
         db.session.commit()

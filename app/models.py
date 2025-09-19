@@ -107,12 +107,22 @@ class User(db.Model, UserMixin):
     username: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
     email: Mapped[str | None] = mapped_column(String(254), unique=False, nullable=True, index=True)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    role: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="viewer",
+        server_default="viewer",
+    )
+    title: Mapped[str | None] = mapped_column(String(80), nullable=True)
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     force_change_password: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
-    __table_args__ = (Index("ix_users_username", "username"),)
+    __table_args__ = (
+        Index("ix_users_username", "username"),
+        Index("ix_users_role", "role"),
+    )
 
     def set_password(self, password: str) -> None:
         self.password_hash = generate_password_hash(password or "")
@@ -131,11 +141,19 @@ class User(db.Model, UserMixin):
             "id": self.id,
             "username": self.username,
             "email": self.email,
+            "role": self.role,
+            "title": self.title,
             "is_admin": self.is_admin,
             "force_change_password": self.force_change_password,
             "is_active": self.is_active,
             "created_at": self.created_at.isoformat() + "Z",
         }
+
+    def can_upload(self) -> bool:
+        return self.role in ("admin", "supervisor", "editor")
+
+    def can_admin(self) -> bool:
+        return self.role == "admin"
 
     def __repr__(self) -> str:
         return f"<User {self.username}>"

@@ -43,20 +43,50 @@
             <li class="nav-item">
               <a class="nav-link" href="{{ url_for('web.index') if has_web_index else '#' }}">Inicio</a>
             </li>
-            <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('auth.login') }}">Entrar</a>
-            </li>
-            {% if config.get('AUTH_SIMPLE', True) %}
+            {% set simple_mode = config.get('AUTH_SIMPLE', True) %}
+            {% set simple_user = session.get('user') if simple_mode else None %}
+            {% if current_user.is_authenticated or simple_user %}
+              {% if current_user.is_authenticated %}
+                {% set active_role = current_user.role or ('admin' if current_user.is_admin else 'viewer') %}
+                {% set display_name = current_user.username %}
+                {% set display_title = current_user.title or active_role|capitalize %}
+              {% else %}
+                {% set active_role = simple_user.get('role') or ('admin' if simple_user.get('is_admin') else 'viewer') %}
+                {% set display_name = simple_user.get('username') %}
+                {% set display_title = simple_user.get('title') or active_role|capitalize %}
+              {% endif %}
+              {% set display_name = display_name or 'Usuario' %}
               <li class="nav-item">
-                <a class="btn btn-sm btn-outline-secondary ms-lg-3 mt-3 mt-lg-0"
-                   href="{{ url_for('auth.register') }}">
-                  Crear usuario
-                </a>
+                <span class="nav-link disabled text-muted">
+                  {{ display_name }} — {{ display_title }}
+                </span>
               </li>
+              {% if active_role == 'admin' %}
+                <li class="nav-item">
+                  <a class="nav-link" href="{{ url_for('admin.index') }}">Panel Admin</a>
+                </li>
+              {% endif %}
+              {% if active_role in ['admin', 'supervisor', 'editor'] and has_web_upload %}
+                <li class="nav-item">
+                  <a class="nav-link" href="{{ url_for('web.upload') }}">Subir reporte</a>
+                </li>
+              {% endif %}
+              <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('auth.logout') }}">Salir</a>
+              </li>
+            {% else %}
+              <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('auth.login') }}">Entrar</a>
+              </li>
+              {% if config.get('AUTH_SIMPLE', True) %}
+                <li class="nav-item">
+                  <a class="btn btn-sm btn-outline-secondary ms-lg-3 mt-3 mt-lg-0"
+                     href="{{ url_for('auth.register') }}">
+                    Crear usuario
+                  </a>
+                </li>
+              {% endif %}
             {% endif %}
-            <li class="nav-item">
-              <a class="btn btn-outline-primary ms-lg-3" href="{{ url_for('admin.index') }}">Panel Admin</a>
-            </li>
           </ul>
         </div>
       </div>

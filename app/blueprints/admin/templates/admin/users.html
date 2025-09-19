@@ -10,6 +10,8 @@
         <th>ID</th>
         <th>Usuario</th>
         <th>Email</th>
+        <th>Rol</th>
+        <th>Cargo</th>
         <th>Admin</th>
         <th>Forzar cambio</th>
         <th>Acciones</th>
@@ -21,6 +23,8 @@
         <td>{{ u.id }}</td>
         <td>{{ u.username }}</td>
         <td>{{ u.email or '—' }}</td>
+        <td>{{ u.role|capitalize }}</td>
+        <td>{{ u.title or '—' }}</td>
         <td>{{ 'Sí' if u.is_admin else 'No' }}</td>
         <td>{{ 'Sí' if u.force_change_password else 'No' }}</td>
         <td>

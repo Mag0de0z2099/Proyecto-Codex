@@ -4,10 +4,12 @@ import secrets
 from typing import Any
 
 from flask import jsonify, request
+
 from werkzeug.exceptions import BadRequest, NotFound
 
 from ...db import db
 from ...models import User
+from ...auth.roles import ROLES
 from . import bp
 
 
@@ -64,6 +66,15 @@ def create_user():
     username = _require_username(data.get("username"))
     email = _normalize_email(data.get("email"))
     password = data.get("password")
+    role_raw = str(data.get("role") or "viewer").strip().lower()
+    if role_raw not in ROLES:
+        raise BadRequest("invalid role.")
+    title = data.get("title")
+    title_value = None
+    if title is not None:
+        title_value = str(title).strip()
+        if not title_value:
+            title_value = None
 
     if User.query.filter_by(username=username).first() is not None:
         raise BadRequest("username already exists.")
@@ -71,7 +82,9 @@ def create_user():
     if email and User.query.filter_by(email=email).first() is not None:
         raise BadRequest("email already exists.")
 
-    u = User(username=username, email=email)
+    u = User(username=username, email=email, role=role_raw, title=title_value)
+    if role_raw == "admin":
+        u.is_admin = True
     if not password:
         password = secrets.token_urlsafe(12)
     u.set_password(password)
@@ -109,6 +122,21 @@ def update_user(user_id: int):
         if email and User.query.filter(User.id != user_id, User.email == email).first():
             raise BadRequest("email already exists.")
         u.email = email
+
+    if "role" in data:
+        role_raw = str(data.get("role") or "").strip().lower()
+        if role_raw not in ROLES:
+            raise BadRequest("invalid role.")
+        u.role = role_raw
+        u.is_admin = role_raw == "admin"
+
+    if "title" in data:
+        title = data.get("title")
+        if title is None:
+            u.title = None
+        else:
+            title_str = str(title).strip()
+            u.title = title_str or None
 
     if password:
         u.set_password(password)

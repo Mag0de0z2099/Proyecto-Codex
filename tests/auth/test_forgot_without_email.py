@@ -16,7 +16,12 @@ def setup_app():
 def test_forgot_generates_link_when_user_exists():
     app = setup_app()
     with app.app_context():
-        u = User(username="demo", email="demo@codex.local", is_admin=False)
+        u = User(
+            username="demo",
+            email="demo@codex.local",
+            role="viewer",
+            is_admin=False,
+        )
         u.set_password("demo12345")
         db.session.add(u)
         db.session.commit()
