@@ -12,7 +12,12 @@ def _create_app_with_admin(tmp_path, monkeypatch):
     app = create_app("test")
     with app.app_context():
         db.create_all()
-        admin = User(username="admin", email="admin@example.com", is_admin=True)
+        admin = User(
+            username="admin",
+            email="admin@example.com",
+            role="admin",
+            is_admin=True,
+        )
         admin.set_password("pass123")
         db.session.add(admin)
         db.session.commit()

@@ -23,6 +23,7 @@ def main() -> None:
         u = User(
             username=username,
             email=None,
+            role="admin",
             is_admin=True,
             is_active=True,
             force_change_password=False,

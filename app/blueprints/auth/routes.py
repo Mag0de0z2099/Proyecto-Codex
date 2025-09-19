@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping
 from http import HTTPStatus
 from flask import (
     Blueprint,
@@ -30,6 +31,40 @@ from app.simple_auth.store import ensure_bootstrap_admin, verify
 bp_auth = Blueprint("auth", __name__, url_prefix="/auth", template_folder="templates")
 
 
+def _resolve_role(entity: Mapping[str, object] | User | None) -> str:
+    if isinstance(entity, Mapping):
+        role = str(entity.get("role") or "").strip().lower()
+        if role in {"admin", "supervisor", "editor", "viewer"}:
+            return role
+        if entity.get("is_admin"):
+            return "admin"
+        return "viewer"
+    if isinstance(entity, User):
+        role = getattr(entity, "role", None)
+        if role:
+            return role
+        if getattr(entity, "is_admin", False):
+            return "admin"
+    return "viewer"
+
+
+def _endpoint_for_role(role: str) -> str:
+    view_functions = current_app.view_functions
+    if role == "admin":
+        return "admin.index"
+    if role in {"supervisor", "editor"} and "web.upload" in view_functions:
+        return "web.upload"
+    if "web.index" in view_functions:
+        return "web.index"
+    return "admin.index"
+
+
+def _redirect_for_role(role: str, next_url: str | None = None):
+    if next_url:
+        return redirect(next_url)
+    return redirect(url_for(_endpoint_for_role(role)))
+
+
 @bp_auth.post("/login")
 def login_post():
     try:
@@ -41,8 +76,9 @@ def login_post():
             ensure_bootstrap_admin(current_app)
             user = verify(current_app, username, password)
             if user:
-                session["user"] = user
-                return redirect(request.args.get("next") or url_for("admin.index"))
+                role = _resolve_role(user)
+                session["user"] = {**user, "role": role}
+                return _redirect_for_role(role, request.args.get("next"))
             flash("Usuario o contraseña inválidos.", "danger")
             return redirect(url_for("auth.login"))
 
@@ -61,7 +97,8 @@ def login_post():
                 flash("Debes actualizar tu contraseña antes de continuar.", "info")
                 return redirect(url_for("auth.change_password"))
             flash("Bienvenido 👋", "success")
-            return redirect(request.args.get("next") or url_for("admin.index"))
+            role = _resolve_role(user)
+            return _redirect_for_role(role, request.args.get("next"))
 
         flash("Usuario o contraseña inválidos.", "danger")
         return redirect(url_for("auth.login"))
@@ -90,9 +127,11 @@ def _enforce_force_change_password():
 @bp_auth.get("/login")
 def login():
     if current_app.config.get("AUTH_SIMPLE", True) and session.get("user"):
-        return redirect(url_for("admin.index"))
+        role = _resolve_role(session.get("user"))
+        return redirect(url_for(_endpoint_for_role(role)))
     if current_user.is_authenticated:
-        return redirect(url_for("admin.index"))
+        role = _resolve_role(current_user)
+        return redirect(url_for(_endpoint_for_role(role)))
     return render_template("auth/login.html")
 
 
@@ -146,6 +185,7 @@ def register_post():
         new_user = User(
             username=username,
             email=None,
+            role="viewer",
             password_hash=generate_password_hash(password),
             is_admin=False,
             is_active=True,
@@ -203,7 +243,8 @@ def change_password():
         db.session.commit()
         message = "Tu contraseña ha sido actualizada. ¡Bienvenido!" if force_change else "Contraseña actualizada."
         flash(message, "success")
-        return redirect(url_for("admin.index"))
+        role = _resolve_role(current_user)
+        return redirect(url_for(_endpoint_for_role(role)))
 
     return render_template(template)
 
@@ -211,14 +252,16 @@ def change_password():
 @bp_auth.get("/forgot-password")
 def forgot_password():
     if current_user.is_authenticated:
-        return redirect(url_for("admin.index"))
+        role = _resolve_role(current_user)
+        return redirect(url_for(_endpoint_for_role(role)))
     return render_template("auth/forgot_password.html")
 
 
 @bp_auth.post("/forgot-password")
 def forgot_password_post():
     if current_user.is_authenticated:
-        return redirect(url_for("admin.index"))
+        role = _resolve_role(current_user)
+        return redirect(url_for(_endpoint_for_role(role)))
     email = (request.form.get("email") or "").strip().lower()
     from app.models import User
     user = db.session.query(User).filter_by(email=email).one_or_none()
@@ -247,7 +290,8 @@ def forgot_password_post():
 @bp_auth.get("/reset-password/<token>")
 def reset_password(token: str):
     if current_user.is_authenticated:
-        return redirect(url_for("admin.index"))
+        role = _resolve_role(current_user)
+        return redirect(url_for(_endpoint_for_role(role)))
     email = parse_reset_token(token)
     if not email:
         flash("El enlace no es válido o expiró.", "danger")
@@ -258,7 +302,8 @@ def reset_password(token: str):
 @bp_auth.post("/reset-password/<token>")
 def reset_password_post(token: str):
     if current_user.is_authenticated:
-        return redirect(url_for("admin.index"))
+        role = _resolve_role(current_user)
+        return redirect(url_for(_endpoint_for_role(role)))
     email = parse_reset_token(token)
     if not email:
         flash("El enlace no es válido o expiró.", "danger")

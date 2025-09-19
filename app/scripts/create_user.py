@@ -20,6 +20,8 @@ def main():
             user.set_password(password)
             if email:
                 user.email = email
+            user.is_admin = True
+            user.role = "admin"
             db.session.commit()
             print(f"[OK] Usuario '{username}' ya existía. Contraseña actualizada.")
         else:
@@ -27,6 +29,7 @@ def main():
             u = User(
                 username=username,
                 email=email,
+                role="admin",
                 is_admin=True,
                 is_active=True,
             )

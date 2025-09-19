@@ -68,7 +68,13 @@ def verify(app, username: str, password: str):
         return None
     if not check_password_hash(u["pw"], password):
         return None
-    return {"username": username, "is_admin": bool(u.get("is_admin")), "is_active": True}
+    role = "admin" if bool(u.get("is_admin")) else "viewer"
+    return {
+        "username": username,
+        "is_admin": bool(u.get("is_admin")),
+        "is_active": True,
+        "role": role,
+    }
 
 
 def list_users(app):
@@ -78,6 +84,7 @@ def list_users(app):
             "username": k,
             "is_admin": bool(v.get("is_admin")),
             "is_active": bool(v.get("is_active", True)),
+            "role": "admin" if bool(v.get("is_admin")) else "viewer",
         }
         for k, v in data.items()
     ]

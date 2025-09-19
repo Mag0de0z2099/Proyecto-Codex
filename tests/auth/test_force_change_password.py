@@ -11,6 +11,7 @@ def setup_app():
         u = User(
             username="force",
             email="force@codex.local",
+            role="viewer",
             is_admin=False,
             force_change_password=True,
         )

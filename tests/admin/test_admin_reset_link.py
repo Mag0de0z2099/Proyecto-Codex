@@ -10,9 +10,19 @@ def setup_app():
     with app.app_context():
         db.drop_all()
         db.create_all()
-        admin = User(username="admin", email="admin@codex.local", is_admin=True)
+        admin = User(
+            username="admin",
+            email="admin@codex.local",
+            role="admin",
+            is_admin=True,
+        )
         admin.set_password("admin12345")
-        u = User(username="user", email="user@codex.local", is_admin=False)
+        u = User(
+            username="user",
+            email="user@codex.local",
+            role="viewer",
+            is_admin=False,
+        )
         u.set_password("user12345")
         db.session.add_all([admin, u])
         db.session.commit()

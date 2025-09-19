@@ -16,6 +16,19 @@
     <input type="password" name="password" minlength="8" required style="width:100%">
   </div>
   <div style="margin:.5rem 0">
+    <label>Rol</label><br>
+    <select name="role" required style="width:100%">
+      <option value="viewer">Viewer</option>
+      <option value="editor">Editor</option>
+      <option value="supervisor">Supervisor</option>
+      <option value="admin">Administrador</option>
+    </select>
+  </div>
+  <div style="margin:.5rem 0">
+    <label>Cargo o puesto (opcional)</label><br>
+    <input type="text" name="title" maxlength="80" style="width:100%">
+  </div>
+  <div style="margin:.5rem 0">
     <label><input type="checkbox" name="is_admin"> ¿Administrador?</label>
   </div>
   <div style="margin:.5rem 0">

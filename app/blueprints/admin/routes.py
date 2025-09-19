@@ -15,11 +15,12 @@ from flask import (
     session,
     url_for,
 )
-from flask_login import current_user, login_required as flask_login_required
+from flask_login import login_required as flask_login_required
 
 from app.db import db
 from app.models import Folder, MetricDaily, Project, User
 from app.security import generate_reset_token
+from app.auth.roles import ROLES, admin_required
 
 bp_admin = Blueprint("admin", __name__, template_folder="templates", url_prefix="/admin")
 
@@ -42,6 +43,7 @@ def login_required(view):
 
 @bp_admin.get("/")
 @login_required
+@admin_required
 def index():
     projects = Project.query.all()
     total_projects = len(projects)
@@ -66,6 +68,7 @@ def index():
 
 @bp_admin.get("/kpi/<int:project_id>.json")
 @login_required
+@admin_required
 def kpi_json(project_id: int):
     rows = (
         MetricDaily.query.filter_by(project_id=project_id)
@@ -80,6 +83,7 @@ def kpi_json(project_id: int):
 
 @bp_admin.get("/folders")
 @login_required
+@admin_required
 def folders_list():
     folders = Folder.query.order_by(Folder.created_at.desc()).all()
     projects = Project.query.all()
@@ -90,6 +94,7 @@ def folders_list():
 
 @bp_admin.post("/folders")
 @login_required
+@admin_required
 def folders_create():
     project_id = request.form.get("project_id")
     name = (request.form.get("name") or "").strip()
@@ -106,6 +111,7 @@ def folders_create():
 
 @bp_admin.get("/files")
 @login_required
+@admin_required
 def list_files():
     data_dir = Path(current_app.config["DATA_DIR"])
     items: list[dict[str, object]] = []
@@ -121,35 +127,29 @@ def list_files():
         )
 
     return render_template("admin/files.html", items=items, base=str(data_dir))
-
-
-def admin_required() -> bool:
-    if current_app.config.get("AUTH_SIMPLE", False):
-        user = session.get("user") or {}
-        return bool(user.get("is_admin"))
-    return current_user.is_authenticated and bool(getattr(current_user, "is_admin", False))
-
-
 @bp_admin.get("/users/new")
 @login_required
+@admin_required
 def admin_new_user():
-    if not admin_required():
-        flash("Acceso no autorizado.", "danger")
-        return redirect(url_for("web.index"))
     return render_template("admin/new_user.html")
 
 
 @bp_admin.post("/users/new")
 @login_required
+@admin_required
 def admin_create_user():
-    if not admin_required():
-        flash("Acceso no autorizado.", "danger")
-        return redirect(url_for("web.index"))
 
     username = (request.form.get("username") or "").strip()
     email_raw = (request.form.get("email") or "").strip().lower()
     password = request.form.get("password") or ""
-    is_admin = request.form.get("is_admin") == "on"
+    is_admin_flag = request.form.get("is_admin") == "on"
+    role_input = (request.form.get("role") or "").strip().lower()
+    title_raw = (request.form.get("title") or "").strip()
+    role = role_input if role_input in ROLES else "viewer"
+    if is_admin_flag:
+        role = "admin"
+    is_admin = role == "admin"
+    title = title_raw or None
     force_change = request.form.get("force_change") == "on"
 
     if not username:
@@ -179,6 +179,8 @@ def admin_create_user():
     user = User(
         username=username,
         email=email,
+        role=role,
+        title=title,
         is_admin=is_admin,
         force_change_password=force_change,
     )
@@ -191,20 +193,16 @@ def admin_create_user():
 
 @bp_admin.get("/users")
 @login_required
+@admin_required
 def admin_users():
-    if not admin_required():
-        flash("Acceso no autorizado.", "danger")
-        return redirect(url_for("web.index"))
     users = User.query.order_by(User.id.desc()).all()
     return render_template("admin/users.html", users=users)
 
 
 @bp_admin.post("/users/<int:user_id>/reset-link")
 @login_required
+@admin_required
 def admin_user_reset_link(user_id: int):
-    if not admin_required():
-        flash("Acceso no autorizado.", "danger")
-        return redirect(url_for("web.index"))
 
     user = db.session.get(User, user_id)
     if not user:
@@ -225,10 +223,8 @@ def admin_user_reset_link(user_id: int):
 
 @bp_admin.post("/users/<int:user_id>/toggle-force")
 @login_required
+@admin_required
 def admin_user_toggle_force(user_id: int):
-    if not admin_required():
-        flash("Acceso no autorizado.", "danger")
-        return redirect(url_for("web.index"))
 
     user = db.session.get(User, user_id)
     if not user:

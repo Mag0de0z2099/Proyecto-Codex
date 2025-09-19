@@ -8,7 +8,7 @@ def setup_app():
     with app.app_context():
         db.drop_all()
         db.create_all()
-        user = User(username="admin", is_admin=True, is_active=True)
+        user = User(username="admin", role="admin", is_admin=True, is_active=True)
         user.set_password("admin")
         db.session.add(user)
         project = Project(name="Terminal", status="activo")

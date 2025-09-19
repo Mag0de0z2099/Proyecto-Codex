@@ -46,10 +46,17 @@ def create_app(config_name: str | None = None) -> Flask:
     @app.context_processor
     def inject_globals():
         try:
-            has_web_index = "web.index" in app.view_functions
+            view_functions = app.view_functions
+            has_web_index = "web.index" in view_functions
+            has_web_upload = "web.upload" in view_functions
         except Exception:
             has_web_index = False
-        return {"has_web_index": has_web_index, "config": app.config}
+            has_web_upload = False
+        return {
+            "has_web_index": has_web_index,
+            "has_web_upload": has_web_upload,
+            "config": app.config,
+        }
 
     # Blueprints
     from . import models  # noqa: F401
