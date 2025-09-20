@@ -45,27 +45,46 @@ Revisa los logs durante los primeros minutos tras cada deploy para detectar erro
 
 ## Procfile y procesos
 
-- **Procfile básico (`Procfile`):**
+El archivo `Procfile` describe los procesos que tu plataforma de despliegue debe iniciar. El repositorio incluye una versión extendida lista para producción y tareas en segundo plano:
 
-  ```
-  web: gunicorn -w 3 -t 60 app.main:app
-  ```
+```Procfile
+# Proceso web principal (sirve la app Flask con Gunicorn)
+web: gunicorn -w 3 -t 60 app.main:app
 
-  - `web` es el proceso que recibirá tráfico HTTP.
-  - `gunicorn -w 3` levanta 3 workers (ajusta según los recursos disponibles).
-  - `-t 60` define un timeout de 60 s.
-  - `app.main:app` apunta a la aplicación Flask principal (actualízalo si cambias el módulo).
+# Proceso de worker (ejemplo: tareas en segundo plano)
+worker: python worker.py
+```
 
-  Render utiliza el mismo comando como “Start Command”; si lo eliminas en el panel, conservar el Procfile bastará para que lo detecte automáticamente.
+### `web`
 
-- **Procfile extendido (opcional):**
+- Atiende el tráfico HTTP usando Gunicorn.
+- `-w 3` levanta tres workers; ajusta el número según el plan contratado o los núcleos disponibles.
+- `-t 60` fija un timeout de 60 s para peticiones largas.
+- `app.main:app` apunta al objeto Flask creado en `app/main.py`.
 
-  ```
-  web: gunicorn -w 3 -t 60 app.main:app
-  worker: python worker.py
-  ```
+Render reutiliza este comando como *Start Command*; basta con mantener el `Procfile` en el repositorio para que lo detecte automáticamente.
 
-  - Añade un proceso `worker` para ejecutar tareas en segundo plano (por ejemplo, colas con RQ/Celery, envíos de correos, etc.).
-  - Render puede ignorar este proceso si no está configurado, pero si migras a plataformas que sí leen el Procfile (Heroku, Fly.io), podrás levantar web y worker sin cambios adicionales.
+### `worker`
+
+- Es una referencia para ejecutar tareas en background (colas de Celery, RQ, Dramatiq o scripts personalizados).
+- El archivo `worker.py` inicializa la app, escucha señales `SIGTERM/SIGINT` y emite un *heartbeat* cada 30 segundos; puedes modificar la lógica interna sin cambiar el comando del Procfile.
+- Ajusta el intervalo con la variable `WORKER_HEARTBEAT_INTERVAL`.
+
+### Escalado en diferentes plataformas
+
+- **Render:** solo inicia el proceso `web` por defecto, pero conservar la definición del `worker` documenta que tu app está preparada para colas.
+- **Heroku:** escala procesos con `heroku ps:scale web=1 worker=1`.
+- **Fly.io:** replica el comportamiento con `fly scale count web=1 worker=1`.
+
+### Ejecución local con Honcho
+
+Honcho permite correr ambos procesos en tu máquina con una sola orden:
+
+```bash
+pip install honcho
+honcho start
+```
+
+Verás un servicio levantando Gunicorn (`web`) y otro ejecutando `worker.py`. Esto resulta útil para probar integración con colas de mensajes antes de desplegar.
 
 Documentar estos comandos en el repositorio evita dudas al desplegar en diferentes proveedores.
