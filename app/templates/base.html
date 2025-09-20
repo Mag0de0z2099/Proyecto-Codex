@@ -5,17 +5,13 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>{% block title %}SGC — Obra de Dragado{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
 </head>
 <body>
   <header class="navbar">
-    <div class="nav-left">
-      <span class="brand">SGC-Obra</span>
-    </div>
+    <div class="nav-left"><span class="brand">SGC-Obra</span></div>
     <nav class="nav-right">
       <a class="btn" href="{{ url_for('auth.login') }}">Login</a>
-      <a class="btn outline" href="{{ url_for('admin.index') }}">Admin</a>
+      <a class="btn outline" href="{{ url_for('admin.dashboard') }}">Admin</a>
     </nav>
   </header>
 
@@ -33,7 +29,7 @@
   </main>
 
   <footer class="footer">
-    <small>© {{ 2025 }} SGC — Control de Calidad y Seguridad en Obra de Dragado</small>
+    <small>© 2025 SGC — Control de Calidad y Seguridad en Obra de Dragado</small>
   </footer>
 </body>
 </html>
