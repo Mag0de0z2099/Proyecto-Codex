@@ -15,6 +15,8 @@ from .blueprints.api.v1 import bp_api_v1
 from .blueprints.auth import bp_auth
 from .blueprints.ping import bp_ping
 from .blueprints.web import bp_web
+from .cli_sync import register_sync_cli
+from .routes.assets import assets_bp
 from .routes.public import public_bp
 from .config import get_config
 from .db import db
@@ -122,6 +124,7 @@ def create_app(config_name: str | None = None) -> Flask:
     app.register_blueprint(bp_web)
     app.register_blueprint(bp_admin)
     app.register_blueprint(bp_api_v1, url_prefix="/api/v1")
+    app.register_blueprint(assets_bp)
     app.register_blueprint(bp_ping)
 
     # Exentamos la API pública JSON del CSRF global
@@ -129,6 +132,7 @@ def create_app(config_name: str | None = None) -> Flask:
     limiter.exempt(bp_ping)
 
     register_cli(app)
+    register_sync_cli(app)
 
     @app.errorhandler(Exception)
     def handle_any_error(err):  # pragma: no cover - logging side-effect

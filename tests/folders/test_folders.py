@@ -1,23 +1,9 @@
-from app import create_app
-from app.db import db
+import os
+
 from app.models import Folder, Project, User
 
 
-def setup_app():
-    app = create_app("test")
-    with app.app_context():
-        db.drop_all()
-        db.create_all()
-        user = User(username="admin", role="admin", is_admin=True, is_active=True)
-        user.set_password("admin")
-        db.session.add(user)
-        project = Project(name="Terminal", status="activo")
-        db.session.add(project)
-        db.session.commit()
-    return app
-
-
-def login(client):
+def _login(client):
     return client.post(
         "/auth/login",
         data={"username": "admin", "password": "admin"},
@@ -25,27 +11,41 @@ def login(client):
     )
 
 
-def test_admin_can_create_folder():
-    app = setup_app()
-    client = app.test_client()
-    login(client)
+def test_admin_can_create_folder(app, client, db_session, tmp_path):
+    with app.app_context():
+        user = User(username="admin", role="admin", is_admin=True, is_active=True)
+        user.set_password("admin")
+        db_session.add(user)
+
+        project = Project(name="Terminal", status="activo")
+        db_session.add(project)
+        db_session.commit()
+        project_id = project.id
+
+    _login(client)
 
     response = client.get("/admin/folders")
     assert response.status_code == 200
     assert b"Carpetas" in response.data
 
-    with app.app_context():
-        project = Project.query.filter_by(name="Terminal").first()
-        assert project is not None
+    fs_dir = tmp_path / "semana_38"
+    fs_dir.mkdir()
 
     create = client.post(
         "/admin/folders",
-        data={"project_id": project.id, "name": "Planos"},
+        data={
+            "project_id": project_id,
+            "logical_path": "bitacoras/2025/semana_38",
+            "fs_path": str(fs_dir),
+        },
         follow_redirects=True,
     )
     assert create.status_code == 200
     assert b"Carpeta creada" in create.data
 
     with app.app_context():
-        folder = Folder.query.filter_by(project_id=project.id, name="Planos").first()
+        folder = Folder.query.filter_by(
+            project_id=project_id, logical_path="bitacoras/2025/semana_38"
+        ).first()
         assert folder is not None
+        assert folder.fs_path == os.path.abspath(str(fs_dir))

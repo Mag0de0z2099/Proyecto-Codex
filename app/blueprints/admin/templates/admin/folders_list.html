@@ -15,8 +15,12 @@
       </select>
     </div>
     <div class="col-md-4">
-      <label class="form-label">Nombre de carpeta</label>
-      <input class="form-control" name="name" required/>
+      <label class="form-label">Ruta lógica</label>
+      <input class="form-control" name="logical_path" placeholder="bitacoras/2025/semana_38" required />
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Ruta física (servidor)</label>
+      <input class="form-control" name="fs_path" placeholder="/srv/data/proyecto/semana_38" required />
     </div>
     <div class="col-md-4 d-flex align-items-end">
       <button class="btn btn-primary">Crear carpeta</button>
@@ -24,13 +28,18 @@
   </form>
 
   <table class="table table-sm table-striped">
-    <thead><tr><th>Proyecto</th><th>Carpeta</th><th>Creada</th></tr></thead>
+    <thead><tr><th>Proyecto</th><th>Ruta lógica</th><th>Ruta física</th><th>Creada</th></tr></thead>
     <tbody>
       {% for f in folders %}
       <tr>
         <td>{{ f.project.name }}</td>
-        <td>{{ f.name }}</td>
-        <td>{{ f.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
+        <td><code>{{ f.logical_path }}</code></td>
+        <td><code>{{ f.fs_path }}</code></td>
+        <td>
+          {% if f.created_at %}
+            {{ f.created_at.strftime("%Y-%m-%d %H:%M") }}
+          {% else %}-{% endif %}
+        </td>
       </tr>
       {% endfor %}
     </tbody>

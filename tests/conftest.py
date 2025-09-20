@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import importlib
 import os
 import sys
 from pathlib import Path
@@ -17,26 +16,41 @@ if str(PROJECT_ROOT) not in sys.path:
 
 
 @pytest.fixture
-def client(monkeypatch):
-    """Crear un cliente de pruebas con configuración mínima."""
+def app(monkeypatch, tmp_path):
+    """Instancia de la aplicación configurada para pruebas con DB temporal."""
 
     monkeypatch.setenv("ADMIN_PASSWORD", "pass123")
     monkeypatch.setenv("SECRET_KEY", "tests-secret")
+    monkeypatch.setenv("DATA_DIR", str(tmp_path / "data"))
 
-    module_name = "app.main"
-    if module_name in sys.modules:
-        module = importlib.reload(sys.modules[module_name])
-    else:
-        module = importlib.import_module(module_name)
-    # Garantizar que la app se refresque tras modificar entornos.
-    module = importlib.reload(module)
+    from app import create_app
+    from app.db import db
 
-    app = getattr(module, "app")
-    app.config.update(
-        TESTING=True,
-        ADMIN_PASSWORD=os.environ.get("ADMIN_PASSWORD", "admin"),
-        SECRET_KEY=os.environ.get("SECRET_KEY", app.config.get("SECRET_KEY")),
-    )
+    application = create_app("test")
+    ctx = application.app_context()
+    ctx.push()
+    db.create_all()
+
+    yield application
+
+    db.session.remove()
+    db.drop_all()
+    ctx.pop()
+
+
+@pytest.fixture
+def client(app):
+    """Cliente de pruebas basado en la aplicación de testing."""
 
     with app.test_client() as test_client:
         yield test_client
+
+
+@pytest.fixture
+def db_session(app):
+    from app.db import db
+
+    try:
+        yield db.session
+    finally:
+        db.session.rollback()
