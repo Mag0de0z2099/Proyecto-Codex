@@ -4,11 +4,16 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>{% block title %}SGC — Obra de Dragado{% endblock %}</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}?v=2">
 </head>
 <body>
   <header class="navbar">
-    <div class="nav-left"><span class="brand">SGC-Obra</span></div>
+    <div class="nav-left">
+      <span class="brand">
+        <img class="logo" src="{{ url_for('static', filename='img/siglo21.png') }}" alt="Siglo 21">
+        <span>SGC-Obra</span>
+      </span>
+    </div>
     <nav class="nav-right">
       <a class="btn" href="{{ url_for('auth.login') }}">Login</a>
       <a class="btn outline" href="{{ url_for('admin.dashboard') }}">Admin</a>
