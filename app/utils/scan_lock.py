@@ -9,6 +9,7 @@ from sqlalchemy import text
 from sqlalchemy.engine import Engine
 
 from app.db import db
+from app.metrics import scan_lock
 
 from .lock import file_lock
 
@@ -48,8 +49,10 @@ def get_scan_lock():
     lock_file = os.getenv("SCAN_LOCK_FILE", "/tmp/sgc_scan.lock")
 
     if _is_postgres(db.engine):
-        with advisory_lock_pg(key=key):
-            yield
+        with scan_lock.track_inprogress():
+            with advisory_lock_pg(key=key):
+                yield
     else:
-        with file_lock(lock_file, timeout=timeout):
-            yield
+        with scan_lock.track_inprogress():
+            with file_lock(lock_file, timeout=timeout):
+                yield

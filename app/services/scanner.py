@@ -3,9 +3,19 @@
 from __future__ import annotations
 
 import os
+from time import perf_counter
 from typing import Dict, Tuple
 
 from app.db import db
+from app.metrics import (
+    assets_registered,
+    folders_registered,
+    scan_created_total,
+    scan_duration_seconds,
+    scan_runs_total,
+    scan_skipped_total,
+    scan_updated_total,
+)
 from app.models.asset import Asset
 from app.models.folder import Folder
 from app.utils.files import guess_mime, sha256_of_file, split_root_rel
@@ -15,6 +25,7 @@ def scan_folder_record(folder: Folder) -> Tuple[int, int, int]:
     """Escanea una carpeta física asociada a ``folder`` y sincroniza sus assets."""
 
     created = updated = skipped = 0
+    started_at = perf_counter()
     root = folder.fs_path
     if not root or not os.path.isdir(root):
         return (created, updated, skipped)
@@ -58,6 +69,19 @@ def scan_folder_record(folder: Folder) -> Tuple[int, int, int]:
                     skipped += 1
 
     db.session.commit()
+
+    duration = perf_counter() - started_at
+    scan_runs_total.inc()
+    scan_duration_seconds.observe(duration)
+    if created:
+        scan_created_total.inc(created)
+    if updated:
+        scan_updated_total.inc(updated)
+    if skipped:
+        scan_skipped_total.inc(skipped)
+
+    folders_registered.set(Folder.query.count())
+    assets_registered.set(Asset.query.count())
     return (created, updated, skipped)
 
 
