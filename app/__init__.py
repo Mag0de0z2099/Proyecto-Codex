@@ -24,6 +24,7 @@ from .routes.public import public_bp
 from .config import get_config
 from .db import db
 from .extensions import csrf, init_auth_extensions, limiter
+from .utils.lock import file_lock
 from .cli import register_cli
 from .migrate_ext import init_migrations
 from .security_headers import set_security_headers
@@ -161,8 +162,15 @@ def create_app(config_name: str | None = None) -> Flask:
 
         def job() -> None:
             with app.app_context():
-                stats = scan_all_folders()
-                app.logger.info("[scanner] %s", stats)
+                lock_path = os.getenv("SCAN_LOCK_FILE", "/tmp/sgc_scan.lock")
+                try:
+                    with file_lock(lock_path, timeout=3):
+                        stats = scan_all_folders()
+                        app.logger.info("[scanner] %s", stats)
+                except TimeoutError:
+                    app.logger.info(
+                        "[scanner] saltado: otro proceso tiene el lock."
+                    )
 
         scheduler.add_job(
             job,
