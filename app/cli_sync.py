@@ -8,7 +8,7 @@ from app.db import db
 from app.models.asset import Asset
 from app.models.folder import Folder
 from app.models import Project
-from app.utils.files import guess_mime, sha256_of_file, split_root_rel
+from app.services.scanner import scan_all_folders, scan_folder_record
 
 
 def register_sync_cli(app):
@@ -56,49 +56,7 @@ def register_sync_cli(app):
             folder.fs_path = os.path.abspath(root_path)
             db.session.commit()
 
-        updated = 0
-        created = 0
-        skipped = 0
-
-        for base, _, files in os.walk(folder.fs_path):
-            for filename in files:
-                full = os.path.join(base, filename)
-                dir_rel, fname = split_root_rel(full, folder.fs_path)
-                rel_path = os.path.join(dir_rel, fname) if dir_rel else fname
-
-                size = os.path.getsize(full)
-                digest = sha256_of_file(full)
-                mime = guess_mime(full)
-
-                asset = Asset.query.filter_by(
-                    project_id=project.id,
-                    folder_id=folder.id,
-                    relative_path=rel_path,
-                ).first()
-                if not asset:
-                    asset = Asset(
-                        project_id=project.id,
-                        folder_id=folder.id,
-                        filename=fname,
-                        relative_path=rel_path,
-                        size_bytes=size,
-                        sha256=digest,
-                        mime_type=mime,
-                        version=1,
-                    )
-                    db.session.add(asset)
-                    created += 1
-                else:
-                    if asset.sha256 != digest or asset.size_bytes != size:
-                        asset.sha256 = digest
-                        asset.size_bytes = size
-                        asset.mime_type = mime
-                        asset.version = (asset.version or 1) + 1
-                        updated += 1
-                    else:
-                        skipped += 1
-
-        db.session.commit()
+        created, updated, skipped = scan_folder_record(folder)
         click.echo(
             f"✅ Sincronizado: created={created}, updated={updated}, unchanged={skipped}"
         )
@@ -129,3 +87,11 @@ def register_sync_cli(app):
         click.echo("⚠️ Duplicados detectados (sha256 -> count):")
         for digest, items in duplicates.items():
             click.echo(f"- {digest[:10]}… -> {len(items)}")
+
+    @app.cli.command("scan-all")
+    @click.option("--limit", type=int, default=None)
+    def scan_all(limit: int | None) -> None:
+        """Escanea todas las carpetas registradas."""
+
+        stats = scan_all_folders(limit=limit)
+        click.echo(f"✅ {stats}")
