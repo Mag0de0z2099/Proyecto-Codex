@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import sys
@@ -9,7 +10,8 @@ import uuid
 from pathlib import Path
 
 from apscheduler.schedulers.background import BackgroundScheduler
-from flask import Flask, g, has_request_context, request
+from flask import Flask, Response, g, has_request_context, request
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from pytz import timezone
 from werkzeug.exceptions import HTTPException
 
@@ -28,6 +30,7 @@ from .utils.scan_lock import get_scan_lock
 from .cli import register_cli
 from .migrate_ext import init_migrations
 from .security_headers import set_security_headers
+from .services.scanner import scan_all_folders
 from .storage import ensure_dirs
 
 
@@ -135,12 +138,14 @@ def create_app(config_name: str | None = None) -> Flask:
     csrf.exempt(bp_api_v1)
     limiter.exempt(bp_ping)
 
+    @app.get("/metrics")
+    def metrics():
+        return Response(generate_latest(), mimetype=CONTENT_TYPE_LATEST)
+
     register_cli(app)
     register_sync_cli(app)
 
     if os.getenv("SCHEDULER_ENABLED", "0") == "1":
-        from app.services.scanner import scan_all_folders
-
         tz_name = os.getenv("APP_TZ", "America/Monterrey")
         try:
             tz = timezone(tz_name)
@@ -165,9 +170,13 @@ def create_app(config_name: str | None = None) -> Flask:
                 try:
                     with get_scan_lock():
                         stats = scan_all_folders()
-                        app.logger.info("[scanner] %s", stats)
+                        app.logger.info(
+                            json.dumps({"evt": "scan", "status": "ok", **stats})
+                        )
                 except TimeoutError:
-                    app.logger.info("[scanner] saltado: lock ocupado.")
+                    app.logger.info(
+                        json.dumps({"evt": "scan", "status": "skipped_lock"})
+                    )
 
         scheduler.add_job(
             job,
@@ -179,7 +188,16 @@ def create_app(config_name: str | None = None) -> Flask:
         )
         scheduler.start()
         app.extensions.setdefault("apscheduler", scheduler)
-        app.logger.info("Scheduler ON cada %s min (TZ=%s)", interval_min, tz)
+        app.logger.info(
+            json.dumps(
+                {
+                    "evt": "scheduler",
+                    "status": "enabled",
+                    "interval_min": interval_min,
+                    "tz": str(tz),
+                }
+            )
+        )
 
     @app.errorhandler(Exception)
     def handle_any_error(err):  # pragma: no cover - logging side-effect
