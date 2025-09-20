@@ -34,9 +34,11 @@ def upgrade():
         sa.Column(
             "updated_at", sa.DateTime, server_default=sa.text("CURRENT_TIMESTAMP")
         ),
-    )
-    op.create_unique_constraint(
-        "uq_folder_project_path", "folders", ["project_id", "logical_path"]
+        sa.UniqueConstraint(
+            "project_id",
+            "logical_path",
+            name="uq_folder_project_path",
+        ),
     )
     op.create_index("ix_folders_project_id", "folders", ["project_id"])
 
@@ -68,11 +70,12 @@ def upgrade():
         sa.Column(
             "updated_at", sa.DateTime, server_default=sa.text("CURRENT_TIMESTAMP")
         ),
-    )
-    op.create_unique_constraint(
-        "uq_asset_scope_path",
-        "assets",
-        ["project_id", "folder_id", "relative_path"],
+        sa.UniqueConstraint(
+            "project_id",
+            "folder_id",
+            "relative_path",
+            name="uq_asset_scope_path",
+        ),
     )
     op.create_index("ix_assets_project_id", "assets", ["project_id"])
     op.create_index("ix_assets_folder_id", "assets", ["folder_id"])
@@ -83,9 +86,7 @@ def downgrade():
     op.drop_index("ix_assets_sha256", table_name="assets")
     op.drop_index("ix_assets_folder_id", table_name="assets")
     op.drop_index("ix_assets_project_id", table_name="assets")
-    op.drop_constraint("uq_asset_scope_path", "assets", type_="unique")
     op.drop_table("assets")
 
     op.drop_index("ix_folders_project_id", table_name="folders")
-    op.drop_constraint("uq_folder_project_path", "folders", type_="unique")
     op.drop_table("folders")

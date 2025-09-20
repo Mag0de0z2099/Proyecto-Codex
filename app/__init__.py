@@ -24,6 +24,7 @@ from .routes.public import public_bp
 from .config import get_config
 from .db import db
 from .extensions import csrf, init_auth_extensions, limiter
+from .metrics import cleanup_multiprocess_directory
 from .utils.scan_lock import get_scan_lock
 from .cli import register_cli
 from .migrate_ext import init_migrations
@@ -83,6 +84,12 @@ def create_app(config_name: str | None = None) -> Flask:
 
     # Directorios persistentes (DATA_DIR, instance/, etc.)
     ensure_dirs(app)
+    if os.getenv("PROMETHEUS_MULTIPROC_CLEAN_ON_START", "0").lower() in (
+        "1",
+        "true",
+        "yes",
+    ):
+        cleanup_multiprocess_directory()
 
     # DB
     db.init_app(app)
@@ -141,9 +148,20 @@ def create_app(config_name: str | None = None) -> Flask:
     @app.get("/metrics")
     def metrics():
         try:
-            from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
+            from prometheus_client import (
+                CONTENT_TYPE_LATEST,
+                CollectorRegistry,
+                generate_latest,
+                multiprocess,
+            )
 
-            return Response(generate_latest(), mimetype=CONTENT_TYPE_LATEST)
+            registry = None
+            if os.getenv("PROMETHEUS_MULTIPROC_DIR"):
+                registry = CollectorRegistry()
+                multiprocess.MultiProcessCollector(registry)
+
+            output = generate_latest(registry)
+            return Response(output, mimetype=CONTENT_TYPE_LATEST)
         except Exception as e:
             return Response(
                 f"# metrics unavailable: {e}\n",
