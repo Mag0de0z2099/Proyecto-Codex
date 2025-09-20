@@ -15,6 +15,15 @@ DEFAULT_DEV_SQLITE = PROJECT_ROOT / "dev.db"
 DEFAULT_DEV_SQLITE_URL = f"sqlite:///{DEFAULT_DEV_SQLITE}"
 
 
+def _get_database_url(default: str) -> str:
+    db_url = os.getenv("DATABASE_URL")
+    if not db_url:
+        return default
+    if db_url.startswith("postgres://"):
+        db_url = db_url.replace("postgres://", "postgresql://", 1)
+    return db_url
+
+
 class BaseConfig:
     DEBUG = False
     TESTING = False
@@ -27,7 +36,7 @@ class BaseConfig:
     MAIL_PASSWORD = os.getenv("MAIL_PASSWORD", "")
     MAIL_DEFAULT_SENDER = os.getenv("MAIL_DEFAULT_SENDER", "no-reply@codex.local")
     DATA_DIR = os.getenv("DATA_DIR", str(PROJECT_ROOT / "data"))
-    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", DEFAULT_SQLITE_URL)
+    SQLALCHEMY_DATABASE_URI = _get_database_url(DEFAULT_SQLITE_URL)
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {
         "pool_pre_ping": True,
@@ -54,7 +63,7 @@ class BaseConfig:
 
 class DevelopmentConfig(BaseConfig):
     DEBUG = True
-    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", DEFAULT_DEV_SQLITE_URL)
+    SQLALCHEMY_DATABASE_URI = _get_database_url(DEFAULT_DEV_SQLITE_URL)
 
 
 class TestingConfig(BaseConfig):
