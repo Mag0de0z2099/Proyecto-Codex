@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import logging
+import os
 import sys
 import uuid
 from pathlib import Path
 
+from apscheduler.schedulers.background import BackgroundScheduler
 from flask import Flask, g, has_request_context, request
+from pytz import timezone
 from werkzeug.exceptions import HTTPException
 
 from .blueprints.admin import bp_admin
@@ -133,6 +136,45 @@ def create_app(config_name: str | None = None) -> Flask:
 
     register_cli(app)
     register_sync_cli(app)
+
+    if os.getenv("SCHEDULER_ENABLED", "0") == "1":
+        from app.services.scanner import scan_all_folders
+
+        tz_name = os.getenv("APP_TZ", "America/Monterrey")
+        try:
+            tz = timezone(tz_name)
+        except Exception:  # pragma: no cover - defensive fallback
+            tz = timezone("UTC")
+            app.logger.warning(
+                "APP_TZ inválida '%s', usando UTC como valor por defecto.", tz_name
+            )
+
+        try:
+            interval_min = int(os.getenv("SCAN_INTERVAL_MIN", "15"))
+        except ValueError:  # pragma: no cover - defensive fallback
+            interval_min = 15
+            app.logger.warning(
+                "SCAN_INTERVAL_MIN inválido, usando 15 minutos por defecto."
+            )
+
+        scheduler = BackgroundScheduler(timezone=tz)
+
+        def job() -> None:
+            with app.app_context():
+                stats = scan_all_folders()
+                app.logger.info("[scanner] %s", stats)
+
+        scheduler.add_job(
+            job,
+            "interval",
+            minutes=interval_min,
+            id="scan_all_folders",
+            max_instances=1,
+            coalesce=True,
+        )
+        scheduler.start()
+        app.extensions.setdefault("apscheduler", scheduler)
+        app.logger.info("Scheduler ON cada %s min (TZ=%s)", interval_min, tz)
 
     @app.errorhandler(Exception)
     def handle_any_error(err):  # pragma: no cover - logging side-effect
