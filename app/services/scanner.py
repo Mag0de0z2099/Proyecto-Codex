@@ -3,9 +3,20 @@
 from __future__ import annotations
 
 import os
+import time
 from typing import Dict, Tuple
 
 from app.db import db
+from app.metrics import (
+    ASSETS_REGISTERED,
+    FOLDERS_REGISTERED,
+    SCAN_CREATED,
+    SCAN_DURATION,
+    SCAN_RUNS,
+    SCAN_SKIPPED,
+    SCAN_UPDATED,
+)
+from app.models import Project
 from app.models.asset import Asset
 from app.models.folder import Folder
 from app.utils.files import guess_mime, sha256_of_file, split_root_rel
@@ -58,6 +69,16 @@ def scan_folder_record(folder: Folder) -> Tuple[int, int, int]:
                     skipped += 1
 
     db.session.commit()
+
+    project: Project | None = getattr(folder, "project", None)
+    project_label = project.name if project and project.name else "unknown"
+    if created:
+        SCAN_CREATED.labels(project_label).inc(created)
+    if updated:
+        SCAN_UPDATED.labels(project_label).inc(updated)
+    if skipped:
+        SCAN_SKIPPED.labels(project_label).inc(skipped)
+
     return (created, updated, skipped)
 
 
@@ -65,16 +86,28 @@ def scan_all_folders(limit: int | None = None) -> Dict[str, int]:
     """Escanea todas las carpetas registradas, opcionalmente limitando la cantidad."""
 
     query = Folder.query.order_by(Folder.id.asc())
+    total_folders = query.count()
     if limit:
         query = query.limit(limit)
 
     totals: Dict[str, int] = {"created": 0, "updated": 0, "skipped": 0, "folders": 0}
+    start = time.perf_counter()
 
-    for folder in query.all():
-        created, updated, skipped = scan_folder_record(folder)
-        totals["created"] += created
-        totals["updated"] += updated
-        totals["skipped"] += skipped
-        totals["folders"] += 1
+    try:
+        for folder in query.all():
+            created, updated, skipped = scan_folder_record(folder)
+            totals["created"] += created
+            totals["updated"] += updated
+            totals["skipped"] += skipped
+            totals["folders"] += 1
 
-    return totals
+        FOLDERS_REGISTERED.set(total_folders)
+        ASSETS_REGISTERED.set(db.session.query(Asset).count())
+    except Exception:
+        SCAN_RUNS.labels("error").inc()
+        raise
+    else:
+        SCAN_RUNS.labels("ok").inc()
+        return totals
+    finally:
+        SCAN_DURATION.observe(time.perf_counter() - start)

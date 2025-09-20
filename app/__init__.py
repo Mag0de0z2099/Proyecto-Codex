@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import sys
@@ -9,7 +10,8 @@ import uuid
 from pathlib import Path
 
 from apscheduler.schedulers.background import BackgroundScheduler
-from flask import Flask, g, has_request_context, request
+from flask import Flask, Response, g, has_request_context, request
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from pytz import timezone
 from werkzeug.exceptions import HTTPException
 
@@ -24,7 +26,8 @@ from .routes.public import public_bp
 from .config import get_config
 from .db import db
 from .extensions import csrf, init_auth_extensions, limiter
-from .utils.lock import file_lock
+from .metrics import LOCK_CONTENTION, SCAN_RUNS
+from .utils.lock import get_scan_lock
 from .cli import register_cli
 from .migrate_ext import init_migrations
 from .security_headers import set_security_headers
@@ -42,39 +45,45 @@ class RequestIDFilter(logging.Filter):
         return True
 
 
-def configure_logging(app: Flask) -> None:
-    """Configure structured logging to stdout for the application."""
+def _setup_logging(app: Flask) -> None:
+    handler = logging.StreamHandler(sys.stdout)
+
+    class JsonFormatter(logging.Formatter):
+        def format(self, record: logging.LogRecord) -> str:  # pragma: no cover - simple
+            base = {
+                "level": record.levelname,
+                "logger": record.name,
+            }
+
+            request_id = getattr(record, "request_id", None)
+            if request_id and request_id != "-":
+                base["request_id"] = request_id
+
+            message = record.msg
+            if isinstance(message, dict):
+                base.update(message)
+            else:
+                base["msg"] = record.getMessage()
+
+            return json.dumps(base, ensure_ascii=False)
+
+    handler.setFormatter(JsonFormatter())
+    handler.addFilter(RequestIDFilter())
 
     log_level_name = str(app.config.get("LOG_LEVEL", "INFO")).upper()
     log_level = getattr(logging, log_level_name, logging.INFO)
-    formatter = logging.Formatter(
-        "%(asctime)s %(levelname)s [%(request_id)s] %(name)s: %(message)s"
-    )
-
-    handler = logging.StreamHandler(sys.stdout)
     handler.setLevel(log_level)
-    handler.setFormatter(formatter)
-    handler.addFilter(RequestIDFilter())
 
-    gunicorn_error_logger = logging.getLogger("gunicorn.error")
-    app.logger.handlers = []
-    if gunicorn_error_logger.handlers:
-        for existing in gunicorn_error_logger.handlers:
-            existing.addFilter(RequestIDFilter())
-            existing.setFormatter(formatter)
-            existing.setLevel(log_level)
-            app.logger.addHandler(existing)
-    else:
-        app.logger.addHandler(handler)
-
+    app.logger.handlers = [handler]
     app.logger.setLevel(log_level)
+    app.logger.propagate = False
 
 
 def create_app(config_name: str | None = None) -> Flask:
     app = Flask(__name__)
     app.config.from_object(get_config(config_name))
 
-    configure_logging(app)
+    _setup_logging(app)
 
     # Asegura DATA_DIR y muestra la URI (útil en logs de Render)
     data_dir = Path(app.config["DATA_DIR"])
@@ -162,15 +171,14 @@ def create_app(config_name: str | None = None) -> Flask:
 
         def job() -> None:
             with app.app_context():
-                lock_path = os.getenv("SCAN_LOCK_FILE", "/tmp/sgc_scan.lock")
                 try:
-                    with file_lock(lock_path, timeout=3):
+                    with get_scan_lock():
                         stats = scan_all_folders()
-                        app.logger.info("[scanner] %s", stats)
+                        app.logger.info({"evt": "scan", "status": "ok", **stats})
                 except TimeoutError:
-                    app.logger.info(
-                        "[scanner] saltado: otro proceso tiene el lock."
-                    )
+                    LOCK_CONTENTION.inc()
+                    SCAN_RUNS.labels("skipped_lock").inc()
+                    app.logger.info({"evt": "scan", "status": "skipped_lock"})
 
         scheduler.add_job(
             job,
@@ -196,5 +204,9 @@ def create_app(config_name: str | None = None) -> Flask:
         app.logger.warning(
             "SECRET_KEY is shorter than 32 characters. Provide a secure 32+ byte key for production.",
         )
+
+    @app.get("/metrics")
+    def metrics() -> Response:
+        return Response(generate_latest(), mimetype=CONTENT_TYPE_LATEST)
 
     return app

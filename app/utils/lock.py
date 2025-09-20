@@ -74,3 +74,10 @@ def file_lock(lock_path: str, timeout: int = 0):
                     pass
         finally:
             f.close()
+
+
+def get_scan_lock(timeout: int = 3):
+    """Return a context manager to acquire the scan lock with default settings."""
+
+    lock_path = os.getenv("SCAN_LOCK_FILE", "/tmp/sgc_scan.lock")
+    return file_lock(lock_path, timeout=timeout)

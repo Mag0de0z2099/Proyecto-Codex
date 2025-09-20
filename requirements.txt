@@ -30,3 +30,6 @@ psycopg2-binary==2.9.9
 # Scheduler y zonas horarias
 APScheduler>=3.10.4
 pytz>=2024.1
+
+# Observabilidad
+prometheus-client>=0.20.0
