@@ -9,7 +9,7 @@ import uuid
 from pathlib import Path
 
 from apscheduler.schedulers.background import BackgroundScheduler
-from flask import Flask, g, has_request_context, request
+from flask import Flask, Response, g, has_request_context, request
 from pytz import timezone
 from werkzeug.exceptions import HTTPException
 
@@ -137,6 +137,19 @@ def create_app(config_name: str | None = None) -> Flask:
 
     register_cli(app)
     register_sync_cli(app)
+
+    @app.get("/metrics")
+    def metrics():
+        try:
+            from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
+
+            return Response(generate_latest(), mimetype=CONTENT_TYPE_LATEST)
+        except Exception as e:
+            return Response(
+                f"# metrics unavailable: {e}\n",
+                mimetype="text/plain",
+                status=503,
+            )
 
     if os.getenv("SCHEDULER_ENABLED", "0") == "1":
         from app.services.scanner import scan_all_folders
