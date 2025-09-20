@@ -15,6 +15,7 @@ from .blueprints.api.v1 import bp_api_v1
 from .blueprints.auth import bp_auth
 from .blueprints.ping import bp_ping
 from .blueprints.web import bp_web
+from .routes.public import public_bp
 from .config import get_config
 from .db import db
 from .extensions import csrf, init_auth_extensions, limiter
@@ -116,6 +117,7 @@ def create_app(config_name: str | None = None) -> Flask:
     from . import models  # noqa: F401
     from .api import v1 as _api_v1  # noqa: F401
 
+    app.register_blueprint(public_bp)
     app.register_blueprint(bp_auth)
     app.register_blueprint(bp_web)
     app.register_blueprint(bp_admin)

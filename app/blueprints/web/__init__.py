@@ -9,7 +9,7 @@ bp_web = Blueprint(
 )
 
 
-@bp_web.get("/")
+@bp_web.get("/dashboard")
 def index():
     return render_template("home.html")
 
