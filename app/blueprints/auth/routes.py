@@ -154,7 +154,7 @@ def logout():
 def register():
     try:
         insp = inspect(db.engine)
-        if not insp.has_table("users"):
+        if db.engine.url.drivername.startswith("sqlite") and not insp.has_table("users"):
             db.create_all()
     except Exception:  # pragma: no cover - logging + flash side-effect
         current_app.logger.exception("Unable to ensure users table exists")
@@ -182,7 +182,7 @@ def register_post():
 
     try:
         insp = inspect(db.engine)
-        if not insp.has_table("users"):
+        if db.engine.url.drivername.startswith("sqlite") and not insp.has_table("users"):
             db.create_all()
 
         new_user = User(
