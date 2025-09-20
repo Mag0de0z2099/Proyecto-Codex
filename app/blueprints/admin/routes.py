@@ -79,6 +79,9 @@ def index():
     )
 
 
+bp_admin.add_url_rule("/", view_func=index, endpoint="dashboard")
+
+
 @bp_admin.get("/kpi/<int:project_id>.json")
 @login_required
 @admin_required
