@@ -5,10 +5,11 @@ import os
 import click
 
 from app.db import db
+from app.models import Project
 from app.models.asset import Asset
 from app.models.folder import Folder
-from app.models import Project
-from app.services.scanner import scan_all_folders, scan_folder_record
+from app.services.scanner import scan_all_folders
+from app.utils.files import guess_mime, sha256_of_file, split_root_rel
 from app.utils.scan_lock import get_scan_lock
 
 
@@ -18,7 +19,7 @@ def register_sync_cli(app):
         "--project",
         "project_name",
         required=True,
-        help="Nombre del proyecto (de la tabla projects.name)",
+        help="Nombre del proyecto (projects.name)",
     )
     @click.option(
         "--logical",
@@ -31,7 +32,7 @@ def register_sync_cli(app):
         "root_path",
         required=True,
         type=click.Path(exists=True, file_okay=False),
-        help="Ruta física en el servidor.",
+        help="Ruta física en el servidor",
     )
     def scan_folder(project_name: str, logical_path: str, root_path: str) -> None:
         """Escanea una carpeta y sincroniza assets a DB."""
@@ -54,18 +55,73 @@ def register_sync_cli(app):
             db.session.commit()
             click.echo(f"🆕 Folder registrado: {folder.logical_path}")
         else:
-            folder.fs_path = os.path.abspath(root_path)
-            db.session.commit()
+            abs_root = os.path.abspath(root_path)
+            if folder.fs_path != abs_root:
+                folder.fs_path = abs_root
+                db.session.commit()
 
-        created, updated, skipped = scan_folder_record(folder)
+        created = updated = skipped = 0
+        for base, _, files in os.walk(folder.fs_path):
+            for filename in files:
+                full = os.path.join(base, filename)
+                dir_rel, rel_filename = split_root_rel(full, folder.fs_path)
+                rel_path = os.path.join(dir_rel, rel_filename) if dir_rel else rel_filename
+
+                size = os.path.getsize(full)
+                digest = sha256_of_file(full)
+                mime = guess_mime(full)
+
+                asset = Asset.query.filter_by(
+                    project_id=project.id,
+                    folder_id=folder.id,
+                    relative_path=rel_path,
+                ).first()
+                if not asset:
+                    asset = Asset(
+                        project_id=project.id,
+                        folder_id=folder.id,
+                        filename=rel_filename,
+                        relative_path=rel_path,
+                        size_bytes=size,
+                        sha256=digest,
+                        mime_type=mime,
+                        version=1,
+                    )
+                    db.session.add(asset)
+                    created += 1
+                else:
+                    if asset.sha256 != digest or asset.size_bytes != size:
+                        asset.sha256 = digest
+                        asset.size_bytes = size
+                        asset.mime_type = mime
+                        asset.version = (asset.version or 1) + 1
+                        updated += 1
+                    else:
+                        skipped += 1
+
+        db.session.commit()
         click.echo(
             f"✅ Sincronizado: created={created}, updated={updated}, unchanged={skipped}"
         )
 
+    @app.cli.command("scan-all")
+    @click.option("--limit", type=int, default=None)
+    def scan_all(limit: int | None) -> None:
+        """Escanear todas las carpetas registradas (con lock)."""
+
+        try:
+            with get_scan_lock():
+                stats = scan_all_folders(limit=limit)
+                click.echo(f"✅ {stats}")
+        except TimeoutError:
+            click.echo(
+                "⏭️  Saltado: lock ocupado (ya hay un escaneo en curso).", err=True
+            )
+
     @app.cli.command("dedupe-assets")
     @click.option("--project", "project_name", required=False, help="Limitar a un proyecto")
     def dedupe_assets(project_name: str | None) -> None:
-        """Detecta duplicados por SHA256 y reporta/depura si así lo deseas."""
+        """Detecta duplicados por SHA256 y reporta conteos."""
 
         query = Asset.query
         if project_name:
@@ -87,18 +143,6 @@ def register_sync_cli(app):
 
         click.echo("⚠️ Duplicados detectados (sha256 -> count):")
         for digest, items in duplicates.items():
-            click.echo(f"- {digest[:10]}… -> {len(items)}")
-
-    @app.cli.command("scan-all")
-    @click.option("--limit", type=int, default=None)
-    def scan_all(limit: int | None) -> None:
-        """Escanea todas las carpetas registradas."""
-
-        try:
-            with get_scan_lock():
-                stats = scan_all_folders(limit=limit)
-                click.echo(f"✅ {stats}")
-        except TimeoutError:
             click.echo(
-                "⏭️  Saltado: lock ocupado (ya hay un escaneo en curso).", err=True
+                f"- {digest[:10]}… -> {len(items)} (ids: {[item.id for item in items]})"
             )
