@@ -1,31 +1,65 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BRANCH="feature/ui-logo-siglo21"
-TITLE="style(ui): refinar navbar y login con logo Siglo 21"
+# === Config =====
+BRANCH="${BRANCH:-feature/ui-logo-siglo21}"
+TITLE="${TITLE:-style(ui): refinar navbar y login con logo Siglo 21}"
+BASE_BRANCH="${BASE_BRANCH:-main}"
+REPO_URL="${REPO_URL:-}"   # ej: git@github.com:TU_USUARIO/TU_REPO.git o https://github.com/TU_USUARIO/TU_REPO.git
 
-# Archivos que ya modificaste
 FILES=(
   "app/templates/base.html"
   "app/static/css/custom.css"
   "app/blueprints/auth/templates/auth/login.html"
 )
 
-# 1) Verificaciones básicas
+# === Preflight ===
 git rev-parse --is-inside-work-tree >/dev/null 2>&1 || { echo "❌ No estás en un repo git"; exit 1; }
-git fetch --all --prune
-if ! git status --porcelain | grep -qE "."; then
-  echo "ℹ️ No hay cambios sin commitear; continuaré igual."
+
+# Config mínima de autor si falta
+if ! git config user.email >/dev/null; then
+  git config user.email "ci@example.local"
+fi
+if ! git config user.name >/dev/null; then
+  git config user.name "CI User"
 fi
 
-# 2) Crear/actualizar rama de trabajo
+git fetch --all --prune || true
+
+# Verificar remoto origin
+if ! git remote get-url origin >/dev/null 2>&1; then
+  if [[ -z "$REPO_URL" ]]; then
+    echo "❌ No existe el remoto 'origin' y no se proporcionó REPO_URL."
+    echo "   Soluciones:"
+    echo "   - Añade el remoto manualmente: git remote add origin git@github.com:TU_USUARIO/TU_REPO.git"
+    echo "   - O ejecuta: REPO_URL='<url>' ./create_pr_ui_logo.sh"
+    exit 1
+  else
+    echo "ℹ️ Configurando remoto origin -> $REPO_URL"
+    git remote add origin "$REPO_URL"
+  fi
+fi
+
+# Asegurar base branch local
+if git show-ref --verify --quiet "refs/heads/$BASE_BRANCH"; then
+  git checkout "$BASE_BRANCH"
+else
+  # Intentar rastrear desde remoto si existe
+  if git ls-remote --exit-code --heads origin "$BASE_BRANCH" >/dev/null 2>&1; then
+    git checkout -b "$BASE_BRANCH" "origin/$BASE_BRANCH"
+  else
+    git checkout -b "$BASE_BRANCH"
+  fi
+fi
+
+# Crear/actualizar rama de trabajo
 if git show-ref --verify --quiet "refs/heads/$BRANCH"; then
   git checkout "$BRANCH"
 else
-  git checkout -b "$BRANCH" origin/main || git checkout -b "$BRANCH"
+  git checkout -b "$BRANCH" "$BASE_BRANCH"
 fi
 
-# 3) Agregar archivos (si existen)
+# Add files si existen
 for f in "${FILES[@]}"; do
   if [[ -f "$f" ]]; then
     git add "$f"
@@ -34,9 +68,9 @@ for f in "${FILES[@]}"; do
   fi
 done
 
-# 4) Commit (solo si hay cambios staged)
+# Commit si hay staged
 if git diff --cached --quiet; then
-  echo "ℹ️ No hay cambios nuevos para commitear; seguiré con el push."
+  echo "ℹ️ No hay cambios nuevos para commitear; sigo con push."
 else
   git commit -m "$TITLE
 
@@ -47,10 +81,10 @@ else
 - Tests en verde (pytest)."
 fi
 
-# 5) Push de la rama
+# Push (crea upstream si no existe)
 git push -u origin "$BRANCH"
 
-# 6) Crear cuerpo del PR
+# PR body
 PR_BODY_FILE="$(mktemp)"
 cat > "$PR_BODY_FILE" <<'MD'
 ## Resumen
@@ -81,18 +115,14 @@ Este PR mejora la interfaz de usuario en la barra de navegación y el formulario
 *(Agrega capturas si lo deseas)*
 MD
 
-# 7) Crear PR (requiere GitHub CLI autenticado: `gh auth login`)
+# Crear PR si 'gh' está disponible
 if command -v gh >/dev/null 2>&1; then
-  gh pr create \
-    --base main \
-    --head "$BRANCH" \
-    --title "$TITLE" \
-    --body-file "$PR_BODY_FILE"
+  gh pr create --base "$BASE_BRANCH" --head "$BRANCH" --title "$TITLE" --body-file "$PR_BODY_FILE"
   echo "✅ Pull Request creado con gh CLI."
 else
   echo "ℹ️ No encontré 'gh'. Crea el PR manualmente en GitHub:"
-  echo "   - Head branch: $BRANCH"
-  echo "   - Base branch: main"
+  echo "   - Base: $BASE_BRANCH"
+  echo "   - Head: $BRANCH"
   echo "   - Title: $TITLE"
   echo "   - Body: (usa el contenido de $PR_BODY_FILE)"
 fi
