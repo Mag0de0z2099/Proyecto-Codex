@@ -9,6 +9,7 @@ from app.models.asset import Asset
 from app.models.folder import Folder
 from app.models import Project
 from app.services.scanner import scan_all_folders, scan_folder_record
+from app.utils.lock import file_lock
 
 
 def register_sync_cli(app):
@@ -93,5 +94,10 @@ def register_sync_cli(app):
     def scan_all(limit: int | None) -> None:
         """Escanea todas las carpetas registradas."""
 
-        stats = scan_all_folders(limit=limit)
-        click.echo(f"✅ {stats}")
+        lock_path = os.getenv("SCAN_LOCK_FILE", "/tmp/sgc_scan.lock")
+        try:
+            with file_lock(lock_path, timeout=3):
+                stats = scan_all_folders(limit=limit)
+                click.echo(f"✅ {stats}")
+        except TimeoutError:
+            click.echo("⏭️  Saltado: ya hay un escaneo en curso.", err=True)
