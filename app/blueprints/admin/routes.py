@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import re
 from datetime import date
 from functools import wraps
@@ -360,15 +361,28 @@ def folders_list():
 @admin_required
 def folders_create():
     project_id = request.form.get("project_id")
-    name = (request.form.get("name") or "").strip()
-    if not project_id or not name:
-        flash("Proyecto y nombre son obligatorios.", "warning")
+    logical_path = (request.form.get("logical_path") or "").strip()
+    fs_path_raw = (request.form.get("fs_path") or "").strip()
+    if not project_id or not logical_path or not fs_path_raw:
+        flash("Proyecto, ruta lógica y ruta física son obligatorios.", "warning")
         return redirect(url_for("admin.folders_list"))
 
-    folder = Folder(project_id=int(project_id), name=name, created_by="admin")
+    folder = Folder(
+        project_id=int(project_id),
+        logical_path=logical_path,
+        fs_path=os.path.abspath(fs_path_raw),
+    )
     db.session.add(folder)
-    db.session.commit()
-    flash("Carpeta creada.", "success")
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        flash(
+            "Ya existe una carpeta con esa ruta lógica para el proyecto.",
+            "warning",
+        )
+    else:
+        flash("Carpeta creada.", "success")
     return redirect(url_for("admin.folders_list"))
 
 

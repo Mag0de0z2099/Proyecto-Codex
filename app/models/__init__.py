@@ -23,6 +23,8 @@ from app.db import db
 from app.extensions import bcrypt, login_manager
 from app.utils.strings import normalize_email
 
+# Import side-effect modules at the end of the file to avoid circular imports.
+
 
 class Project(db.Model):
     __tablename__ = "projects"
@@ -38,7 +40,6 @@ class Project(db.Model):
     spent = db.Column(db.Float, default=0.0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    folders = db.relationship("Folder", backref="project", lazy=True)
     reports = db.relationship("Report", backref="project", lazy=True)
     logs = db.relationship("Bitacora", backref="project", lazy=True)
     metrics = db.relationship("MetricDaily", backref="project", lazy=True)
@@ -46,17 +47,6 @@ class Project(db.Model):
         "ChecklistTemplate", backref="project", lazy=True
     )
     daily_checklists = db.relationship("DailyChecklist", backref="project", lazy=True)
-
-
-class Folder(db.Model):
-    __tablename__ = "folders"
-
-    id = db.Column(db.Integer, primary_key=True)
-    project_id = db.Column(db.Integer, db.ForeignKey("projects.id"), nullable=False)
-    name = db.Column(db.String(160), nullable=False)
-    path = db.Column(db.String(255), nullable=True)
-    created_by = db.Column(db.String(80), nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
 class Report(db.Model):
@@ -237,9 +227,14 @@ def load_user(user_id: str) -> User | None:
         return None
 
 
+from app.models.asset import Asset  # noqa: E402,F401
+from app.models.folder import Folder  # noqa: E402,F401
+
+
 __all__ = [
     "Project",
     "Folder",
+    "Asset",
     "Report",
     "Bitacora",
     "MetricDaily",
