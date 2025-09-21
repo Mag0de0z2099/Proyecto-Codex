@@ -21,7 +21,7 @@ from .blueprints.web import bp_web
 from .cli_sync import register_sync_cli
 from .routes.assets import assets_bp
 from .routes.public import public_bp
-from .config import get_config
+from .config import SQLALCHEMY_DATABASE_URI, get_config
 from .db import db
 from .extensions import csrf, init_auth_extensions, limiter
 from .metrics import cleanup_multiprocess_directory
@@ -80,7 +80,7 @@ def create_app(config_name: str | None = None) -> Flask:
     # Asegura DATA_DIR y muestra la URI (útil en logs de Render)
     data_dir = Path(app.config["DATA_DIR"])
     data_dir.mkdir(parents=True, exist_ok=True)
-    app.logger.info("DB URI -> %s", app.config["SQLALCHEMY_DATABASE_URI"])
+    app.logger.info(f"DB URI -> {SQLALCHEMY_DATABASE_URI}")
 
     # Directorios persistentes (DATA_DIR, instance/, etc.)
     ensure_dirs(app)
