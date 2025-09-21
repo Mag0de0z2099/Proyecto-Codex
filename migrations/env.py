@@ -50,9 +50,8 @@ except RuntimeError:
 
 stack.enter_context(ctx)
 
-# >>> AQUI Forzamos a usar el mismo URI que usa Flask <<<
+# Usa el metadata del mismo db que configura Flask-Migrate
 target_metadata = app.extensions["migrate"].db.metadata
-config.set_main_option("sqlalchemy.url", app.config["SQLALCHEMY_DATABASE_URI"])
 
 
 def run_migrations_offline():
