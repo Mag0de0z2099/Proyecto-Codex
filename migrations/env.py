@@ -13,27 +13,56 @@ from sqlalchemy import engine_from_config, pool
 
 # Configuración del archivo de Alembic
 config = context.config
-
-db_url = os.getenv("DATABASE_URL", "")
-if db_url.startswith("postgres://"):
-    db_url = db_url.replace("postgres://", "postgresql://", 1)
-if db_url:
-    if (
-        "sslmode=" not in db_url
-        and "localhost" not in db_url
-        and "127.0.0.1" not in db_url
-    ):
-        sep = "&" if "?" in db_url else "?"
-        db_url = f"{db_url}{sep}sslmode=require"
-    config.set_main_option("sqlalchemy.url", db_url)
+if config.config_file_name is not None:
+    fileConfig(config.config_file_name)
 
 # Asegúrate de que el paquete principal esté disponible al ejecutar Alembic
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+
+def _normalize(url: str) -> str:
+    if url.startswith("postgres://"):
+        url = url.replace("postgres://", "postgresql://", 1)
+    if url and ("sslmode=" not in url) and ("localhost" not in url) and (
+        "127.0.0.1" not in url
+    ):
+        sep = "&" if "?" in url else "?"
+        url = f"{url}{sep}sslmode=require"
+    return url
+
+
+def _resolve_db_url() -> str:
+    # 1) DATABASE_URL de entorno
+    env_url = os.getenv("DATABASE_URL", "").strip()
+    if env_url:
+        return _normalize(env_url)
+
+    # 2) Caer a la config de la app (si existe)
+    try:
+        from app.config import resolve_db_uri
+
+        app_url = resolve_db_uri()
+        if app_url:
+            return _normalize(app_url)
+    except Exception:
+        pass
+
+    # 3) Último recurso: leer alembic.ini (si tuviera url)
+    ini_url = config.get_main_option("sqlalchemy.url", "").strip()
+    if ini_url:
+        return _normalize(ini_url)
+
+    # 4) Sin URL -> error claro
+    raise RuntimeError(
+        "DATABASE_URL no está definido y alembic.ini no provee sqlalchemy.url"
+    )
+
+
+# Inyecta la URL ANTES de crear el engine
+db_url = _resolve_db_url()
+config.set_main_option("sqlalchemy.url", db_url)
 
 stack = ExitStack()
 atexit.register(stack.close)
