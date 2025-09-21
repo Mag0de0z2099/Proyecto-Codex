@@ -19,6 +19,7 @@ services:
       pip install --upgrade pip
       pip install -r requirements.txt
     preDeployCommand: |
-      alembic upgrade head
-    startCommand: gunicorn -w 3 -t 60 app.main:app
+      alembic -c migrations/alembic.ini upgrade head && \
+      FLASK_APP=app:create_app flask seed-admin --email admin@admin.com --password admin123
+    startCommand: gunicorn -w 3 app.main:app
     healthCheckPath: /healthz

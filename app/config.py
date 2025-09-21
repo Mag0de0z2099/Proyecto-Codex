@@ -9,10 +9,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 PROJECT_ROOT = BASE_DIR.parent
 INSTANCE_DIR = PROJECT_ROOT / "instance"
 INSTANCE_DIR.mkdir(parents=True, exist_ok=True)
-DEFAULT_SQLITE = PROJECT_ROOT / "dev.db"
-DEFAULT_SQLITE_URL = f"sqlite:///{DEFAULT_SQLITE}"
-
-
 def resolve_db_uri() -> str:
     url = os.getenv("DATABASE_URL", "")
     if url.startswith("postgres://"):
@@ -26,13 +22,13 @@ def resolve_db_uri() -> str:
             sep = "&" if "?" in url else "?"
             url = f"{url}{sep}sslmode=require"
         return url
-    return DEFAULT_SQLITE_URL
+    return "sqlite:///dev.db"  # solo para desarrollo local
 
 
 SQLALCHEMY_DATABASE_URI = resolve_db_uri()
-_BASE_ENGINE_OPTIONS: dict[str, object] = {"pool_pre_ping": True, "pool_recycle": 280}
+SQLALCHEMY_ENGINE_OPTIONS: dict[str, object] = {"pool_pre_ping": True}
 if SQLALCHEMY_DATABASE_URI.startswith("sqlite:"):
-    _BASE_ENGINE_OPTIONS["connect_args"] = {"check_same_thread": False}
+    SQLALCHEMY_ENGINE_OPTIONS["connect_args"] = {"check_same_thread": False}
 
 RATELIMIT_STORAGE_URI = os.getenv("REDIS_URL", "memory://")
 
@@ -41,9 +37,6 @@ if (
     and SQLALCHEMY_DATABASE_URI.startswith("sqlite:")
 ):
     raise RuntimeError("DATABASE_URL no definido en producción (detectado sqlite)")
-
-SQLALCHEMY_ENGINE_OPTIONS = dict(_BASE_ENGINE_OPTIONS)
-
 
 _RESOLVED_DB_URI = SQLALCHEMY_DATABASE_URI
 _RATELIMIT_STORAGE_URI = RATELIMIT_STORAGE_URI
@@ -63,7 +56,7 @@ class BaseConfig:
     DATA_DIR = os.getenv("DATA_DIR", str(PROJECT_ROOT / "data"))
     SQLALCHEMY_DATABASE_URI = _RESOLVED_DB_URI
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    SQLALCHEMY_ENGINE_OPTIONS = dict(_BASE_ENGINE_OPTIONS)
+    SQLALCHEMY_ENGINE_OPTIONS = dict(SQLALCHEMY_ENGINE_OPTIONS)
     RATELIMIT_STORAGE_URI = _RATELIMIT_STORAGE_URI
     ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin")
     AUTH_SIMPLE = os.getenv("AUTH_SIMPLE", "0").lower() in ("1", "true", "yes")
