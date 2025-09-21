@@ -1,6 +1,7 @@
 from __future__ import with_statement
 
 import atexit
+import os
 import sys
 from contextlib import ExitStack, nullcontext
 from logging.config import fileConfig
@@ -17,6 +18,21 @@ if str(PROJECT_ROOT) not in sys.path:
 
 # Configuración de logging de Alembic (opcional)
 config = context.config
+
+db_url = os.getenv("DATABASE_URL", "")
+if db_url.startswith("postgres://"):
+    db_url = db_url.replace("postgres://", "postgresql://", 1)
+if db_url:
+    # Forzar ssl en Render si no se indicó
+    if (
+        "sslmode=" not in db_url
+        and "localhost" not in db_url
+        and "127.0.0.1" not in db_url
+    ):
+        sep = "&" if "?" in db_url else "?"
+        db_url = f"{db_url}{sep}sslmode=require"
+    config.set_main_option("sqlalchemy.url", db_url)
+
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
