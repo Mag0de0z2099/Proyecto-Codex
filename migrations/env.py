@@ -11,19 +11,13 @@ from alembic import context
 from flask import current_app
 from sqlalchemy import engine_from_config, pool
 
-# Asegúrate de que el paquete principal esté disponible al ejecutar Alembic
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
-
-# Configuración de logging de Alembic (opcional)
+# Configuración del archivo de Alembic
 config = context.config
 
 db_url = os.getenv("DATABASE_URL", "")
 if db_url.startswith("postgres://"):
     db_url = db_url.replace("postgres://", "postgresql://", 1)
 if db_url:
-    # Forzar ssl en Render si no se indicó
     if (
         "sslmode=" not in db_url
         and "localhost" not in db_url
@@ -32,6 +26,11 @@ if db_url:
         sep = "&" if "?" in db_url else "?"
         db_url = f"{db_url}{sep}sslmode=require"
     config.set_main_option("sqlalchemy.url", db_url)
+
+# Asegúrate de que el paquete principal esté disponible al ejecutar Alembic
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
