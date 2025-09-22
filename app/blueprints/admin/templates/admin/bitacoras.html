@@ -1,4 +1,5 @@
 {% extends "admin/_base_admin.html" %}
+{% import "_icons.html" as i %}
 {% block admin_title %}Bitácoras · Admin · SGC{% endblock %}
 {% block admin_content %}
 <h1>Bitácoras</h1>
@@ -6,16 +7,18 @@
 <form method="post" action="{{ url_for('admin.bitacoras_create') }}">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <div class="form-grid">
-    <select name="project_id" required>
+    <select name="project_id" required aria-label="Proyecto">
       <option value="">Proyecto…</option>
       {% for p in projects %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}
     </select>
 
-    <input type="text" name="author" placeholder="Autor (opcional)">
-    <input type="date" name="date" value="{{ (now or none)|default('', true) }}">
-    <textarea name="text" placeholder="Descripción…" required></textarea>
+    <input type="text" name="author" placeholder="Autor (opcional)" aria-label="Autor">
+    <input type="date" name="date" value="{{ default_date }}" aria-label="Fecha">
+    <textarea name="text" placeholder="Descripción…" aria-label="Descripción" required></textarea>
 
-    <button type="submit" class="btn btn-primary btn-wide">Guardar bitácora</button>
+    <button type="submit" class="btn btn-primary btn-wide" title="Guardar bitácora">
+      {{ i.save() }} <span>Guardar bitácora</span>
+    </button>
   </div>
 </form>
 

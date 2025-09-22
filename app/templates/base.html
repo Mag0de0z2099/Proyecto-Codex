@@ -1,10 +1,10 @@
 <!doctype html>
 <html lang="es">
+{% import "_icons.html" as i %}
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>{% block title %}SGC — Obra de Dragado{% endblock %}</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}?v=2">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
 </head>
 <body>
@@ -19,10 +19,16 @@
       {% set is_logged = current_user.is_authenticated or session.get('user') %}
       <div class="toolbar" style="margin-left:auto">
         {% if is_logged %}
-          <a class="btn btn-outline" href="{{ url_for('admin.dashboard') }}">Admin</a>
-          <a class="btn btn-primary" href="{{ url_for('auth.logout') }}">Logout</a>
+          <a class="btn btn-outline" href="{{ url_for('admin.dashboard') }}">
+            {{ i.userShield() }} <span>Admin</span>
+          </a>
+          <a class="btn btn-primary" href="{{ url_for('auth.logout') }}">
+            {{ i.logout() }} <span>Logout</span>
+          </a>
         {% else %}
-          <a class="btn btn-primary" href="{{ url_for('auth.login') }}">Login</a>
+          <a class="btn btn-primary" href="{{ url_for('auth.login') }}">
+            {{ i.key() }} <span>Login</span>
+          </a>
         {% endif %}
       </div>
     </nav>
