@@ -4,7 +4,7 @@
 <h1>Crear cuenta</h1>
 
 <form method="post" class="stack-v" style="gap:.75rem; max-width:520px;">
-  {{ csrf_token() }}
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
   {% if invite %}
     <input type="hidden" name="token" value="{{ request.args.get('token','') }}">
