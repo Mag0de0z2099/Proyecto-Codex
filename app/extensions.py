@@ -8,7 +8,7 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_wtf import CSRFProtect
 
-from .db import db
+from . import db
 
 bcrypt = Bcrypt()
 login_manager = LoginManager()

@@ -6,7 +6,7 @@ from __future__ import annotations
 import sys
 
 from app import create_app
-from app.db import db
+from app import db
 from app.models import User
 
 

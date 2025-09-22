@@ -20,7 +20,7 @@ from flask import (
 from flask_login import login_required as flask_login_required
 from sqlalchemy.exc import IntegrityError
 
-from app.db import db
+from app import db
 from app.models import (
     Bitacora,
     ChecklistTemplate,

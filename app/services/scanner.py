@@ -6,7 +6,7 @@ import os
 from time import perf_counter
 from typing import Dict, Tuple
 
-from app.db import db
+from app import db
 from app.metrics import (
     assets_registered,
     folders_registered,

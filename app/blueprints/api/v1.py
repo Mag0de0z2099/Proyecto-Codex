@@ -5,7 +5,7 @@ from __future__ import annotations
 from flask import Blueprint
 from sqlalchemy import text
 
-from app.db import db
+from app import db
 
 bp_api_v1 = Blueprint("api_v1", __name__)
 

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from app import create_app
-from app.db import db
+from app import db
 
 
 def test_todos_crud(tmp_path, monkeypatch):

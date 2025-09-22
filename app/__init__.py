@@ -7,12 +7,16 @@ import os
 import sys
 import uuid
 from pathlib import Path
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from flask import Flask, Response, g, has_request_context, request
 from pytz import timezone
 from werkzeug.exceptions import HTTPException
+
+from flask_sqlalchemy import SQLAlchemy
+
+db = SQLAlchemy()
 
 from .blueprints.admin import bp_admin
 from .blueprints.api.v1 import bp_api_v1
@@ -23,7 +27,6 @@ from .cli_sync import register_sync_cli
 from .routes.assets import assets_bp
 from .routes.public import public_bp
 from .config import get_config
-from .db import db
 from .extensions import csrf, init_auth_extensions, limiter
 from .metrics import cleanup_multiprocess_directory
 from .utils.scan_lock import get_scan_lock
@@ -81,34 +84,38 @@ def _normalize_db_url(raw: str) -> str:
         raw = raw.replace("postgresql://", "postgresql+psycopg://", 1)
 
     parts = urlsplit(raw)
-    if parts.scheme.startswith("sqlite"):
-        base = raw.split("?", 1)[0]
-        if "#" in base:
-            base = base.split("#", 1)[0]
-        return base
+    scheme = parts.scheme
 
-    if parts.scheme.startswith("postgresql"):
-        query = parts.query or ""
-        if "sslmode=" not in query:
-            query = (query + "&sslmode=require") if query else "sslmode=require"
-        return urlunsplit((parts.scheme, parts.netloc, parts.path, query, parts.fragment))
+    if scheme.startswith("sqlite"):
+        cleaned = raw.split("?", 1)[0]
+        if "#" in cleaned:
+            cleaned = cleaned.split("#", 1)[0]
+        return cleaned
+
+    if scheme.startswith("postgresql"):
+        query = dict(parse_qsl(parts.query))
+        query.setdefault("sslmode", "require")
+        return urlunsplit((scheme, parts.netloc, parts.path, urlencode(query), parts.fragment))
 
     return raw
 
 
 def create_app(config_name: str | None = None) -> Flask:
     app = Flask(__name__)
-    raw_uri = os.environ.get("DATABASE_URL", "")
 
     app.config.from_object(get_config(config_name))
 
-    configured_uri = str(app.config.get("SQLALCHEMY_DATABASE_URI", ""))
+    raw_uri = os.environ.get("DATABASE_URL")
+    configured_uri = app.config.get("SQLALCHEMY_DATABASE_URI")
     uri = _normalize_db_url(raw_uri or configured_uri)
+
     app.config["SQLALCHEMY_DATABASE_URI"] = uri
-    if not app.config.get("SQLALCHEMY_TRACK_MODIFICATIONS"):
-        app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-    if not app.config.get("SECRET_KEY"):
-        app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "change-me")
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+    app.config.setdefault("SECRET_KEY", os.environ.get("SECRET_KEY", "change-me"))
+    engine_options = dict(app.config.get("SQLALCHEMY_ENGINE_OPTIONS", {}))
+    engine_options.setdefault("pool_pre_ping", True)
+    engine_options.setdefault("pool_recycle", 300)
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = engine_options
 
     configure_logging(app)
 

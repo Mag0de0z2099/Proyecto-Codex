@@ -8,7 +8,7 @@ from contextlib import contextmanager
 from sqlalchemy import text
 from sqlalchemy.engine import Engine
 
-from app.db import db
+from app import db
 from app.metrics import scan_lock
 
 from .lock import file_lock

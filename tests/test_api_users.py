@@ -5,7 +5,7 @@ import json
 import pytest
 
 from app import create_app
-from app.db import db as _db
+from app import db as _db
 
 
 @pytest.fixture()

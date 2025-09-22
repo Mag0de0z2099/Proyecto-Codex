@@ -24,7 +24,7 @@ from sqlalchemy import func, inspect
 from sqlalchemy.exc import IntegrityError
 from werkzeug.security import generate_password_hash
 
-from app.db import db
+from app import db
 from app.extensions import limiter
 from app.security import generate_reset_token, parse_reset_token
 from app.models import User

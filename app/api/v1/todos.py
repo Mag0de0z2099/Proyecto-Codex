@@ -3,7 +3,7 @@ from __future__ import annotations
 from flask import jsonify, request
 from werkzeug.exceptions import BadRequest
 
-from ...db import db
+from ... import db
 from ...models import Todo
 from . import bp
 

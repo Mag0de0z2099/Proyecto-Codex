@@ -19,7 +19,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import expression
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from app.db import db
+from app import db
 from app.extensions import bcrypt, login_manager
 from app.utils.strings import normalize_email
 

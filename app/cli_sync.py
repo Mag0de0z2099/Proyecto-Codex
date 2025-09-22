@@ -4,7 +4,7 @@ import os
 
 import click
 
-from app.db import db
+from app import db
 from app.models.asset import Asset
 from app.models.folder import Folder
 from app.models import Project

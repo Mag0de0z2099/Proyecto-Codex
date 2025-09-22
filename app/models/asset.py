@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from app.db import db
+from app import db
 
 
 class Asset(db.Model):

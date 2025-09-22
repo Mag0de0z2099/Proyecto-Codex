@@ -24,7 +24,7 @@ def app(monkeypatch, tmp_path):
     monkeypatch.setenv("DATA_DIR", str(tmp_path / "data"))
 
     from app import create_app
-    from app.db import db
+    from app import db
 
     application = create_app("test")
     ctx = application.app_context()
@@ -48,7 +48,7 @@ def client(app):
 
 @pytest.fixture
 def db_session(app):
-    from app.db import db
+    from app import db
 
     try:
         yield db.session

@@ -8,7 +8,7 @@ import click
 from flask import current_app
 from werkzeug.security import generate_password_hash
 
-from app.db import db
+from app import db
 from app.models import User
 from app.utils.strings import normalize_email
 
