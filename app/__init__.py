@@ -126,6 +126,10 @@ def create_app(config_name: str | None = None) -> Flask:
         app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     if not app.config.get("SECRET_KEY"):
         app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "change-me")
+    app.config.setdefault(
+        "ALLOW_SELF_SIGNUP",
+        os.getenv("ALLOW_SELF_SIGNUP", "false").lower() in {"1", "true", "yes", "y"},
+    )
 
     configure_logging(app)
 
@@ -187,10 +191,17 @@ def create_app(config_name: str | None = None) -> Flask:
         except Exception:
             has_web_index = False
             has_web_upload = False
+        try:
+            from app.models import User as _User  # import local para evitar ciclos
+
+            pending_count = _User.query.filter(_User.status == "pending").count()
+        except Exception:
+            pending_count = 0
         return {
             "has_web_index": has_web_index,
             "has_web_upload": has_web_upload,
             "config": app.config,
+            "pending_users_count": pending_count,
         }
 
     # Blueprints
