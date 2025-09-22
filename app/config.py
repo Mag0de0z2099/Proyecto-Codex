@@ -35,6 +35,7 @@ RATELIMIT_STORAGE_URI = os.getenv("REDIS_URL", "memory://")
 if (
     os.getenv("FLASK_ENV") == "production"
     and SQLALCHEMY_DATABASE_URI.startswith("sqlite:")
+    and os.getenv("CI", "").lower() not in {"true", "1"}
 ):
     raise RuntimeError("DATABASE_URL no definido en producción (detectado sqlite)")
 
