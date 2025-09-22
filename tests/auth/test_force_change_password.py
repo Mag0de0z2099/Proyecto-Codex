@@ -56,7 +56,7 @@ def test_change_password_clears_flag():
         follow_redirects=True,
     )
     assert response.status_code == 200
-    client.get("/auth/logout", follow_redirects=True)
+    client.post("/auth/logout", follow_redirects=True)
     response_login = client.post(
         "/auth/login",
         data={"username": "force", "password": "nuevo12345"},

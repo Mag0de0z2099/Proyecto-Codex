@@ -22,6 +22,7 @@ from flask_login import (
 )
 from sqlalchemy import func
 
+from app.authz import login_required
 from app.db import db
 from app.extensions import limiter
 from app.security import generate_reset_token, parse_reset_token
@@ -144,14 +145,12 @@ def login():
     return render_template("auth/login.html")
 
 
-@bp_auth.get("/logout")
+@bp_auth.post("/logout")
+@login_required
 def logout():
-    if current_app.config.get("AUTH_SIMPLE", True):
-        session.clear()
-        flash("Sesión cerrada.", "info")
-        return redirect(url_for("web.index"))
     logout_user()
-    flash("Sesión cerrada", "info")
+    session.clear()
+    flash("Sesión cerrada.", "info")
     return redirect(url_for("auth.login"))
 
 

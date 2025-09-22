@@ -101,6 +101,8 @@ input:focus-visible{
   box-shadow:0 0 0 3px rgba(36,160,255,0.35);
 }
 .toolbar{ display:flex; gap:var(--gap); align-items:center; flex-wrap:wrap; }
+.inline{ display:inline; }
+.toolbar form.inline{ margin:0; }
 .stack-v{ display:flex; flex-direction:column; gap:var(--gap); }
 .stack-h{ display:flex; gap:var(--gap); align-items:center; flex-wrap:wrap; }
 
