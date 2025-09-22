@@ -59,7 +59,6 @@ class BaseConfig:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = dict(SQLALCHEMY_ENGINE_OPTIONS)
     RATELIMIT_STORAGE_URI = _RATELIMIT_STORAGE_URI
-    ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin")
     AUTH_SIMPLE = os.getenv("AUTH_SIMPLE", "0").lower() in ("1", "true", "yes")
     SESSION_COOKIE_HTTPONLY = True
     _secure_cookies_flag = os.getenv("SECURE_COOKIES")

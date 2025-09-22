@@ -19,7 +19,6 @@ if str(PROJECT_ROOT) not in sys.path:
 def app(monkeypatch, tmp_path):
     """Instancia de la aplicación configurada para pruebas con DB temporal."""
 
-    monkeypatch.setenv("ADMIN_PASSWORD", "pass123")
     monkeypatch.setenv("SECRET_KEY", "tests-secret")
     monkeypatch.setenv("DATA_DIR", str(tmp_path / "data"))
 

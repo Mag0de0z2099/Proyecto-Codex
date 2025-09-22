@@ -34,6 +34,14 @@ Configura las variables de entorno **antes** de desplegar en Render u otra plata
 
 En producción la aplicación fuerza cookies `Secure`, `HttpOnly` y `SameSite=Lax`, protege los formularios con CSRF y aplica cabeceras de seguridad (CSP, HSTS, etc.).
 
+> ℹ️ El seeding por defecto crea `admin@admin.com` / `admin123`.
+
+Para usar otra clave, ejecutar:
+
+```bash
+FLASK_APP=app:create_app flask seed-admin --email admin@admin.com --password NUEVA_CLAVE
+```
+
 ## Operación
 
 - **Gunicorn:** El Procfile y `render.yaml` inician el proyecto con `gunicorn -w 3 -t 60 wsgi:app`.
