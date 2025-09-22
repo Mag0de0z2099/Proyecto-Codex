@@ -28,7 +28,7 @@
         {% if is_logged %}
           {% if current_role == "admin" %}
             <a class="btn btn-outline" href="{{ url_for('admin.users_pending') }}">
-              {{ i.bell() }} <span>Pendientes</span>
+              {{ i.bell() }} <span>Pendientes{% if pending_users_count %} ({{ pending_users_count }}){% endif %}</span>
             </a>
           {% endif %}
           <a class="btn btn-outline" href="{{ url_for('admin.dashboard') }}">

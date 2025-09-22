@@ -11,7 +11,9 @@
     <a class="btn btn-outline" href="{{ admin_url('admin.users_index', 'admin.users') }}">Usuarios</a>
 
     {% if current_user.is_authenticated and current_user.role == 'admin' %}
-      <a class="btn btn-outline" href="{{ admin_url('admin.users_pending') }}">Pendientes</a>
+      <a class="btn btn-outline" href="{{ admin_url('admin.users_pending') }}">
+        Pendientes{% if pending_users_count %} ({{ pending_users_count }}){% endif %}
+      </a>
       {% if has_admin_endpoint('admin.invites_index') %}
         <a class="btn btn-outline" href="{{ admin_url('admin.invites_index') }}">Invitaciones</a>
       {% endif %}

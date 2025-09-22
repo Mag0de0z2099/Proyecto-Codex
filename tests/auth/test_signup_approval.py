@@ -5,7 +5,14 @@ from datetime import datetime, timezone
 from app.models import User
 
 
-def test_signup_creates_pending_user(client, db_session):
+def test_register_disabled_redirects(client):
+    response = client.get("/auth/register", follow_redirects=False)
+    assert response.status_code in (302, 303)
+    assert "/auth/login" in response.headers.get("Location", "")
+
+
+def test_signup_creates_pending_user(client, db_session, app):
+    app.config["ALLOW_SELF_SIGNUP"] = True
     response = client.post(
         "/auth/register",
         data={

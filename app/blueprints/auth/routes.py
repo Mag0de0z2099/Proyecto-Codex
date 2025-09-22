@@ -161,8 +161,16 @@ def _email_domain(addr: str) -> str:
 
 @bp_auth.get("/register", endpoint="register")
 def register_get():
-    mode = current_app.config.get("SIGNUP_MODE", "invite").lower()
     token = request.args.get("token")
+    allow_signup = current_app.config.get("ALLOW_SELF_SIGNUP", False)
+    if not allow_signup and not token:
+        flash(
+            "El registro público está deshabilitado. Solicita una invitación al administrador.",
+            "warning",
+        )
+        return redirect(url_for("auth.login"))
+
+    mode = current_app.config.get("SIGNUP_MODE", "invite").lower()
     if mode in ("invite", "closed") and not token:
         flash("Registro cerrado. Solicita una invitación al administrador.", "warning")
         return redirect(url_for("auth.login"))
@@ -176,6 +184,11 @@ def register_post():
     mode = current_app.config.get("SIGNUP_MODE", "invite").lower()
     token = request.form.get("token") or request.args.get("token")
     email = (request.form.get("email") or "").strip().lower()
+
+    allow_signup = current_app.config.get("ALLOW_SELF_SIGNUP", False)
+    if not allow_signup and not token:
+        flash("El registro público está deshabilitado.", "warning")
+        return redirect(url_for("auth.login"))
 
     inv = None
     if mode in ("invite", "closed"):
