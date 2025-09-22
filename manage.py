@@ -1,20 +1,29 @@
+# manage.py
 import click
-from flask_migrate import upgrade
-from app.main import app  # importa tu app ya inicializada con Migrate
+from alembic import command
+from alembic.config import Config
+from flask.cli import with_appcontext
+
+from app import create_app
+
+app = create_app()
 
 
-@click.group()
-def cli():
-    pass
+def _alembic_cfg() -> Config:
+    cfg = Config("migrations/alembic.ini")
+    return cfg
 
 
-@cli.command("db-upgrade")
+@app.cli.command("db-upgrade")
+@with_appcontext
 def db_upgrade():
-    """Aplica las migraciones de Alembic."""
-    with app.app_context():
-        upgrade()
-        click.echo("DB upgraded successfully")
+    command.upgrade(_alembic_cfg(), "head")
+    click.echo("✅ Alembic upgrade head OK")
 
 
-if __name__ == "__main__":
-    cli()
+@app.cli.command("db-downgrade")
+@click.argument("rev", default="-1")
+@with_appcontext
+def db_downgrade(rev):
+    command.downgrade(_alembic_cfg(), rev)
+    click.echo(f"✅ Alembic downgrade {rev} OK")

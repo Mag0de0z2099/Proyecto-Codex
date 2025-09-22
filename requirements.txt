@@ -17,15 +17,15 @@ email-validator>=2.2.0
 # Testing
 pytest==8.3.3
 pytest-cov==5.0.0
-Flask-SQLAlchemy==3.1.1
-SQLAlchemy==2.0.32
+Flask-SQLAlchemy>=3.1.1
+SQLAlchemy>=2.0.30
 
 # Migraciones
 Flask-Migrate==4.0.7
-alembic==1.13.2
+alembic>=1.13.2
 
 # Drivers de base de datos
-psycopg2-binary>=2.9.9
+psycopg[binary]>=3.2.1
 
 # Scheduler y zonas horarias
 APScheduler>=3.10.4

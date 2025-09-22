@@ -6,17 +6,15 @@ from alembic import context
 from sqlalchemy import engine_from_config, pool
 
 
-# === Carga la app para tomar la DB URL y el metadata ===
-# Soportamos dos ubicaciones comunes de 'db'
 def _load_app_and_db():
+    # Carga la app de Flask y obtén 'db'
     from app import create_app
 
     app = create_app()
 
-    # Intenta importar db desde app.extensions, si no, desde app
     db = None
     try:
-        from app.extensions import db as _db  # Flask-SQLAlchemy
+        from app.extensions import db as _db
 
         db = _db
     except Exception:
@@ -26,9 +24,8 @@ def _load_app_and_db():
             db = _db2
         except Exception as e:
             raise RuntimeError(
-                "No pude importar 'db'. Asegúrate de exponer 'db' en app.extensions o app.__init__"
+                "No pude importar 'db'. Expón 'db' en app.extensions o en app.__init__"
             ) from e
-
     return app, db
 
 
@@ -37,26 +34,23 @@ db_uri = app.config.get("SQLALCHEMY_DATABASE_URI")
 if not db_uri:
     raise RuntimeError("SQLALCHEMY_DATABASE_URI no está definido en la app.")
 
-# Alembic config
 config = context.config
 if config.config_file_name:
     fileConfig(config.config_file_name)
 
-# Fuerza a Alembic a usar la misma URL que la app
+# Fuerza a Alembic a usar la MISMA URL que usa la app
 config.set_main_option("sqlalchemy.url", db_uri)
 
-# Metadata objetivo para autogenerate
 target_metadata = getattr(db, "metadata", None) or getattr(db, "Model", None).metadata
 
 
 def run_migrations_offline() -> None:
-    """Modo offline: usa URL literal"""
     url = config.get_main_option("sqlalchemy.url")
     context.configure(
         url=url,
         target_metadata=target_metadata,
-        compare_type=True,  # detecta cambios de tipos
-        render_as_batch=True,  # seguro para ALTER TABLE en SQLite
+        compare_type=True,
+        render_as_batch=False,  # En Postgres no es necesario batch mode
         literal_binds=True,
     )
     with context.begin_transaction():
@@ -64,7 +58,6 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
-    """Modo online: usa engine/connection"""
     connectable = engine_from_config(
         config.get_section(config.config_ini_section),
         prefix="sqlalchemy.",
@@ -75,7 +68,7 @@ def run_migrations_online() -> None:
             connection=connection,
             target_metadata=target_metadata,
             compare_type=True,
-            render_as_batch=True,  # importante para SQLite
+            render_as_batch=False,
         )
         with context.begin_transaction():
             context.run_migrations()
