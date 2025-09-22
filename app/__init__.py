@@ -77,6 +77,16 @@ def create_app(config_name: str | None = None) -> Flask:
 
     configure_logging(app)
 
+    # DEBUG: imprime la URI y, si es SQLite, la ruta absoluta del archivo
+    try:
+        uri = app.config.get("SQLALCHEMY_DATABASE_URI", "")
+        print(f"DB URI -> {uri}")
+        if uri.startswith("sqlite:///"):
+            sqlite_path = Path(uri.replace("sqlite:///", "", 1)).expanduser().resolve()
+            print(f"[DEBUG] SQLite file -> {sqlite_path}")
+    except Exception as exc:  # pragma: no cover - logging auxiliar
+        print(f"[DEBUG] No se pudo imprimir DB info: {exc}")
+
     # Asegura DATA_DIR y muestra la URI (útil en logs de Render)
     data_dir = Path(app.config["DATA_DIR"])
     data_dir.mkdir(parents=True, exist_ok=True)

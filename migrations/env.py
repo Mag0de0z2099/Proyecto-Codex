@@ -1,47 +1,70 @@
+from __future__ import annotations
+
 from logging.config import fileConfig
-from pathlib import Path
-import sys
 
-from sqlalchemy import engine_from_config, pool
 from alembic import context
+from sqlalchemy import engine_from_config, pool
 
 
-config = context.config
-if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+# === Carga la app para tomar la DB URL y el metadata ===
+# Soportamos dos ubicaciones comunes de 'db'
+def _load_app_and_db():
+    from app import create_app
+
+    app = create_app()
+
+    # Intenta importar db desde app.extensions, si no, desde app
+    db = None
+    try:
+        from app.extensions import db as _db  # Flask-SQLAlchemy
+
+        db = _db
+    except Exception:
+        try:
+            from app import db as _db2
+
+            db = _db2
+        except Exception as e:
+            raise RuntimeError(
+                "No pude importar 'db'. Asegúrate de exponer 'db' en app.extensions o app.__init__"
+            ) from e
+
+    return app, db
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
-
-from app import create_app, db as _db
-
-app = create_app()
+app, db = _load_app_and_db()
 db_uri = app.config.get("SQLALCHEMY_DATABASE_URI")
 if not db_uri:
-    raise RuntimeError("SQLALCHEMY_DATABASE_URI no está configurado en la app")
+    raise RuntimeError("SQLALCHEMY_DATABASE_URI no está definido en la app.")
 
+# Alembic config
+config = context.config
+if config.config_file_name:
+    fileConfig(config.config_file_name)
+
+# Fuerza a Alembic a usar la misma URL que la app
 config.set_main_option("sqlalchemy.url", db_uri)
 
-target_metadata = _db.metadata
+# Metadata objetivo para autogenerate
+target_metadata = getattr(db, "metadata", None) or getattr(db, "Model", None).metadata
 
 
-def run_migrations_offline():
+def run_migrations_offline() -> None:
+    """Modo offline: usa URL literal"""
     url = config.get_main_option("sqlalchemy.url")
     context.configure(
         url=url,
         target_metadata=target_metadata,
+        compare_type=True,  # detecta cambios de tipos
+        render_as_batch=True,  # seguro para ALTER TABLE en SQLite
         literal_binds=True,
-        dialect_opts={"paramstyle": "named"},
-        compare_type=True,
-        render_as_batch=True,   # IMPORTANTE para SQLite
     )
     with context.begin_transaction():
         context.run_migrations()
 
 
-def run_migrations_online():
+def run_migrations_online() -> None:
+    """Modo online: usa engine/connection"""
     connectable = engine_from_config(
         config.get_section(config.config_ini_section),
         prefix="sqlalchemy.",
@@ -52,7 +75,7 @@ def run_migrations_online():
             connection=connection,
             target_metadata=target_metadata,
             compare_type=True,
-            render_as_batch=True,   # IMPORTANTE para SQLite
+            render_as_batch=True,  # importante para SQLite
         )
         with context.begin_transaction():
             context.run_migrations()
