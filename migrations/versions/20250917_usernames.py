@@ -15,16 +15,31 @@ def upgrade():
     op.create_index("ix_users_username", "users", ["username"], unique=False)
 
     # 2) Rellenar username para filas existentes (derivado de email o 'user<ID>')
-    #    Esta sentencia es 100% compatible con SQLite.
     conn = op.get_bind()
-    conn.execute(sa.text("""
-        UPDATE users
-           SET username = COALESCE(
-                NULLIF(SUBSTR(email, 1, INSTR(COALESCE(email, ''), '@') - 1), ''),
-                'user' || id
-           )
-         WHERE username IS NULL
-    """))
+    dialect = conn.dialect.name
+
+    if dialect == "postgresql":
+        conn.execute(sa.text(
+            """
+            UPDATE users
+               SET username = COALESCE(
+                    NULLIF(SPLIT_PART(COALESCE(email, ''), '@', 1), ''),
+                    'user' || id::text
+               )
+             WHERE username IS NULL
+            """
+        ))
+    else:
+        conn.execute(sa.text(
+            """
+            UPDATE users
+               SET username = COALESCE(
+                    NULLIF(substr(COALESCE(email, ''), 1, instr(COALESCE(email, ''), '@') - 1), ''),
+                    'user' || id
+               )
+             WHERE username IS NULL
+            """
+        ))
 
     # 3) En SQLite, cambiar NULLABLE requiere modo batch (recrea tabla bajo el agua)
     with op.batch_alter_table("users", recreate="always") as batch:
