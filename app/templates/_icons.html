@@ -1,0 +1,54 @@
+{% macro icon(view_box='0 0 24 24', width=18, height=18) -%}
+<svg class="icon" width="{{ width }}" height="{{ height }}" viewBox="{{ view_box }}" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" role="img" xmlns="http://www.w3.org/2000/svg">
+  {{ caller() }}
+</svg>
+{%- endmacro %}
+
+{% macro save() -%}
+{%- call icon() -%}
+  <path d="M6 3h9l4 4v12a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
+  <path d="M12 7v7" />
+  <path d="M9.5 11.5L12 14l2.5-2.5" />
+{%- endcall %}
+{%- endmacro %}
+
+{% macro logout() -%}
+{%- call icon() -%}
+  <path d="M16 7l5 5-5 5" />
+  <path d="M21 12H10" />
+  <path d="M13 5H8a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h5" />
+{%- endcall %}
+{%- endmacro %}
+
+{% macro key() -%}
+{%- call icon() -%}
+  <circle cx="9" cy="12" r="3" />
+  <path d="M12 12h8" />
+  <path d="M18 9v6" />
+  <path d="M15 9v6" />
+{%- endcall %}
+{%- endmacro %}
+
+{% macro power() -%}
+{%- call icon() -%}
+  <path d="M12 3v9" />
+  <path d="M7 6.5a7 7 0 1 0 10 0" />
+{%- endcall %}
+{%- endmacro %}
+
+{% macro refresh() -%}
+{%- call icon() -%}
+  <path d="M20 11V5h-6" />
+  <path d="M4 13v6h6" />
+  <path d="M6.5 17.5a7 7 0 0 0 11.5-3" />
+  <path d="M17.5 6.5a7 7 0 0 0-11.5 3" />
+{%- endcall %}
+{%- endmacro %}
+
+{% macro userShield() -%}
+{%- call icon() -%}
+  <path d="M12 3l7 3v6c0 5-3.5 9.5-7 10.5-3.5-1-7-5.5-7-10.5V6z" />
+  <path d="M12 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" />
+  <path d="M8 18a4.5 4.5 0 0 1 8 0" />
+{%- endcall %}
+{%- endmacro %}

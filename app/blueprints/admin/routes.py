@@ -183,7 +183,10 @@ def bitacoras():
     )
     projects = Project.query.order_by(Project.name).all()
     return render_template(
-        "admin/bitacoras.html", logs=logs, projects=projects, now=date.today()
+        "admin/bitacoras.html",
+        logs=logs,
+        projects=projects,
+        default_date=date.today().isoformat(),
     )
 
 

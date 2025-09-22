@@ -1,3 +1,57 @@
+body { font-family: Arial, sans-serif; margin:0; background:#0b1220; color:#e8eefb; }
+a { text-decoration:none; }
+.sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+
+.navbar{
+  position:sticky;top:0;z-index:10;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 18px;border-bottom:1px solid var(--border, #223454);
+  background:rgba(11,18,32,0.85);backdrop-filter:blur(6px)
+}
+.nav-left .brand{
+  display:inline-flex;align-items:center;gap:10px;
+  font-weight:600;letter-spacing:.3px
+}
+.nav-left .brand .logo{
+  height:24px;width:auto;display:block;border-radius:4px;
+  box-shadow:0 0 0 1px rgba(255,255,255,.06);
+}
+
+.nav-right{display:flex;gap:10px}
+.btn{
+  padding:8px 14px;border-radius:10px;
+  background:var(--accent, #33b1ff);color:#001726;font-weight:600;
+  border:1px solid transparent;transition:.2s
+}
+.btn:hover{filter:brightness(1.05)}
+.btn.outline{
+  background:transparent;border-color:var(--border, #223454);color:var(--text, #e8eefb)
+}
+.btn.outline:hover{background:rgba(18,26,42,.6)}
+
+.container { max-width:1100px; margin:28px auto; padding:0 16px; }
+.hero h1 { font-size:28px; margin-bottom:4px; }
+.muted { color:#9fb2d0; }
+
+.grid { display:grid; gap:14px; grid-template-columns:repeat(auto-fit, minmax(250px,1fr)); }
+.card { background:#141e31; padding:16px; border-radius:10px; border:1px solid #223454; }
+.card:hover { background:#1a2640; }
+.card h3 { margin:0 0 6px; font-size:16px; }
+.card p { margin:0; color:#9fb2d0; font-size:14px; }
+
+.about { margin-top:28px; }
+.external-link { display:inline-block; margin-top:10px; color:#33b1ff; font-weight:600; }
+.external-link:hover { text-decoration:underline; }
+
+.footer { margin:28px auto; text-align:center; color:#9fb2d0; }
+
+.auth-wrap{
+  max-width:640px;margin:48px auto;padding:24px;
+  background:rgba(20,30,49,.6);border:1px solid var(--border,#223454);border-radius:12px
+}
+.auth-wrap h1{margin:0 0 16px;font-size:24px}
+/* ci: touch for PR test */
+
 :root{
   --gap:12px;
   --gap-lg:16px;
@@ -32,6 +86,20 @@ input[type="text"],input[type="email"],input[type="date"],select,textarea{
 }
 textarea{ min-height:var(--btn-h); height:auto; }
 
+.btn svg{ width:18px; height:18px; }
+.btn span{ display:inline-flex; align-items:center; }
+
+.icon{ display:block; }
+
+:focus-visible{ outline:2px solid rgba(36,160,255,0.9); outline-offset:2px; }
+.btn:focus-visible,
+button:focus-visible,
+input[type="submit"]:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+input:focus-visible{
+  box-shadow:0 0 0 3px rgba(36,160,255,0.35);
+}
 .toolbar{ display:flex; gap:var(--gap); align-items:center; flex-wrap:wrap; }
 .stack-v{ display:flex; flex-direction:column; gap:var(--gap); }
 .stack-h{ display:flex; gap:var(--gap); align-items:center; flex-wrap:wrap; }
