@@ -77,7 +77,7 @@ def test_admin_can_approve_and_assign_role(client, db_session):
     assert user.category == "seguridad"
     assert user.approved_at is not None
 
-    client.get("/auth/logout", follow_redirects=True)
+    client.post("/auth/logout", follow_redirects=True)
     login_user = client.post(
         "/auth/login",
         data={"username": "juan", "password": "clave1234"},

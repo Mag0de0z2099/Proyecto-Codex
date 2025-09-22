@@ -19,12 +19,6 @@
 
     <span class="flex-1"></span>
 
-    {% if current_user.is_authenticated %}
-      <form method="post" action="{{ url_for('auth.logout') }}">
-        {{ csrf_token() }}
-        <button class="btn btn-primary">Logout</button>
-      </form>
-    {% endif %}
   </nav>
   {% endblock %}
 

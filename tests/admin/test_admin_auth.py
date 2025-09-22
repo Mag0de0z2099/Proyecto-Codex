@@ -59,7 +59,7 @@ def test_admin_login_ok_and_access(app_with_admin):
     assert dashboard.status_code == 200
     assert b"Dashboard SGC" in dashboard.data
 
-    logout = client.get("/auth/logout", follow_redirects=True)
+    logout = client.post("/auth/logout", follow_redirects=True)
     assert logout.status_code == 200
     assert b"Iniciar sesi" in logout.data
 

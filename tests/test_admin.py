@@ -50,7 +50,7 @@ def test_admin_files_listing(tmp_path, monkeypatch):
         assert "reports/report.txt" in body
         assert str(data_dir) in body
     finally:
-        client.get("/auth/logout")
+        client.post("/auth/logout")
         with app.app_context():
             db.drop_all()
             db.session.remove()

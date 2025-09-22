@@ -63,7 +63,7 @@ def test_change_password_ok(client):
     )
     assert r.status_code == 200
     # re-login con nueva
-    client.get("/auth/logout", follow_redirects=True)
+    client.post("/auth/logout", follow_redirects=True)
     r2 = login(client, "user", "nuevo12345")
     assert r2.status_code == 200
 
