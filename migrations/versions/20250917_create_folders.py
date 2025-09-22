@@ -18,8 +18,8 @@ def upgrade():
         sa.Column("parent_id", sa.Integer(), nullable=True),
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("updated_at", sa.DateTime(), nullable=False),
-        # En SQLite, booleans usan 0/1 como texto; evita 'false' literal
-        sa.Column("is_root", sa.Boolean(), nullable=False, server_default=sa.text("0")),
+        # En SQLite y PostgreSQL, expresamos el default como literal booleano
+        sa.Column("is_root", sa.Boolean(), nullable=False, server_default=sa.text("false")),
         sa.ForeignKeyConstraint(["parent_id"], ["folders.id"], ondelete="CASCADE"),
         sa.UniqueConstraint("parent_id", "slug", name="uq_folders_parent_slug"),
     )
