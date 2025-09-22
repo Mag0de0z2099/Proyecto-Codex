@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import os
 import re
-from datetime import date
+import secrets
+from datetime import date, datetime, timedelta, timezone
 from functools import wraps
 from pathlib import Path
 
@@ -17,7 +18,7 @@ from flask import (
     session,
     url_for,
 )
-from flask_login import login_required as flask_login_required
+from flask_login import current_user, login_required as flask_login_required
 from sqlalchemy.exc import IntegrityError
 
 from app.db import db
@@ -28,6 +29,7 @@ from app.models import (
     DailyChecklist,
     DailyChecklistItem,
     Folder,
+    Invite,
     MetricDaily,
     Project,
     User,
@@ -52,6 +54,57 @@ def login_required(view):
         return decorated(*args, **kwargs)
 
     return wrapped
+
+
+@bp_admin.get("/invites")
+@login_required
+@role_required("admin")
+def invites_index():
+    invites = Invite.query.order_by(Invite.created_at.desc()).all()
+    return render_template("admin/invites.html", invites=invites)
+
+
+@bp_admin.post("/invites")
+@login_required
+@role_required("admin")
+def invites_create():
+    email = (request.form.get("email") or "").strip().lower() or None
+    role = (request.form.get("role") or "viewer").strip().lower() or "viewer"
+    category = (request.form.get("category") or "").strip() or None
+    try:
+        days = max(int(request.form.get("days", "7") or 7), 0)
+    except ValueError:
+        days = 7
+    try:
+        max_uses = max(int(request.form.get("max_uses", "1") or 1), 1)
+    except ValueError:
+        max_uses = 1
+
+    token = secrets.token_urlsafe(24)
+    invite = Invite(
+        token=token,
+        email=email,
+        role=role,
+        category=category,
+        max_uses=max_uses,
+        expires_at=datetime.now(timezone.utc) + timedelta(days=days),
+        created_by=getattr(current_user, "id", None),
+    )
+    db.session.add(invite)
+    db.session.commit()
+    flash("Invitación creada.", "success")
+    return redirect(url_for("admin.invites_index"))
+
+
+@bp_admin.post("/invites/<int:invite_id>/revoke")
+@login_required
+@role_required("admin")
+def invites_revoke(invite_id: int):
+    invite = Invite.query.get_or_404(invite_id)
+    invite.revoked_at = datetime.now(timezone.utc)
+    db.session.commit()
+    flash("Invitación revocada.", "info")
+    return redirect(url_for("admin.invites_index"))
 
 
 @bp_admin.get("/")

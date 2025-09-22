@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import requests
 from collections.abc import Mapping
 from http import HTTPStatus
 from flask import (
@@ -22,12 +23,11 @@ from flask_login import (
 )
 from sqlalchemy import func, inspect
 from sqlalchemy.exc import IntegrityError
-from werkzeug.security import generate_password_hash
 
 from app.db import db
 from app.extensions import limiter
 from app.security import generate_reset_token, parse_reset_token
-from app.models import User
+from app.models import Invite, User
 from app.utils.strings import normalize_email
 from app.simple_auth.store import ensure_bootstrap_admin, verify
 
@@ -94,7 +94,13 @@ def login_post():
         # return redirect(url_for("auth.login"))
 
         user = User.query.filter_by(username=username).first()
-        if user and user.check_password(password) and user.is_active:
+        if user and user.check_password(password):
+            if not user.is_active:
+                flash("Tu cuenta está desactivada.", "danger")
+                return render_template("auth/login.html"), HTTPStatus.UNAUTHORIZED
+            if getattr(user, "status", "approved") != "approved":
+                flash("Tu cuenta no está aprobada aún.", "warning")
+                return redirect(url_for("auth.login"))
             login_user(user)
             if getattr(user, "force_change_password", False):
                 flash("Debes actualizar tu contraseña antes de continuar.", "info")
@@ -113,6 +119,11 @@ def login_post():
 
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+def _email_domain(email: str) -> str:
+    parts = (email or "").split("@")
+    return parts[-1].lower() if parts else ""
 
 
 @bp_auth.before_app_request
@@ -151,7 +162,12 @@ def logout():
 
 # -------- Registro (crear usuario) --------
 @bp_auth.get("/register")
-def register():
+@limiter.limit("30/hour")
+def register_get():
+    mode = current_app.config.get("SIGNUP_MODE", "invite")
+    token = (request.args.get("token") or "").strip()
+    invite = None
+
     try:
         insp = inspect(db.engine)
         if db.engine.url.drivername.startswith("sqlite") and not insp.has_table("users"):
@@ -163,54 +179,129 @@ def register():
             "warning",
         )
 
-    return render_template("auth/register.html")
+    if mode in {"invite", "closed"} and not token:
+        flash("Registro cerrado. Solicita una invitación al administrador.", "warning")
+        return redirect(url_for("auth.login"))
+
+    if token:
+        invite = Invite.query.filter_by(token=token).first()
+
+    return render_template("auth/register.html", invite=invite)
 
 
 @bp_auth.post("/register")
+@limiter.limit("10/hour")
 def register_post():
+    mode = current_app.config.get("SIGNUP_MODE", "invite")
+    token = (request.form.get("token") or request.args.get("token") or "").strip()
     username = (request.form.get("username") or "").strip()
     password = request.form.get("password") or ""
     confirm = request.form.get("confirm") or ""
+    raw_email = request.form.get("email") or ""
+    email = normalize_email(raw_email)
 
     if not username or not password:
         flash("Usuario y contraseña son obligatorios.", "warning")
-        return redirect(url_for("auth.register"))
+        return redirect(url_for("auth.register_get", token=token))
 
     if password != confirm:
         flash("Las contraseñas no coinciden.", "warning")
-        return redirect(url_for("auth.register"))
+        return redirect(url_for("auth.register_get", token=token))
+
+    if not email or not EMAIL_RE.match(email):
+        flash("Proporciona un correo válido.", "warning")
+        return redirect(url_for("auth.register_get", token=token))
+
+    invite = None
+    if mode in {"invite", "closed"}:
+        if not token:
+            flash("Se requiere invitación.", "danger")
+            return redirect(url_for("auth.login"))
+        invite = Invite.query.filter_by(token=token).with_for_update().first()
+        if not invite or not invite.is_active:
+            flash("Invitación inválida o expirada.", "danger")
+            return redirect(url_for("auth.login"))
+        if invite.email and invite.email.lower() != email:
+            flash("La invitación es para otro correo.", "danger")
+            return redirect(url_for("auth.login"))
+    else:  # open
+        allow = current_app.config.get("ALLOWLIST_DOMAINS", [])
+        if allow and _email_domain(email) not in allow:
+            flash("Dominio de correo no permitido.", "danger")
+            return redirect(url_for("auth.login"))
+
+    if current_app.config.get("HCAPTCHA_SECRET"):
+        captcha_token = request.form.get("h-captcha-response")
+        if not captcha_token:
+            flash("Verificación hCaptcha requerida.", "danger")
+            return redirect(url_for("auth.register_get", token=token))
+        try:
+            response = requests.post(
+                "https://hcaptcha.com/siteverify",
+                data={
+                    "secret": current_app.config["HCAPTCHA_SECRET"],
+                    "response": captcha_token,
+                },
+                timeout=5,
+            )
+            captcha_result = response.json()
+        except Exception:
+            current_app.logger.exception("hCaptcha verification failed")
+            flash("Verificación hCaptcha falló.", "danger")
+            return redirect(url_for("auth.register_get", token=token))
+        if not captcha_result.get("success"):
+            flash("Verificación hCaptcha falló.", "danger")
+            return redirect(url_for("auth.register_get", token=token))
 
     try:
         insp = inspect(db.engine)
         if db.engine.url.drivername.startswith("sqlite") and not insp.has_table("users"):
             db.create_all()
-
-        new_user = User(
-            username=username,
-            email=None,
-            role="viewer",
-            password_hash=generate_password_hash(password),
-            is_admin=False,
-            is_active=True,
-            force_change_password=False,
+    except Exception:  # pragma: no cover - logging + flash side-effect
+        current_app.logger.exception("Unable to ensure users table exists")
+        flash(
+            "No se pudo verificar/crear tablas. Reintenta o ejecuta migraciones.",
+            "warning",
         )
-        db.session.add(new_user)
-        db.session.commit()
+        return redirect(url_for("auth.register_get", token=token))
 
+    user_kwargs: dict[str, object] = {
+        "username": username,
+        "email": email or None,
+        "role": "viewer",
+        "is_admin": False,
+        "is_active": False,
+    }
+    if hasattr(User, "status"):
+        user_kwargs["status"] = "pending"
+    if hasattr(User, "category"):
+        user_kwargs["category"] = invite.category if invite and invite.category else None
+
+    user = User(**user_kwargs)
+    user.set_password(password)
+    if invite and invite.role:
+        user.role = invite.role
+
+    db.session.add(user)
+    if invite:
+        invite.used_count = (invite.used_count or 0) + 1
+
+    try:
+        db.session.commit()
     except IntegrityError:
         db.session.rollback()
-        current_app.logger.warning(
-            "Duplicate user attempted to register", extra={"username": username}
-        )
         flash("Ese usuario ya existe. Elige otro.", "warning")
-        return redirect(url_for("auth.register"))
+        return redirect(url_for("auth.register_get", token=token))
     except Exception:
         db.session.rollback()
         current_app.logger.exception("Unable to create user from register form")
         flash("No se pudo crear el usuario. Inténtalo de nuevo.", "danger")
-        return redirect(url_for("auth.register"))
+        return redirect(url_for("auth.register_get", token=token))
 
-    flash("Usuario creado con éxito. Ya puedes iniciar sesión.", "success")
+    flash(
+        "Cuenta creada. Queda pendiente de aprobación por un administrador.",
+        "info",
+    )
     return redirect(url_for("auth.login"))
 
 

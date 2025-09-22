@@ -1,30 +1,44 @@
 {% extends "base.html" %}
-{% block title %}Crear usuario - SGC{% endblock %}
-
+{% block title %}Crear cuenta{% endblock %}
 {% block content %}
-<div class="container py-4" style="max-width:640px">
-  <h1 class="mb-3">Crear un nuevo usuario</h1>
-  <p class="text-muted">Solo usuario y contraseña (sin correo).</p>
-
-  <form method="post" action="{{ url_for('auth.register_post') }}">
+<section class="auth-wrap">
+  <h1>Crear cuenta</h1>
+  {% if invite %}
+    <p class="text-muted">Registro mediante invitación activa.</p>
+  {% elif config.SIGNUP_MODE != 'open' %}
+    <p class="text-muted">Se requiere una invitación para registrarse.</p>
+  {% endif %}
+  <form method="post" action="{{ url_for('auth.register_post', token=request.args.get('token')) }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <div class="mb-3">
-      <label class="form-label">Usuario</label>
-      <input type="text" name="username" class="form-control" required autofocus />
+    <input type="hidden" name="token" value="{{ request.args.get('token', '') }}">
+    <label class="form-label">
+      Usuario
+      <input class="form-control" type="text" name="username" required autofocus>
+    </label>
+    <label class="form-label">
+      Correo electrónico
+      <input class="form-control" type="email" name="email" value="{{ invite.email if invite else '' }}" {{ 'readonly' if invite and invite.email }} required>
+    </label>
+    <label class="form-label">
+      Contraseña
+      <input class="form-control" type="password" name="password" required>
+    </label>
+    <label class="form-label">
+      Confirmar contraseña
+      <input class="form-control" type="password" name="confirm" required>
+    </label>
+    {% if config.HCAPTCHA_SITE_KEY %}
+      <div class="h-captcha" data-sitekey="{{ config.HCAPTCHA_SITE_KEY }}"></div>
+    {% endif %}
+    <button type="submit">Crear cuenta</button>
+    <div class="mt-4 text-center">
+      <a href="{{ url_for('auth.login') }}" class="btn btn-lg btn-outline-primary">
+        ↩️ Volver al login
+      </a>
     </div>
-
-    <div class="mb-3">
-      <label class="form-label">Contraseña</label>
-      <input type="password" name="password" class="form-control" required />
-    </div>
-
-    <div class="mb-4">
-      <label class="form-label">Confirmar contraseña</label>
-      <input type="password" name="confirm" class="form-control" required />
-    </div>
-
-    <button type="submit" class="btn btn-primary btn-lg">Crear usuario</button>
-    <a href="{{ url_for('auth.login') }}" class="btn btn-link">Volver al login</a>
   </form>
-</div>
+</section>
+{% if config.HCAPTCHA_SITE_KEY %}
+<script src="https://js.hcaptcha.com/1/api.js" async defer></script>
+{% endif %}
 {% endblock %}

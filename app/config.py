@@ -72,6 +72,14 @@ class BaseConfig:
         seconds=int(os.getenv("REMEMBER_COOKIE_DURATION", "86400"))
     )
     LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+    SIGNUP_MODE = (os.getenv("SIGNUP_MODE", "invite") or "invite").strip().lower()
+    ALLOWLIST_DOMAINS = [
+        domain.strip().lower()
+        for domain in (os.getenv("ALLOWLIST_DOMAINS", "") or "").split(",")
+        if domain.strip()
+    ]
+    HCAPTCHA_SITE_KEY = (os.getenv("HCAPTCHA_SITE_KEY") or "").strip()
+    HCAPTCHA_SECRET = (os.getenv("HCAPTCHA_SECRET") or "").strip()
 
 
 class DevelopmentConfig(BaseConfig):

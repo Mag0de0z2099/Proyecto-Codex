@@ -26,6 +26,11 @@
             {{ i.logout() }} <span>Logout</span>
           </a>
         {% else %}
+          {% if config.SIGNUP_MODE == 'open' %}
+            <a class="btn btn-outline" href="{{ url_for('auth.register_get') }}">
+              ✨ <span>Crear cuenta</span>
+            </a>
+          {% endif %}
           <a class="btn btn-primary" href="{{ url_for('auth.login') }}">
             {{ i.key() }} <span>Login</span>
           </a>

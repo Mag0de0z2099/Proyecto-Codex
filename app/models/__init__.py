@@ -229,6 +229,7 @@ def load_user(user_id: str) -> User | None:
 
 from app.models.asset import Asset  # noqa: E402,F401
 from app.models.folder import Folder  # noqa: E402,F401
+from app.models.invite import Invite  # noqa: E402,F401
 
 
 __all__ = [
@@ -244,4 +245,5 @@ __all__ = [
     "DailyChecklistItem",
     "Todo",
     "User",
+    "Invite",
 ]
