@@ -7,7 +7,7 @@ import os
 import sys
 import uuid
 from pathlib import Path
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from flask import Flask, Response, g, has_request_context, request
@@ -72,26 +72,43 @@ def configure_logging(app: Flask) -> None:
     app.logger.setLevel(log_level)
 
 
-def _normalize_db_url(raw: str) -> str:
+def _normalize_db_url(raw: str | None) -> str:
+    """
+    Normaliza la DATABASE_URL para evitar errores:
+    - Convierte postgres:// -> postgresql+psycopg://
+    - Si es SQLite, elimina cualquier query (?sslmode=...)
+    - Si es Postgres, asegura sslmode=require (si no está presente)
+    """
+
     if not raw:
         return "sqlite:///dev.db"
+
     if raw.startswith("postgres://"):
         raw = raw.replace("postgres://", "postgresql+psycopg://", 1)
     elif raw.startswith("postgresql://"):
         raw = raw.replace("postgresql://", "postgresql+psycopg://", 1)
 
     parts = urlsplit(raw)
-    if parts.scheme.startswith("sqlite"):
-        base = raw.split("?", 1)[0]
-        if "#" in base:
-            base = base.split("#", 1)[0]
-        return base
+    scheme = parts.scheme
 
-    if parts.scheme.startswith("postgresql"):
-        query = parts.query or ""
-        if "sslmode=" not in query:
-            query = (query + "&sslmode=require") if query else "sslmode=require"
-        return urlunsplit((parts.scheme, parts.netloc, parts.path, query, parts.fragment))
+    if scheme.startswith("sqlite"):
+        base = raw.split("?", 1)[0]
+        base = base.split("#", 1)[0]
+        fragment = f"#{parts.fragment}" if parts.fragment else ""
+        return f"{base}{fragment}"
+
+    if scheme.startswith("postgresql"):
+        query_params = dict(parse_qsl(parts.query))
+        query_params.setdefault("sslmode", "require")
+        return urlunsplit(
+            (
+                scheme,
+                parts.netloc,
+                parts.path,
+                urlencode(query_params),
+                parts.fragment,
+            )
+        )
 
     return raw
 
