@@ -21,7 +21,7 @@ from .blueprints.web import bp_web
 from .cli_sync import register_sync_cli
 from .routes.assets import assets_bp
 from .routes.public import public_bp
-from .config import SQLALCHEMY_DATABASE_URI, get_config
+from .config import get_config
 from .db import db
 from .extensions import csrf, init_auth_extensions, limiter
 from .metrics import cleanup_multiprocess_directory
@@ -80,7 +80,12 @@ def create_app(config_name: str | None = None) -> Flask:
     # Asegura DATA_DIR y muestra la URI (útil en logs de Render)
     data_dir = Path(app.config["DATA_DIR"])
     data_dir.mkdir(parents=True, exist_ok=True)
-    app.logger.info(f"DB URI -> {SQLALCHEMY_DATABASE_URI}")
+
+    db_uri = str(app.config.get("SQLALCHEMY_DATABASE_URI", ""))
+    app.logger.info("DB URI -> %s", db_uri)
+    if db_uri.startswith("sqlite:///") and not db_uri.endswith(":memory:"):
+        sqlite_path = Path(db_uri.replace("sqlite:///", "", 1)).expanduser().resolve()
+        app.logger.info("[DEBUG] SQLite file -> %s", sqlite_path)
 
     # Directorios persistentes (DATA_DIR, instance/, etc.)
     ensure_dirs(app)
