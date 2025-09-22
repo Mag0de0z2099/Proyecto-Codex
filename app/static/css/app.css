@@ -1,0 +1,56 @@
+:root{
+  --gap:12px;
+  --gap-lg:16px;
+  --radius:12px;
+  --btn-h:42px;
+  --fw:600;
+}
+
+*{box-sizing:border-box;}
+
+.btn, button, input[type="submit"]{
+  display:inline-flex; align-items:center; justify-content:center;
+  height:var(--btn-h); padding:0 14px; gap:8px;
+  border-radius:var(--radius); font-weight:var(--fw);
+  line-height:1; text-decoration:none; cursor:pointer;
+}
+
+.btn-primary{ background:#24a0ff; color:#09111f; border:1px solid transparent; }
+.btn-outline{ background:transparent; color:#cfe8ff; border:1px solid #2b3a50; }
+.btn-danger{ background:#ef4444; color:#fff; border:1px solid transparent; }
+.btn-ghost{ background:transparent; color:#cfe8ff; border:1px solid transparent; }
+
+.btn-group{ display:flex; flex-wrap:wrap; gap:var(--gap); align-items:center; }
+.btn-group form{ display:flex; flex-wrap:wrap; gap:var(--gap); align-items:center; }
+.btn-wide{ min-width:132px; }
+.btn-sm{ height:36px; padding:0 12px; }
+.btn-block{ width:100%; }
+
+input[type="text"],input[type="email"],input[type="date"],select,textarea{
+  border:1px solid #2b3a50; background:#0f1725; color:#dbe8ff;
+  border-radius:var(--radius); padding:10px 12px; height:var(--btn-h);
+}
+textarea{ min-height:var(--btn-h); height:auto; }
+
+.toolbar{ display:flex; gap:var(--gap); align-items:center; flex-wrap:wrap; }
+.stack-v{ display:flex; flex-direction:column; gap:var(--gap); }
+.stack-h{ display:flex; gap:var(--gap); align-items:center; flex-wrap:wrap; }
+
+/* Grid de “tabla” utilizada en Admin/Usuarios */
+.table-grid{ display:grid; gap:var(--gap); align-items:center; }
+.table-grid.header-6{ grid-template-columns: 1.4fr .8fr .6fr 1fr 1fr 1.2fr; }
+.table-grid > .th{ font-weight:var(--fw); opacity:.85; }
+.table-grid .row{ display:contents; }
+
+/* Formularios horizontales (Bitácoras) */
+.form-grid{
+  display:grid;
+  grid-template-columns: 220px 220px 180px minmax(280px,1fr) 160px;
+  gap:var(--gap); align-items:center;
+}
+
+@media (max-width: 900px){
+  .table-grid.header-6{ grid-template-columns:1fr; }
+  .form-grid{ grid-template-columns:1fr; }
+  .btn-wide{ width:100%; }
+}
