@@ -36,7 +36,7 @@ En producción la aplicación fuerza cookies `Secure`, `HttpOnly` y `SameSite=La
 
 ## Operación
 
-- **Gunicorn:** El Procfile y `render.yaml` inician el proyecto con `gunicorn -w 3 -t 60 app.main:app`.
+- **Gunicorn:** El Procfile y `render.yaml` inician el proyecto con `gunicorn -w 3 -t 60 wsgi:app`.
 - **Healthcheck:** `GET /healthz` devuelve `{"ok": true}` para liveness probes; `/api/v1/health` valida la conexión a la base.
 - **Logging estructurado:** todos los logs van a `stdout` en JSON-like plano, incluyen `X-Request-ID` y respetan `LOG_LEVEL`.
 - **Rate limiting:** `/auth/forgot-password` limita solicitudes a `5/minuto` y `30/hora` por IP.
@@ -49,7 +49,7 @@ El archivo `Procfile` describe los procesos que tu plataforma de despliegue debe
 
 ```Procfile
 # Proceso web principal (sirve la app Flask con Gunicorn)
-web: gunicorn -w 3 -t 60 app.main:app
+web: gunicorn -w 3 -t 60 wsgi:app
 
 # Proceso de worker (ejemplo: tareas en segundo plano)
 worker: python worker.py
@@ -60,7 +60,7 @@ worker: python worker.py
 - Atiende el tráfico HTTP usando Gunicorn.
 - `-w 3` levanta tres workers; ajusta el número según el plan contratado o los núcleos disponibles.
 - `-t 60` fija un timeout de 60 s para peticiones largas.
-- `app.main:app` apunta al objeto Flask creado en `app/main.py`.
+- `wsgi:app` apunta al objeto Flask creado en `wsgi.py`.
 
 Render reutiliza este comando como *Start Command*; basta con mantener el `Procfile` en el repositorio para que lo detecte automáticamente.
 
