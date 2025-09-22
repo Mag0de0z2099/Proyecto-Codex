@@ -1,0 +1,87 @@
+/* ==== Theme tokens ==== */
+:root{
+  --gap:12px;
+  --gap-lg:16px;
+  --radius:12px;
+  --btn-h:42px;
+  --fw:600;
+
+  --c-bg:#0b1422;
+  --c-panel:#0f1725;
+  --c-text:#dbe8ff;
+  --c-muted:#9fb3cf;
+
+  --c-primary:#24a0ff;
+  --c-primary-ink:#08111d;
+  --c-outline:#2b3a50;
+  --c-danger:#ef4444;
+  --ring:#63b3ff80; /* 50% alpha */
+}
+
+*{ box-sizing:border-box; }
+body{ background:var(--c-bg); color:var(--c-text); }
+
+/* ==== Buttons ==== */
+.btn, button, input[type="submit"]{
+  display:inline-flex; align-items:center; justify-content:center;
+  height:var(--btn-h); padding:0 14px; gap:8px;
+  border-radius:var(--radius); font-weight:var(--fw);
+  line-height:1; text-decoration:none; cursor:pointer;
+  border:1px solid transparent; transition: transform .04s ease, box-shadow .12s ease, background-color .12s ease, border-color .12s ease;
+  user-select:none;
+}
+
+.btn-primary{ background:var(--c-primary); color:var(--c-primary-ink); }
+.btn-outline{ background:transparent; color:var(--c-text); border-color:var(--c-outline); }
+.btn-danger{ background:var(--c-danger); color:#fff; }
+.btn-ghost{ background:transparent; color:var(--c-text); }
+
+.btn:hover{ filter:brightness(1.03); }
+.btn:active{ transform:translateY(1px); }
+.btn:focus-visible{
+  outline:none; box-shadow:0 0 0 3px var(--ring);
+}
+.btn[disabled], .btn:disabled{ opacity:.6; cursor:not-allowed; filter:none; transform:none; }
+
+/* sizes / groups */
+.btn-group{ display:flex; flex-wrap:wrap; gap:var(--gap); align-items:center; }
+.btn-wide{ min-width:132px; }
+.btn-sm{ height:36px; padding:0 12px; }
+
+.icon{ width:18px; height:18px; display:inline-block; }
+.icon > svg{ width:100%; height:100%; display:block; }
+
+/* ==== Inputs ==== */
+input[type="text"], input[type="email"], input[type="date"], select, textarea{
+  border:1px solid var(--c-outline); background:var(--c-panel); color:var(--c-text);
+  border-radius:var(--radius); padding:10px 12px; height:var(--btn-h);
+}
+textarea{ min-height:var(--btn-h); height:auto; }
+input:focus-visible, select:focus-visible, textarea:focus-visible{
+  outline:none; box-shadow:0 0 0 3px var(--ring);
+}
+
+/* ==== Layout helpers ==== */
+.toolbar{ display:flex; gap:var(--gap); align-items:center; flex-wrap:wrap; }
+.stack-v{ display:flex; flex-direction:column; gap:var(--gap); }
+.stack-h{ display:flex; gap:var(--gap); align-items:center; flex-wrap:wrap; }
+
+/* Admin/Usuarios tabla-Grid */
+.table-grid{ display:grid; gap:var(--gap); align-items:center; }
+.table-grid.header-6{ grid-template-columns: 1.4fr .8fr .6fr 1fr 1fr 1.2fr; }
+.table-grid > .th{ font-weight:var(--fw); color:var(--c-muted); }
+.table-grid .row{ display:contents; }
+
+/* Bitácoras form */
+.form-grid{
+  display:grid;
+  grid-template-columns: 220px 220px 180px minmax(280px,1fr) 180px;
+  gap:var(--gap); align-items:center;
+}
+
+/* Responsive */
+@media (max-width: 900px){
+  .table-grid.header-6{ grid-template-columns:1fr; }
+  .form-grid{ grid-template-columns:1fr; }
+  .btn-wide{ width:100%; }
+}

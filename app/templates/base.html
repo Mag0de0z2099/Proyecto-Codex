@@ -5,8 +5,10 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>{% block title %}SGC — Obra de Dragado{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}?v=2">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
 </head>
 <body>
+  {% import "_icons.html" as i %}
   <header class="navbar">
     <div class="nav-left">
       <span class="brand">
@@ -14,10 +16,22 @@
         <span>SGC-Obra</span>
       </span>
     </div>
-    <nav class="nav-right">
-      <a class="btn" href="{{ url_for('auth.login') }}">Login</a>
-      <a class="btn outline" href="{{ url_for('admin.dashboard') }}">Admin</a>
-    </nav>
+    {% set simple_user = session.get('user') %}
+    {% set is_authenticated = current_user.is_authenticated or simple_user %}
+    <div class="toolbar" style="margin-left:auto">
+      {% if is_authenticated %}
+        <a class="btn btn-outline" href="{{ url_for('admin.index') }}" title="Panel de administración" aria-label="Admin">
+          {{ i.userShield() }} <span>Admin</span>
+        </a>
+        <a class="btn btn-primary" href="{{ url_for('auth.logout') }}" title="Cerrar sesión" aria-label="Logout">
+          {{ i.logout() }} <span>Logout</span>
+        </a>
+      {% else %}
+        <a class="btn btn-primary" href="{{ url_for('auth.login') }}" title="Iniciar sesión" aria-label="Login">
+          {{ i.key() }} <span>Login</span>
+        </a>
+      {% endif %}
+    </div>
   </header>
 
   <main class="container">
