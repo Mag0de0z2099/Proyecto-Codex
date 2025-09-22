@@ -10,6 +10,9 @@
       <a href="{{ url_for('admin.bitacoras') }}">📝 Bitácoras</a>
       <a href="{{ url_for('admin.checklists') }}">✅ Checklists</a>
       <a href="{{ url_for('admin.users') }}">👤 Usuarios</a>
+      {% if current_user.is_authenticated and (current_user.role is defined) and current_user.role == 'admin' %}
+        <a href="{{ url_for('admin.users_pending') }}">⏳ Pendientes</a>
+      {% endif %}
     </nav>
   </aside>
   <main class="admin-main">

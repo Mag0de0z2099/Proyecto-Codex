@@ -94,17 +94,34 @@ def login_post():
         # return redirect(url_for("auth.login"))
 
         user = User.query.filter_by(username=username).first()
-        if user and user.check_password(password) and user.is_active:
-            login_user(user)
-            if getattr(user, "force_change_password", False):
-                flash("Debes actualizar tu contraseña antes de continuar.", "info")
-                return redirect(url_for("auth.change_password"))
-            flash("Bienvenido 👋", "success")
-            role = _resolve_role(user)
-            return _redirect_for_role(role, request.args.get("next"))
+        if not user or not user.check_password(password):
+            flash("Usuario o contraseña inválidos.", "danger")
+            return render_template("auth/login.html"), HTTPStatus.UNAUTHORIZED
 
-        flash("Usuario o contraseña inválidos.", "danger")
-        return render_template("auth/login.html"), HTTPStatus.UNAUTHORIZED
+        if getattr(user, "status", "approved") != "approved":
+            if user.status == "pending":
+                flash(
+                    "Tu cuenta está pendiente de aprobación por un administrador.",
+                    "warning",
+                )
+            else:
+                flash(
+                    "Tu cuenta fue rechazada. Contacta al administrador.",
+                    "danger",
+                )
+            return redirect(url_for("auth.login"))
+
+        if not getattr(user, "is_active", True):
+            flash("Tu cuenta está inactiva. Contacta al administrador.", "warning")
+            return redirect(url_for("auth.login"))
+
+        login_user(user)
+        if getattr(user, "force_change_password", False):
+            flash("Debes actualizar tu contraseña antes de continuar.", "info")
+            return redirect(url_for("auth.change_password"))
+        flash("Bienvenido 👋", "success")
+        role = _resolve_role(user)
+        return _redirect_for_role(role, request.args.get("next"))
 
     except Exception:
         current_app.logger.exception("Login error")
@@ -189,9 +206,11 @@ def register_post():
             username=username,
             email=None,
             role="viewer",
+            status="pending",
+            category=None,
             password_hash=generate_password_hash(password),
             is_admin=False,
-            is_active=True,
+            is_active=False,
             force_change_password=False,
         )
         db.session.add(new_user)
@@ -210,7 +229,10 @@ def register_post():
         flash("No se pudo crear el usuario. Inténtalo de nuevo.", "danger")
         return redirect(url_for("auth.register"))
 
-    flash("Usuario creado con éxito. Ya puedes iniciar sesión.", "success")
+    flash(
+        "Tu cuenta fue creada y está pendiente de aprobación por un administrador.",
+        "info",
+    )
     return redirect(url_for("auth.login"))
 
 

@@ -1,0 +1,59 @@
+{% extends "admin/_base_admin.html" %}
+{% import "_icons.html" as i %}
+{% block admin_title %}Pendientes · Admin · SGC{% endblock %}
+{% block admin_content %}
+<h1>Pendientes de aprobación</h1>
+
+{% if not users %}
+  <p class="text-muted">No hay solicitudes pendientes en este momento.</p>
+{% else %}
+  <div class="table-grid header-4">
+    <div class="th">Usuario</div>
+    <div class="th">Email</div>
+    <div class="th">Aprobar (rol y categoría)</div>
+    <div class="th">Rechazar</div>
+
+    {% for u in users %}
+      <div>
+        <div>{{ u.username }}</div>
+        <small>{{ u.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+      </div>
+      <div>{{ u.email or '—' }}</div>
+      <div>
+        <form method="post" action="{{ url_for('admin.approve_user', user_id=u.id) }}" class="stack-v gap-2">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <label class="sr-only" for="role-{{ u.id }}">Rol</label>
+          <select id="role-{{ u.id }}" name="role" aria-label="Rol">
+            <option value="viewer">viewer</option>
+            <option value="supervisor">supervisor</option>
+            <option value="editor">editor</option>
+            <option value="admin">admin</option>
+          </select>
+          <label class="sr-only" for="category-{{ u.id }}">Categoría</label>
+          <select id="category-{{ u.id }}" name="category" aria-label="Categoría">
+            <option value="">(ninguna)</option>
+            <option value="contratista">contratista</option>
+            <option value="operario">operario</option>
+            <option value="inspector">inspector</option>
+            <option value="ingenieria">ingenieria</option>
+            <option value="seguridad">seguridad</option>
+          </select>
+          <div class="btn-group">
+            <button class="btn btn-primary btn-wide" type="submit" title="Aprobar">
+              {{ i.save() }} <span>Aprobar</span>
+            </button>
+          </div>
+        </form>
+      </div>
+      <div class="btn-group">
+        <form method="post" action="{{ url_for('admin.reject_user', user_id=u.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-outline btn-wide" type="submit" title="Rechazar">
+            {{ i.power() }} <span>Rechazar</span>
+          </button>
+        </form>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+{% endblock %}

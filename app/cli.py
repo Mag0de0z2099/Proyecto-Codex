@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from getpass import getpass
 
 import click
@@ -48,6 +49,8 @@ def register_cli(app):
             role="admin",
             is_admin=True,
             is_active=True,
+            status="approved",
+            approved_at=datetime.now(timezone.utc),
         )
 
         if hasattr(user, "set_password"):
@@ -116,6 +119,8 @@ def register_cli(app):
             role="admin",
             is_admin=True,
             is_active=True,
+            status="approved",
+            approved_at=datetime.now(timezone.utc),
         )
 
         if hasattr(user, "set_password"):

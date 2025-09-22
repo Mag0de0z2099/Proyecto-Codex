@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import secrets
+from datetime import datetime, timezone
 from typing import Any
 
 from flask import jsonify, request
@@ -82,9 +83,31 @@ def create_user():
     if email and User.query.filter_by(email=email).first() is not None:
         raise BadRequest("email already exists.")
 
-    u = User(username=username, email=email, role=role_raw, title=title_value)
+    category = data.get("category")
+    category_value = None
+    if category is not None:
+        category_value = str(category).strip() or None
+
+    status_raw = str(data.get("status") or "approved").strip().lower()
+    if status_raw not in {"pending", "approved", "rejected"}:
+        raise BadRequest("invalid status.")
+
+    u = User(
+        username=username,
+        email=email,
+        role=role_raw,
+        title=title_value,
+        category=category_value,
+        status=status_raw,
+    )
     if role_raw == "admin":
         u.is_admin = True
+    if status_raw == "approved":
+        u.is_active = True
+        u.approved_at = datetime.now(timezone.utc)
+    else:
+        u.is_active = False
+        u.approved_at = None
     if not password:
         password = secrets.token_urlsafe(12)
     u.set_password(password)
@@ -137,6 +160,26 @@ def update_user(user_id: int):
         else:
             title_str = str(title).strip()
             u.title = title_str or None
+
+    if "category" in data:
+        category = data.get("category")
+        if category is None:
+            u.category = None
+        else:
+            u.category = str(category).strip() or None
+
+    if "status" in data:
+        status_raw = str(data.get("status") or "").strip().lower()
+        if status_raw not in {"pending", "approved", "rejected"}:
+            raise BadRequest("invalid status.")
+        u.status = status_raw
+        if status_raw == "approved":
+            u.is_active = True
+            if not u.approved_at:
+                u.approved_at = datetime.now(timezone.utc)
+        else:
+            u.is_active = False
+            u.approved_at = None
 
     if password:
         u.set_password(password)

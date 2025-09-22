@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from sqlalchemy import text
 
+from datetime import datetime, timezone
+
 from app import create_app
 from app.db import db
 from app.models import User
@@ -17,6 +19,9 @@ def setup_app():
             email="user@example.com",
             role="viewer",
             is_admin=False,
+            status="approved",
+            is_active=True,
+            approved_at=datetime.now(timezone.utc),
         )
         user.set_password("demo12345")
         db.session.add(user)

@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from app import create_app
 from app.db import db
 from app.models import User
@@ -14,6 +16,9 @@ def setup_app():
             role="viewer",
             is_admin=False,
             force_change_password=True,
+            status="approved",
+            is_active=True,
+            approved_at=datetime.now(timezone.utc),
         )
         u.set_password("secreto123")
         db.session.add(u)
