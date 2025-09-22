@@ -3,7 +3,7 @@ from alembic import op
 import sqlalchemy as sa
 
 # OJO: deja estos IDs como los tienes en tu repo
-revision = "20250916_add_force_change_password"
+revision = "20250916_force_change_pw"
 down_revision = "20240201_create_users"
 branch_labels = None
 depends_on = None
