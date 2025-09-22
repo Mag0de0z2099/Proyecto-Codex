@@ -1,63 +1,64 @@
 {% extends "admin/_base_admin.html" %}
 {% block admin_content %}
 <h1>Usuarios</h1>
-<p><a class="btn btn-secondary" href="{{ url_for('admin.admin_new_user') }}">➕ Crear usuario</a></p>
 
-<table class="table">
-  <thead>
-    <tr>
-      <th>Usuario</th>
-      <th>Rol</th>
-      <th>Activo</th>
-      <th>Cambiar rol</th>
-      <th>Alternar</th>
-      <th>Acciones</th>
-    </tr>
-  </thead>
-  <tbody>
-  {% for u in users %}
-    <tr>
-      <td>
-        <div class="fw-bold">{{ u.username }}</div>
-        <div class="text-muted">{{ u.email or '—' }}</div>
-      </td>
-      <td><span class="badge">{{ u.role or 'viewer' }}</span></td>
-      <td>{{ 'Sí' if u.is_active else 'No' }}</td>
-      <td>
-        <form method="post" action="{{ url_for('admin.users_set_role') }}" style="display:flex;gap:.4rem">
+<div class="stack-v">
+  <div class="toolbar">
+    <a href="{{ url_for('admin.admin_new_user') }}" class="btn btn-primary btn-wide">➕ Crear usuario</a>
+  </div>
+
+  <div class="table-grid header-6">
+    <div class="th">Usuario</div>
+    <div class="th">Rol</div>
+    <div class="th">Activo</div>
+    <div class="th">Cambiar rol</div>
+    <div class="th">Alternar</div>
+    <div class="th">Acciones</div>
+
+    {% for u in users %}
+      <div>
+        <div>{{ u.username }}</div>
+        <small>{{ u.email or '—' }}</small>
+      </div>
+
+      <div>{{ u.role or 'viewer' }}</div>
+
+      <div>{{ 'Sí' if u.is_active else 'No' }}</div>
+
+      <div class="btn-group">
+        <form method="post" action="{{ url_for('admin.users_set_role') }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <input type="hidden" name="user_id" value="{{ u.id }}">
-          <select name="role" class="form-select">
+          <select name="role">
             {% for r in ROLES %}
-              <option value="{{ r }}" {% if (u.role or 'viewer')==r %}selected{% endif %}>{{ r }}</option>
+              <option value="{{ r }}" {{ 'selected' if (u.role or 'viewer') == r else '' }}>{{ r }}</option>
             {% endfor %}
           </select>
-          <button class="btn btn-primary">Guardar</button>
+          <button class="btn btn-outline btn-wide" type="submit">Guardar</button>
         </form>
-      </td>
-      <td>
+      </div>
+
+      <div class="btn-group">
         <form method="post" action="{{ url_for('admin.users_toggle_active') }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <input type="hidden" name="user_id" value="{{ u.id }}">
-          <button class="btn btn-outline">{{ 'Desactivar' if u.is_active else 'Activar' }}</button>
+          <button class="btn btn-outline btn-wide" type="submit">{{ 'Desactivar' if u.is_active else 'Activar' }}</button>
         </form>
-      </td>
-      <td>
-        <div style="display:flex;gap:.4rem">
-          <form method="post" action="{{ url_for('admin.admin_user_reset_link', user_id=u.id) }}">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button class="btn btn-outline-secondary">Enviar reset</button>
-          </form>
-          <form method="post" action="{{ url_for('admin.admin_user_toggle_force', user_id=u.id) }}">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button class="btn btn-outline-secondary">
-              {{ 'Quitar forzar' if u.force_change_password else 'Forzar cambio' }}
-            </button>
-          </form>
-        </div>
-      </td>
-    </tr>
-  {% endfor %}
-  </tbody>
-</table>
+      </div>
+
+      <div class="btn-group">
+        <form method="post" action="{{ url_for('admin.admin_user_reset_link', user_id=u.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-outline btn-sm btn-wide" type="submit">Enviar reset</button>
+        </form>
+        <form method="post" action="{{ url_for('admin.admin_user_toggle_force', user_id=u.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-outline btn-sm btn-wide" type="submit">
+            {{ 'Quitar forzar' if u.force_change_password else 'Forzar cambio' }}
+          </button>
+        </form>
+      </div>
+    {% endfor %}
+  </div>
+</div>
 {% endblock %}

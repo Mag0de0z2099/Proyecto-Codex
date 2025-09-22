@@ -3,16 +3,20 @@
 {% block admin_content %}
 <h1>Bitácoras</h1>
 
-<form class="row g-2 mb-3" method="post" action="{{ url_for('admin.bitacoras_create') }}" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem">
+<form method="post" action="{{ url_for('admin.bitacoras_create') }}">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-  <select class="form-select" name="project_id" required>
-    <option value="">Proyecto…</option>
-    {% for p in projects %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}
-  </select>
-  <input class="form-control" name="author" placeholder="Autor (opcional)">
-  <input class="form-control" name="date" type="date" value="{{ (now or none)|default('', true) }}">
-  <textarea class="form-control" name="text" placeholder="Descripción..." style="grid-column:1/-1" required></textarea>
-  <div><button class="btn btn-primary">Guardar bitácora</button></div>
+  <div class="form-grid">
+    <select name="project_id" required>
+      <option value="">Proyecto…</option>
+      {% for p in projects %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}
+    </select>
+
+    <input type="text" name="author" placeholder="Autor (opcional)">
+    <input type="date" name="date" value="{{ (now or none)|default('', true) }}">
+    <textarea name="text" placeholder="Descripción…" required></textarea>
+
+    <button type="submit" class="btn btn-primary btn-wide">Guardar bitácora</button>
+  </div>
 </form>
 
 <table class="table">
