@@ -14,12 +14,7 @@ from flask import (
     session,
     url_for,
 )
-from flask_login import (
-    current_user,
-    login_required as flask_login_required,
-    login_user,
-    logout_user,
-)
+from flask_login import current_user, login_required, login_user, logout_user
 from sqlalchemy import func
 
 from app.db import db
@@ -144,14 +139,12 @@ def login():
     return render_template("auth/login.html")
 
 
-@bp_auth.get("/logout")
+@bp_auth.post("/logout")
+@login_required
 def logout():
-    if current_app.config.get("AUTH_SIMPLE", True):
-        session.clear()
-        flash("Sesión cerrada.", "info")
-        return redirect(url_for("web.index"))
     logout_user()
-    flash("Sesión cerrada", "info")
+    session.clear()
+    flash("Sesión cerrada.", "info")
     return redirect(url_for("auth.login"))
 
 
@@ -214,7 +207,7 @@ def register_post():
     return redirect(url_for("auth.login"))
 
 @bp_auth.route("/change-password", methods=["GET", "POST"])
-@flask_login_required
+@login_required
 def change_password():
     force_change = getattr(current_user, "force_change_password", False)
     template = (

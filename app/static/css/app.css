@@ -122,3 +122,6 @@ input:focus-visible{
   .form-grid{ grid-template-columns:1fr; }
   .btn-wide{ width:100%; }
 }
+
+.inline { display: inline; }
+.toolbar form.inline { margin: 0; }

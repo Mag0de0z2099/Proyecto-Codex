@@ -34,9 +34,12 @@
           <a class="btn btn-outline" href="{{ url_for('admin.dashboard') }}">
             {{ i.userShield() }} <span>Admin</span>
           </a>
-          <a class="btn btn-primary" href="{{ url_for('auth.logout') }}">
-            {{ i.logout() }} <span>Logout</span>
-          </a>
+          <form method="post" action="{{ url_for('auth.logout') }}" class="inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-primary">
+              {{ i.logout() }} <span>Logout</span>
+            </button>
+          </form>
         {% else %}
           <a class="btn btn-primary" href="{{ url_for('auth.login') }}">
             {{ i.key() }} <span>Login</span>
