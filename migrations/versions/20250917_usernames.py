@@ -4,7 +4,7 @@ import sqlalchemy as sa
 
 # OJO: actualiza esto si tu down_revision real es otro
 revision = "20250917_usernames"
-down_revision = "20250916_add_force_change_password"
+down_revision = "20250916_force_change_pw"
 branch_labels = None
 depends_on = None
 
