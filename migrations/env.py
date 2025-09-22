@@ -1,5 +1,14 @@
 from __future__ import annotations
 
+# --- ADD: asegurar que el root del proyecto esté en sys.path ---
+import sys
+from pathlib import Path
+
+ROOT_DIR = Path(__file__).resolve().parents[1]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+# --- FIN ADD ---
+
 from logging.config import fileConfig
 
 from alembic import context
@@ -13,21 +22,12 @@ def _load_app_and_db():
 
     app = create_app()
 
-    # Intenta importar db desde app.extensions, si no, desde app
-    db = None
     try:
-        from app.extensions import db as _db  # Flask-SQLAlchemy
-
+        from app.extensions import db as _db
         db = _db
     except Exception:
-        try:
-            from app import db as _db2
-
-            db = _db2
-        except Exception as e:
-            raise RuntimeError(
-                "No pude importar 'db'. Asegúrate de exponer 'db' en app.extensions o app.__init__"
-            ) from e
+        from app import db as _db2
+        db = _db2
 
     return app, db
 
