@@ -72,6 +72,7 @@ class BaseConfig:
         seconds=int(os.getenv("REMEMBER_COOKIE_DURATION", "86400"))
     )
     LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+    SIGNUP_MODE = os.getenv("SIGNUP_MODE", "invite")
 
 
 class DevelopmentConfig(BaseConfig):
@@ -87,6 +88,7 @@ class TestingConfig(BaseConfig):
         **BaseConfig.SQLALCHEMY_ENGINE_OPTIONS,
         "connect_args": {"check_same_thread": False},
     }
+    SIGNUP_MODE = os.getenv("SIGNUP_MODE", "open")
 
 
 class ProductionConfig(BaseConfig):
