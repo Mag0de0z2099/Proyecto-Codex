@@ -1,33 +1,39 @@
 {% extends "base.html" %}
-{% block title %}Crear usuario - SGC{% endblock %}
 
 {% block content %}
-<div class="container py-4" style="max-width:640px">
-  <h1 class="mb-3">Crear un nuevo usuario</h1>
-  <p class="text-muted">Solo usuario y contraseña (sin correo).</p>
-  <div class="alert alert-info" role="status">
-    Una vez que un administrador valide tu cuenta, podrás acceder.
+<h1>Crear cuenta</h1>
+
+<form method="post" class="stack-v" style="gap:.75rem; max-width:520px;">
+  {{ csrf_token() }}
+
+  {% if invite %}
+    <input type="hidden" name="token" value="{{ request.args.get('token','') }}">
+  {% endif %}
+
+  <label class="stack-v">
+    <span class="th">Usuario</span>
+    <input name="username" required minlength="3" maxlength="32" placeholder="tu_usuario">
+  </label>
+
+  <label class="stack-v">
+    <span class="th">Email</span>
+    <input name="email" type="email" value="{{ invite.email if invite and invite.email else '' }}"
+           {% if invite and invite.email %}readonly{% endif %}
+           placeholder="tucorreo@empresa.com" required>
+  </label>
+
+  <label class="stack-v">
+    <span class="th">Contraseña</span>
+    <input name="password" type="password" required minlength="8" placeholder="••••••••">
+  </label>
+
+  <div class="stack-h" style="gap:.5rem;">
+    <button class="btn btn-primary">Crear cuenta</button>
+    <a class="btn btn-outline" href="{{ url_for('auth.login') }}">Ya tengo cuenta</a>
   </div>
 
-  <form method="post" action="{{ url_for('auth.register_post') }}">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <div class="mb-3">
-      <label class="form-label">Usuario</label>
-      <input type="text" name="username" class="form-control" required autofocus />
-    </div>
-
-    <div class="mb-3">
-      <label class="form-label">Contraseña</label>
-      <input type="password" name="password" class="form-control" required />
-    </div>
-
-    <div class="mb-4">
-      <label class="form-label">Confirmar contraseña</label>
-      <input type="password" name="confirm" class="form-control" required />
-    </div>
-
-    <button type="submit" class="btn btn-primary btn-lg">Crear usuario</button>
-    <a href="{{ url_for('auth.login') }}" class="btn btn-link">Volver al login</a>
-  </form>
-</div>
+  <p class="muted">
+    Tu cuenta quedará <b>pendiente de aprobación</b> por un administrador.
+  </p>
+</form>
 {% endblock %}

@@ -20,14 +20,12 @@ from flask_login import (
     login_user,
     logout_user,
 )
-from sqlalchemy import func, inspect
-from sqlalchemy.exc import IntegrityError
-from werkzeug.security import generate_password_hash
+from sqlalchemy import func
 
 from app.db import db
 from app.extensions import limiter
 from app.security import generate_reset_token, parse_reset_token
-from app.models import User
+from app.models import Invite, User
 from app.utils.strings import normalize_email
 from app.simple_auth.store import ensure_bootstrap_admin, verify
 
@@ -99,16 +97,7 @@ def login_post():
             return render_template("auth/login.html"), HTTPStatus.UNAUTHORIZED
 
         if getattr(user, "status", "approved") != "approved":
-            if user.status == "pending":
-                flash(
-                    "Tu cuenta está pendiente de aprobación por un administrador.",
-                    "warning",
-                )
-            else:
-                flash(
-                    "Tu cuenta fue rechazada. Contacta al administrador.",
-                    "danger",
-                )
+            flash("Tu cuenta está pendiente de aprobación.", "warning")
             return redirect(url_for("auth.login"))
 
         if not getattr(user, "is_active", True):
@@ -167,74 +156,62 @@ def logout():
 
 
 # -------- Registro (crear usuario) --------
-@bp_auth.get("/register")
-def register():
-    try:
-        insp = inspect(db.engine)
-        if db.engine.url.drivername.startswith("sqlite") and not insp.has_table("users"):
-            db.create_all()
-    except Exception:  # pragma: no cover - logging + flash side-effect
-        current_app.logger.exception("Unable to ensure users table exists")
-        flash(
-            "No se pudo verificar/crear tablas. Reintenta o ejecuta migraciones.",
-            "warning",
-        )
+def _email_domain(addr: str) -> str:
+    return (addr or "").split("@")[-1].lower()
 
-    return render_template("auth/register.html")
+
+@bp_auth.get("/register", endpoint="register")
+def register_get():
+    mode = current_app.config.get("SIGNUP_MODE", "invite").lower()
+    token = request.args.get("token")
+    if mode in ("invite", "closed") and not token:
+        flash("Registro cerrado. Solicita una invitación al administrador.", "warning")
+        return redirect(url_for("auth.login"))
+
+    inv = Invite.query.filter_by(token=token).first() if token else None
+    return render_template("auth/register.html", invite=inv)
 
 
 @bp_auth.post("/register")
 def register_post():
-    username = (request.form.get("username") or "").strip()
-    password = request.form.get("password") or ""
-    confirm = request.form.get("confirm") or ""
+    mode = current_app.config.get("SIGNUP_MODE", "invite").lower()
+    token = request.form.get("token") or request.args.get("token")
+    email = (request.form.get("email") or "").strip().lower()
 
-    if not username or not password:
-        flash("Usuario y contraseña son obligatorios.", "warning")
-        return redirect(url_for("auth.register"))
+    inv = None
+    if mode in ("invite", "closed"):
+        if not token:
+            flash("Se requiere invitación.", "danger")
+            return redirect(url_for("auth.login"))
+        inv = Invite.query.filter_by(token=token).with_for_update().first()
+        if not inv or not inv.is_active:
+            flash("Invitación inválida o expirada.", "danger")
+            return redirect(url_for("auth.login"))
+        if inv.email and inv.email.lower() != email:
+            flash("La invitación es para otro correo.", "danger")
+            return redirect(url_for("auth.login"))
+    else:
+        allow = [d.strip().lower() for d in current_app.config.get("ALLOWLIST_DOMAINS", [])]
+        if allow and _email_domain(email) not in allow:
+            flash("Dominio de correo no permitido.", "danger")
+            return redirect(url_for("auth.login"))
 
-    if password != confirm:
-        flash("Las contraseñas no coinciden.", "warning")
-        return redirect(url_for("auth.register"))
-
-    try:
-        insp = inspect(db.engine)
-        if db.engine.url.drivername.startswith("sqlite") and not insp.has_table("users"):
-            db.create_all()
-
-        new_user = User(
-            username=username,
-            email=None,
-            role="viewer",
-            status="pending",
-            category=None,
-            password_hash=generate_password_hash(password),
-            is_admin=False,
-            is_active=False,
-            force_change_password=False,
-        )
-        db.session.add(new_user)
-        db.session.commit()
-
-    except IntegrityError:
-        db.session.rollback()
-        current_app.logger.warning(
-            "Duplicate user attempted to register", extra={"username": username}
-        )
-        flash("Ese usuario ya existe. Elige otro.", "warning")
-        return redirect(url_for("auth.register"))
-    except Exception:
-        db.session.rollback()
-        current_app.logger.exception("Unable to create user from register form")
-        flash("No se pudo crear el usuario. Inténtalo de nuevo.", "danger")
-        return redirect(url_for("auth.register"))
-
-    flash(
-        "Tu cuenta fue creada y está pendiente de aprobación por un administrador.",
-        "info",
+    user = User(
+        username=request.form.get("username"),
+        email=email or None,
+        role="viewer",
+        category=None,
+        status="pending",
+        is_active=False,
     )
-    return redirect(url_for("auth.login"))
+    user.set_password(request.form.get("password"))
+    db.session.add(user)
+    if inv:
+        inv.used_count += 1
+    db.session.commit()
 
+    flash("Cuenta creada. Queda pendiente de aprobación por un administrador.", "info")
+    return redirect(url_for("auth.login"))
 
 @bp_auth.route("/change-password", methods=["GET", "POST"])
 @flask_login_required

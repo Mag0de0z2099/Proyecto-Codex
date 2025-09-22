@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import os
 import re
-from datetime import date, datetime, timezone
+import secrets
+from datetime import date, datetime, timedelta, timezone
 from functools import wraps
 from pathlib import Path
 
@@ -17,7 +18,10 @@ from flask import (
     session,
     url_for,
 )
-from flask_login import login_required as flask_login_required
+from flask_login import login_required, current_user
+
+flask_login_required = login_required
+
 from sqlalchemy.exc import IntegrityError
 
 from app.db import db
@@ -39,6 +43,23 @@ from app.utils.rbac import require_roles, require_approved
 bp_admin = Blueprint("admin", __name__, template_folder="templates", url_prefix="/admin")
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+@bp_admin.app_context_processor
+def _admin_template_helpers():
+    def admin_url(primary: str, fallback: str | None = None) -> str:
+        for endpoint in (primary, fallback):
+            if endpoint and endpoint in current_app.view_functions:
+                try:
+                    return url_for(endpoint)
+                except Exception:
+                    continue
+        return "#"
+
+    def has_admin_endpoint(endpoint: str) -> bool:
+        return endpoint in current_app.view_functions
+
+    return {"admin_url": admin_url, "has_admin_endpoint": has_admin_endpoint}
 
 
 def login_required(view):

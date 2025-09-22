@@ -1,22 +1,32 @@
 {% extends "base.html" %}
-{% block title %}{% block admin_title %}SGC · Admin{% endblock %}{% endblock %}
+{% block admin_title %}{% if self.title() %}{% block title %}{% endblock %}{% else %}Admin · SGC{% endif %}{% endblock %}
+
 {% block content %}
-<div class="admin-layout">
-  <aside class="admin-sidebar">
-    <div class="brand">SGC · Admin</div>
-    <nav>
-      <a href="{{ url_for('admin.index') }}">📊 Dashboard</a>
-      <a href="{{ url_for('admin.projects') }}">🏗️ Proyectos</a>
-      <a href="{{ url_for('admin.bitacoras') }}">📝 Bitácoras</a>
-      <a href="{{ url_for('admin.checklists') }}">✅ Checklists</a>
-      <a href="{{ url_for('admin.users') }}">👤 Usuarios</a>
-      {% if current_user.is_authenticated and (current_user.role is defined) and current_user.role == 'admin' %}
-        <a href="{{ url_for('admin.users_pending') }}">⏳ Pendientes</a>
+  {% block admin_header %}
+  <nav class="toolbar stack-h" style="gap:.5rem; flex-wrap:wrap;">
+    <a class="btn btn-outline" href="{{ admin_url('admin.dashboard', 'admin.index') }}">Dashboard</a>
+    <a class="btn btn-outline" href="{{ admin_url('admin.projects_index', 'admin.projects') }}">Proyectos</a>
+    <a class="btn btn-outline" href="{{ admin_url('admin.bitacoras_index', 'admin.bitacoras') }}">Bitácoras</a>
+    <a class="btn btn-outline" href="{{ admin_url('admin.checklists_index', 'admin.checklists') }}">Checklists</a>
+    <a class="btn btn-outline" href="{{ admin_url('admin.users_index', 'admin.users') }}">Usuarios</a>
+
+    {% if current_user.is_authenticated and current_user.role == 'admin' %}
+      <a class="btn btn-outline" href="{{ admin_url('admin.users_pending') }}">Pendientes</a>
+      {% if has_admin_endpoint('admin.invites_index') %}
+        <a class="btn btn-outline" href="{{ admin_url('admin.invites_index') }}">Invitaciones</a>
       {% endif %}
-    </nav>
-  </aside>
-  <main class="admin-main">
-    {% block admin_content %}{% endblock %}
-  </main>
-</div>
+    {% endif %}
+
+    <span class="flex-1"></span>
+
+    {% if current_user.is_authenticated %}
+      <form method="post" action="{{ url_for('auth.logout') }}">
+        {{ csrf_token() }}
+        <button class="btn btn-primary">Logout</button>
+      </form>
+    {% endif %}
+  </nav>
+  {% endblock %}
+
+  {% block admin_content %}{% endblock %}
 {% endblock %}
