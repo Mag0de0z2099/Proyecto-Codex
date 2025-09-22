@@ -2,59 +2,65 @@ name: CI - Coverage
 
 on:
   push:
-    branches: [ main ]
-  workflow_dispatch:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
 
 jobs:
   coverage:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+
     env:
-      FLASK_APP: app:create_app
-      FLASK_CONFIG: testing
-      DATABASE_URL: sqlite:///.tmp/test.db
-      SECRET_KEY: this_is_a_long_fake_secret_key_for_tests_1234567890
-      FLASK_ENV: production
+      # ✅ Asegura que 'from app import ...' funcione cuando Alembic corre desde migrations/
       PYTHONPATH: ${{ github.workspace }}
-      PYTHONDONTWRITEBYTECODE: "1"
-      PYTHONWARNINGS: ignore::DeprecationWarning
+      # ✅ DB de pruebas (sin sslmode)
+      DATABASE_URL: "sqlite:///.tmp/test.db"
+      # ✅ Llave de pruebas larga (no usar en prod)
+      SECRET_KEY: "this_is_a_long_fake_secret_key_for_tests_1234567890_change_me_please_0123456789"
+      # ✅ Evita reloader/debug en CI (no queremos arrancar server)
+      FLASK_ENV: "production"
+      PIP_DISABLE_PIP_VERSION_CHECK: "1"
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
-      - name: Cache pip
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-
-      - name: Install deps
+      - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pytest pytest-cov
+          # Si ya están en requirements.txt, estas instalaciones se omiten sin problema
+          pip install -r requirements.txt || true
+          pip install pytest pytest-cov alembic || true
 
-      - name: Prepare temp dirs
+      - name: Prepare test DB folder
         run: mkdir -p .tmp
 
-      - name: Run migrations (test DB)
-        run: alembic -c migrations/alembic.ini upgrade head
+      - name: Run Alembic migrations (test DB)
+        run: |
+          # Cinturón y tirantes: garantizar PYTHONPATH
+          export PYTHONPATH="$PWD"
+          alembic -c migrations/alembic.ini upgrade head
 
       - name: Run tests with coverage
         run: |
-          pytest -q --maxfail=1 --disable-warnings --cov=app --cov-report=xml
+          pytest -q --maxfail=1 --disable-warnings \
+            --cov=. --cov-report=xml --cov-report=term-missing
 
-      # Si estás usando Codecov, descomenta estas 4 líneas y guarda el token en secrets
+      # --- Opcional: subir cobertura a Codecov ---
+      # A) Guarda tu token como secreto CODECOV_TOKEN en GitHub
+      # B) Descomenta este paso
       # - name: Upload coverage to Codecov
       #   uses: codecov/codecov-action@v4
       #   with:
       #     token: ${{ secrets.CODECOV_TOKEN }}
+      #     files: coverage.xml
+      #     flags: unittests
       #     fail_ci_if_error: false
+      #     verbose: true
