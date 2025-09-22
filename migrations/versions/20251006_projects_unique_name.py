@@ -10,6 +10,44 @@ branch_labels = None
 depends_on = None
 
 
+def _pg_constraint_exists(conn, name: str) -> bool:
+    try:
+        return bool(
+            conn.execute(
+                sa.text(
+                    """
+            SELECT 1
+              FROM pg_constraint
+             WHERE conname = :name
+             LIMIT 1
+        """
+                ),
+                {"name": name},
+            ).scalar()
+        )
+    except Exception:
+        return False
+
+
+def _pg_index_exists(conn, name: str) -> bool:
+    try:
+        return bool(
+            conn.execute(
+                sa.text(
+                    """
+            SELECT 1
+              FROM pg_indexes
+             WHERE indexname = :name
+             LIMIT 1
+        """
+                ),
+                {"name": name},
+            ).scalar()
+        )
+    except Exception:
+        return False
+
+
 def upgrade():
     conn = op.get_bind()
     dialect = conn.dialect.name
@@ -17,48 +55,94 @@ def upgrade():
     if dialect == "postgresql":
         conn.execute(
             sa.text(
+                "UPDATE projects SET name = NULLIF(BTRIM(name), '') "
+                "WHERE name IS NOT NULL"
+            )
+        )
+    else:
+        conn.execute(
+            sa.text(
+                "UPDATE projects SET name = NULLIF(TRIM(name), '') "
+                "WHERE name IS NOT NULL"
+            )
+        )
+
+    if dialect == "postgresql":
+        conn.execute(
+            sa.text(
                 """
-                WITH dedup AS (
-                    SELECT id,
-                           ROW_NUMBER() OVER (PARTITION BY name ORDER BY id) AS rn
-                      FROM projects
-                     WHERE name IS NOT NULL
-                )
-                UPDATE projects AS p
-                   SET name = p.name || '_' || p.id::text
-                  FROM dedup
-                 WHERE p.id = dedup.id
-                   AND dedup.rn > 1
-                """
+            WITH d AS (
+                SELECT id, name,
+                       ROW_NUMBER() OVER (PARTITION BY name ORDER BY id) AS rn
+                  FROM projects
+                 WHERE name IS NOT NULL
+            )
+            UPDATE projects p
+               SET name = p.name || '_' || p.id::text
+              FROM d
+             WHERE p.id = d.id
+               AND d.rn > 1
+        """
             )
         )
     else:
         conn.execute(
             sa.text(
                 """
-                UPDATE projects
-                   SET name = name || '_' || id
-                 WHERE id IN (
-                     SELECT id
-                       FROM (
-                           SELECT id,
-                                  ROW_NUMBER() OVER (PARTITION BY name ORDER BY id) AS rn
-                             FROM projects
-                            WHERE name IS NOT NULL
-                       ) AS duplicates
-                      WHERE rn > 1
-                 )
-                """
+            UPDATE projects
+               SET name = name || '_' || id
+             WHERE id IN (
+               SELECT id FROM (
+                 SELECT id,
+                        ROW_NUMBER() OVER (PARTITION BY name ORDER BY id) AS rn
+                   FROM projects
+                  WHERE name IS NOT NULL
+               ) t
+               WHERE t.rn > 1
+             )
+        """
             )
         )
 
-    try:
-        op.create_unique_constraint("uq_projects_name", "projects", ["name"])
-    except Exception:
+    dup_row = conn.execute(
+        sa.text(
+            """
+        SELECT name
+          FROM projects
+         WHERE name IS NOT NULL
+         GROUP BY name
+        HAVING COUNT(*) > 1
+        LIMIT 1
+    """
+        )
+    ).fetchone()
+    if dup_row:
+        raise RuntimeError(
+            f"[migration 20251006] Aún hay duplicados en projects.name (ej: {dup_row[0]!r}). Revisa desduplicación."
+        )
+
+    constraint_name = "uq_projects_name"
+
+    created = False
+    if dialect == "postgresql":
+        if not _pg_constraint_exists(conn, constraint_name) and not _pg_index_exists(
+            conn, constraint_name
+        ):
+            try:
+                op.create_unique_constraint(constraint_name, "projects", ["name"])
+                created = True
+            except Exception:
+                pass
+        if not created and not _pg_index_exists(conn, constraint_name):
+            try:
+                op.create_index(constraint_name, "projects", ["name"], unique=True)
+                created = True
+            except Exception:
+                pass
+    else:
         try:
-            op.create_index(
-                "uq_projects_name", "projects", ["name"], unique=True
-            )
+            op.create_index(constraint_name, "projects", ["name"], unique=True)
+            created = True
         except Exception:
             pass
 
