@@ -1,5 +1,7 @@
 import os
 
+from datetime import datetime, timezone
+
 from app import create_app
 from app.db import db
 from app.models import User
@@ -22,6 +24,9 @@ def main():
                 user.email = email
             user.is_admin = True
             user.role = "admin"
+            user.status = "approved"
+            user.is_active = True
+            user.approved_at = datetime.now(timezone.utc)
             db.session.commit()
             print(f"[OK] Usuario '{username}' ya existía. Contraseña actualizada.")
         else:
@@ -32,6 +37,8 @@ def main():
                 role="admin",
                 is_admin=True,
                 is_active=True,
+                status="approved",
+                approved_at=datetime.now(timezone.utc),
             )
             u.set_password(password)
             db.session.add(u)

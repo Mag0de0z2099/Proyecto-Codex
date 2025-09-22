@@ -45,6 +45,14 @@
 {%- endcall %}
 {%- endmacro %}
 
+{% macro bell() -%}
+{%- call icon() -%}
+  <path d="M18 16.5c-1.5-1-2-2-2-5a4 4 0 1 0-8 0c0 3-0.5 4-2 5" />
+  <path d="M5 16.5h14" />
+  <path d="M10 19.5a2 2 0 0 0 4 0" />
+{%- endcall %}
+{%- endmacro %}
+
 {% macro userShield() -%}
 {%- call icon() -%}
   <path d="M12 3l7 3v6c0 5-3.5 9.5-7 10.5-3.5-1-7-5.5-7-10.5V6z" />

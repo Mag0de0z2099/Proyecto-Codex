@@ -8,12 +8,14 @@
     <a href="{{ url_for('admin.admin_new_user') }}" class="btn btn-primary btn-wide">➕ Crear usuario</a>
   </div>
 
-  <div class="table-grid header-6">
+  <div class="table-grid header-8">
     <div class="th">Usuario</div>
     <div class="th">Rol</div>
+    <div class="th">Estado</div>
+    <div class="th">Categoría</div>
+    <div class="th">Aprobado</div>
     <div class="th">Activo</div>
     <div class="th">Cambiar rol</div>
-    <div class="th">Alternar</div>
     <div class="th">Acciones</div>
 
     {% for u in users %}
@@ -24,47 +26,67 @@
 
       <div>{{ u.role or 'viewer' }}</div>
 
+      <div>
+        <span class="badge badge-{{ 'success' if u.status == 'approved' else 'secondary' }}">{{ u.status }}</span>
+      </div>
+
+      <div>{{ u.category or '—' }}</div>
+
+      <div>
+        {% if u.approved_at %}
+          {{ u.approved_at.strftime('%Y-%m-%d %H:%M') }}
+        {% else %}
+          —
+        {% endif %}
+      </div>
+
       <div>{{ 'Sí' if u.is_active else 'No' }}</div>
 
-      <div class="btn-group">
-        <form method="post" action="{{ url_for('admin.users_set_role') }}">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <input type="hidden" name="user_id" value="{{ u.id }}">
-          <select name="role">
-            {% for r in ROLES %}
-              <option value="{{ r }}" {{ 'selected' if (u.role or 'viewer') == r else '' }}>{{ r }}</option>
-            {% endfor %}
-          </select>
-          <button class="btn btn-outline btn-wide" type="submit" title="Guardar rol">
-            {{ i.save() }} <span>Guardar</span>
-          </button>
-        </form>
-      </div>
+      {% if current_user.role == 'admin' %}
+        <div class="btn-group">
+          <form method="post" action="{{ url_for('admin.users_set_role') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="user_id" value="{{ u.id }}">
+            <select name="role">
+              {% for r in ROLES %}
+                <option value="{{ r }}" {{ 'selected' if (u.role or 'viewer') == r else '' }}>{{ r }}</option>
+              {% endfor %}
+            </select>
+            <button class="btn btn-outline btn-wide" type="submit" title="Guardar rol">
+              {{ i.save() }} <span>Guardar</span>
+            </button>
+          </form>
+        </div>
 
-      <div class="btn-group">
-        <form method="post" action="{{ url_for('admin.users_toggle_active') }}">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <input type="hidden" name="user_id" value="{{ u.id }}">
-          <button class="btn btn-outline btn-wide" type="submit" title="{{ 'Desactivar' if u.is_active else 'Activar' }} usuario {{ u.username }}">
-            {{ i.power() }} <span>{{ 'Desactivar' if u.is_active else 'Activar' }}</span>
-          </button>
-        </form>
-      </div>
+        <div class="btn-group">
+          <form method="post" action="{{ url_for('admin.users_toggle_active') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="user_id" value="{{ u.id }}">
+            <button class="btn btn-outline btn-wide" type="submit" title="{{ 'Desactivar' if u.is_active else 'Activar' }} usuario {{ u.username }}">
+              {{ i.power() }} <span>{{ 'Desactivar' if u.is_active else 'Activar' }}</span>
+            </button>
+          </form>
+        </div>
 
-      <div class="btn-group">
-        <form method="post" action="{{ url_for('admin.admin_user_reset_link', user_id=u.id) }}">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button class="btn btn-outline btn-sm btn-wide" type="submit" title="Enviar reset">
-            {{ i.refresh() }} <span>Enviar reset</span>
-          </button>
-        </form>
-        <form method="post" action="{{ url_for('admin.admin_user_toggle_force', user_id=u.id) }}">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button class="btn btn-outline btn-sm btn-wide" type="submit" title="{{ 'Quitar forzar' if u.force_change_password else 'Forzar cambio' }}">
-            {{ i.key() }} <span>{{ 'Quitar forzar' if u.force_change_password else 'Forzar cambio' }}</span>
-          </button>
-        </form>
-      </div>
+        <div class="btn-group">
+          <form method="post" action="{{ url_for('admin.admin_user_reset_link', user_id=u.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-outline btn-sm btn-wide" type="submit" title="Enviar reset">
+              {{ i.refresh() }} <span>Enviar reset</span>
+            </button>
+          </form>
+          <form method="post" action="{{ url_for('admin.admin_user_toggle_force', user_id=u.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-outline btn-sm btn-wide" type="submit" title="{{ 'Quitar forzar' if u.force_change_password else 'Forzar cambio' }}">
+              {{ i.key() }} <span>{{ 'Quitar forzar' if u.force_change_password else 'Forzar cambio' }}</span>
+            </button>
+          </form>
+        </div>
+      {% else %}
+        <div>—</div>
+        <div>—</div>
+        <div>—</div>
+      {% endif %}
     {% endfor %}
   </div>
 </div>

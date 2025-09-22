@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import re
-from datetime import date
+from datetime import date, datetime, timezone
 from functools import wraps
 from pathlib import Path
 
@@ -34,6 +34,7 @@ from app.models import (
 )
 from app.security import generate_reset_token
 from app.auth.roles import ROLES, admin_required, role_required
+from app.utils.rbac import require_roles, require_approved
 
 bp_admin = Blueprint("admin", __name__, template_folder="templates", url_prefix="/admin")
 
@@ -409,14 +410,18 @@ def list_files():
     return render_template("admin/files.html", items=items, base=str(data_dir))
 @bp_admin.get("/users/new")
 @login_required
+@require_approved
 @admin_required
+@require_roles("admin")
 def admin_new_user():
     return render_template("admin/new_user.html")
 
 
 @bp_admin.post("/users/new")
 @login_required
+@require_approved
 @admin_required
+@require_roles("admin")
 def admin_create_user():
 
     username = (request.form.get("username") or "").strip()
@@ -456,6 +461,9 @@ def admin_create_user():
             flash("Este email ya está registrado.", "danger")
             return redirect(url_for("admin.admin_new_user"))
 
+    category_raw = request.form.get("category") or None
+    category_value = category_raw.strip() if category_raw else None
+
     user = User(
         username=username,
         email=email,
@@ -463,6 +471,10 @@ def admin_create_user():
         title=title,
         is_admin=is_admin,
         force_change_password=force_change,
+        status="approved",
+        category=category_value,
+        is_active=True,
+        approved_at=datetime.now(timezone.utc),
     )
     user.set_password(password)
     db.session.add(user)
@@ -474,9 +486,63 @@ def admin_create_user():
 # --- Gestión de usuarios (solo admin) ---
 
 
+@bp_admin.get("/users/pending")
+@login_required
+@require_approved
+@admin_required
+@require_roles("admin")
+def users_pending():
+    users_q = (
+        User.query.filter(User.status == "pending")
+        .order_by(User.created_at.asc())
+        .all()
+    )
+    return render_template("admin/users_pending.html", users=users_q)
+
+
+@bp_admin.post("/users/<int:user_id>/approve")
+@login_required
+@require_approved
+@admin_required
+@require_roles("admin")
+def approve_user(user_id: int):
+    user = User.query.get_or_404(user_id)
+    role = (request.form.get("role") or "viewer").strip().lower()
+    category_raw = request.form.get("category") or None
+    category = category_raw.strip() if category_raw else None
+    if role not in ROLES:
+        role = "viewer"
+    user.status = "approved"
+    user.role = role
+    user.category = category
+    user.is_admin = role == "admin"
+    user.is_active = True
+    user.approved_at = datetime.now(timezone.utc)
+    db.session.commit()
+    flash(f"Usuario {user.username} aprobado.", "success")
+    return redirect(url_for("admin.users_pending"))
+
+
+@bp_admin.post("/users/<int:user_id>/reject")
+@login_required
+@require_approved
+@admin_required
+@require_roles("admin")
+def reject_user(user_id: int):
+    user = User.query.get_or_404(user_id)
+    user.status = "rejected"
+    user.is_active = False
+    user.approved_at = None
+    db.session.commit()
+    flash(f"Usuario {user.username} rechazado.", "info")
+    return redirect(url_for("admin.users_pending"))
+
+
 @bp_admin.get("/users")
 @login_required
-@admin_required
+@require_approved
+@require_roles("admin", "supervisor")
+@role_required("admin", "supervisor")
 def users():
     users = User.query.order_by(User.username).all()
     roles = list(ROLES)
@@ -485,7 +551,9 @@ def users():
 
 @bp_admin.post("/users/role")
 @login_required
+@require_approved
 @admin_required
+@require_roles("admin")
 def users_set_role():
     user_id = int(request.form["user_id"])
     role = request.form["role"]
@@ -502,7 +570,9 @@ def users_set_role():
 
 @bp_admin.post("/users/toggle")
 @login_required
+@require_approved
 @admin_required
+@require_roles("admin")
 def users_toggle_active():
     user_id = int(request.form["user_id"])
     user = User.query.get_or_404(user_id)
@@ -517,7 +587,9 @@ def users_toggle_active():
 
 @bp_admin.post("/users/<int:user_id>/reset-link")
 @login_required
+@require_approved
 @admin_required
+@require_roles("admin")
 def admin_user_reset_link(user_id: int):
 
     user = db.session.get(User, user_id)
@@ -539,7 +611,9 @@ def admin_user_reset_link(user_id: int):
 
 @bp_admin.post("/users/<int:user_id>/toggle-force")
 @login_required
+@require_approved
 @admin_required
+@require_roles("admin")
 def admin_user_toggle_force(user_id: int):
 
     user = db.session.get(User, user_id)

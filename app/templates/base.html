@@ -17,8 +17,20 @@
     </div>
     <nav class="nav-right">
       {% set is_logged = current_user.is_authenticated or session.get('user') %}
+      {% set session_user = session.get('user') or {} %}
+      {% set current_role = None %}
+      {% if current_user.is_authenticated %}
+        {% set current_role = current_user.role %}
+      {% elif session_user %}
+        {% set current_role = session_user.get('role') or ('admin' if session_user.get('is_admin') else None) %}
+      {% endif %}
       <div class="toolbar" style="margin-left:auto">
         {% if is_logged %}
+          {% if current_role == "admin" %}
+            <a class="btn btn-outline" href="{{ url_for('admin.users_pending') }}">
+              {{ i.bell() }} <span>Pendientes</span>
+            </a>
+          {% endif %}
           <a class="btn btn-outline" href="{{ url_for('admin.dashboard') }}">
             {{ i.userShield() }} <span>Admin</span>
           </a>
@@ -35,6 +47,11 @@
   </header>
 
   <main class="container">
+    {% if current_user.is_authenticated and (current_user.is_approved is defined) and not current_user.is_approved %}
+      <div class="alert alert-warning" role="status">
+        Tu cuenta aún no ha sido aprobada. Algunas secciones pueden estar bloqueadas.
+      </div>
+    {% endif %}
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         <div class="flash-stack">

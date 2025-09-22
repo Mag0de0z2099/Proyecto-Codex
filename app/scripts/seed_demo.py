@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime, timezone
 from random import choice
 
 from app import create_app
@@ -19,7 +19,14 @@ from app.models import (
 def ensure_user(username: str, password: str, role: str, title: str | None = None):
     u = User.query.filter_by(username=username).first()
     if not u:
-        u = User(username=username, role=role, title=title)
+        u = User(
+            username=username,
+            role=role,
+            title=title,
+            status="approved",
+            is_active=True,
+            approved_at=datetime.now(timezone.utc),
+        )
         u.set_password(password)
         if role == "admin":
             u.is_admin = True
@@ -27,6 +34,12 @@ def ensure_user(username: str, password: str, role: str, title: str | None = Non
         print(f"Created user: {username} ({role})")
     else:
         print(f"User already exists: {username} ({u.role})")
+        u.status = "approved"
+        u.is_active = True
+        if not u.approved_at:
+            u.approved_at = datetime.now(timezone.utc)
+        if role == "admin":
+            u.is_admin = True
 
 
 def seed_admin_extra():

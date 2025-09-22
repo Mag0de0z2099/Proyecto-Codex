@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+from datetime import datetime, timezone
 
 from app import create_app
 from app.db import db
@@ -19,6 +20,9 @@ def app_with_viewer(tmp_path, monkeypatch):
             email="viewer@example.com",
             role="viewer",
             is_admin=False,
+            status="approved",
+            is_active=True,
+            approved_at=datetime.now(timezone.utc),
         )
         viewer.set_password("viewer12345")
         db.session.add(viewer)

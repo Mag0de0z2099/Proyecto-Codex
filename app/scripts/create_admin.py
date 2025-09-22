@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from datetime import datetime, timezone
 
 from werkzeug.security import generate_password_hash
 
@@ -44,6 +45,8 @@ def main() -> None:
             role="admin",
             is_admin=True,
             is_active=True,
+            status="approved",
+            approved_at=datetime.now(timezone.utc),
         )
         if hasattr(user, "set_password"):
             user.set_password(password)

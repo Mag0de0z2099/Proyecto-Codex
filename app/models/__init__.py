@@ -163,6 +163,18 @@ class User(db.Model, UserMixin):
         default="viewer",
         server_default="viewer",
     )
+    status: Mapped[str] = mapped_column(
+        String(16),
+        nullable=False,
+        default="pending",
+        server_default="pending",
+    )
+    category: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    approved_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        default=None,
+    )
     title: Mapped[str | None] = mapped_column(String(80), nullable=True)
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     force_change_password: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
@@ -172,6 +184,8 @@ class User(db.Model, UserMixin):
     __table_args__ = (
         Index("ix_users_username", "username"),
         Index("ix_users_role", "role"),
+        Index("ix_users_status", "status"),
+        Index("ix_users_category", "category"),
     )
 
     def set_password(self, password: str) -> None:
@@ -192,6 +206,9 @@ class User(db.Model, UserMixin):
             "username": self.username,
             "email": self.email,
             "role": self.role,
+            "status": self.status,
+            "category": self.category,
+            "approved_at": self.approved_at.isoformat() if self.approved_at else None,
             "title": self.title,
             "is_admin": self.is_admin,
             "force_change_password": self.force_change_password,
@@ -204,6 +221,10 @@ class User(db.Model, UserMixin):
 
     def can_admin(self) -> bool:
         return self.role == "admin"
+
+    @property
+    def is_approved(self) -> bool:
+        return (self.status or "").lower() == "approved"
 
     def __repr__(self) -> str:
         return f"<User {self.username}>"

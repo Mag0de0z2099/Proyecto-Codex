@@ -1,5 +1,7 @@
 import os
 
+from datetime import datetime, timezone
+
 from app.models import Folder, Project, User
 
 
@@ -13,7 +15,14 @@ def _login(client):
 
 def test_admin_can_create_folder(app, client, db_session, tmp_path):
     with app.app_context():
-        user = User(username="admin", role="admin", is_admin=True, is_active=True)
+        user = User(
+            username="admin",
+            role="admin",
+            is_admin=True,
+            is_active=True,
+            status="approved",
+            approved_at=datetime.now(timezone.utc),
+        )
         user.set_password("admin")
         db_session.add(user)
 

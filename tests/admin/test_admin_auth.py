@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import pytest
+from datetime import datetime, timezone
 
 from app import create_app
 from app.db import db
@@ -20,6 +21,9 @@ def app_with_admin(tmp_path, monkeypatch):
             email="admin@codex.local",
             role="admin",
             is_admin=True,
+            status="approved",
+            is_active=True,
+            approved_at=datetime.now(timezone.utc),
         )
         admin.set_password("admin123")
         db.session.add(admin)

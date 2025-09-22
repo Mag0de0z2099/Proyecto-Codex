@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 from app import create_app
 from app.db import db
 from app.models import User
@@ -21,6 +23,9 @@ def test_forgot_generates_link_when_user_exists():
             email="demo@codex.local",
             role="viewer",
             is_admin=False,
+            status="approved",
+            is_active=True,
+            approved_at=datetime.now(timezone.utc),
         )
         u.set_password("demo12345")
         db.session.add(u)
@@ -69,6 +74,9 @@ def test_forgot_password_accepts_json_payload():
             email="json@codex.local",
             role="viewer",
             is_admin=False,
+            status="approved",
+            is_active=True,
+            approved_at=datetime.now(timezone.utc),
         )
         u.set_password("demo12345")
         db.session.add(u)
