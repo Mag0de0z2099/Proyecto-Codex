@@ -7,6 +7,7 @@ import os
 import sys
 import uuid
 from pathlib import Path
+from urllib.parse import urlsplit, urlunsplit
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from flask import Flask, Response, g, has_request_context, request
@@ -71,18 +72,52 @@ def configure_logging(app: Flask) -> None:
     app.logger.setLevel(log_level)
 
 
+def _normalize_db_url(raw: str) -> str:
+    if not raw:
+        return "sqlite:///dev.db"
+    if raw.startswith("postgres://"):
+        raw = raw.replace("postgres://", "postgresql+psycopg://", 1)
+    elif raw.startswith("postgresql://"):
+        raw = raw.replace("postgresql://", "postgresql+psycopg://", 1)
+
+    parts = urlsplit(raw)
+    if parts.scheme.startswith("sqlite"):
+        base = raw.split("?", 1)[0]
+        if "#" in base:
+            base = base.split("#", 1)[0]
+        return base
+
+    if parts.scheme.startswith("postgresql"):
+        query = parts.query or ""
+        if "sslmode=" not in query:
+            query = (query + "&sslmode=require") if query else "sslmode=require"
+        return urlunsplit((parts.scheme, parts.netloc, parts.path, query, parts.fragment))
+
+    return raw
+
+
 def create_app(config_name: str | None = None) -> Flask:
     app = Flask(__name__)
+    raw_uri = os.environ.get("DATABASE_URL", "")
+
     app.config.from_object(get_config(config_name))
+
+    configured_uri = str(app.config.get("SQLALCHEMY_DATABASE_URI", ""))
+    uri = _normalize_db_url(raw_uri or configured_uri)
+    app.config["SQLALCHEMY_DATABASE_URI"] = uri
+    if not app.config.get("SQLALCHEMY_TRACK_MODIFICATIONS"):
+        app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+    if not app.config.get("SECRET_KEY"):
+        app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "change-me")
 
     configure_logging(app)
 
     # DEBUG: imprime la URI y, si es SQLite, la ruta absoluta del archivo
     try:
-        uri = app.config.get("SQLALCHEMY_DATABASE_URI", "")
-        print(f"DB URI -> {uri}")
-        if uri.startswith("sqlite:///"):
-            sqlite_path = Path(uri.replace("sqlite:///", "", 1)).expanduser().resolve()
+        effective_uri = app.config.get("SQLALCHEMY_DATABASE_URI", "")
+        print(f"DB URI -> {effective_uri}")
+        if effective_uri.startswith("sqlite:///"):
+            sqlite_path = Path(effective_uri.replace("sqlite:///", "", 1)).expanduser().resolve()
             print(f"[DEBUG] SQLite file -> {sqlite_path}")
     except Exception as exc:  # pragma: no cover - logging auxiliar
         print(f"[DEBUG] No se pudo imprimir DB info: {exc}")
