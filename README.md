@@ -32,6 +32,8 @@ Configura las variables de entorno **antes** de desplegar en Render u otra plata
 | `SECURE_COOKIES` | `1` para forzar cookies seguras en HTTPS. |
 | `LOG_LEVEL` | `INFO` (o `DEBUG` solo para diagnósticos puntuales). |
 
+> Nota: la aplicación usa `postgresql+psycopg://` (psycopg v3). No instales `psycopg2` ni `psycopg2-binary`; mantenemos `psycopg[binary]` en `requirements.txt`.
+
 En producción la aplicación fuerza cookies `Secure`, `HttpOnly` y `SameSite=Lax`, protege los formularios con CSRF y aplica cabeceras de seguridad (CSP, HSTS, etc.).
 
 ## Operación
