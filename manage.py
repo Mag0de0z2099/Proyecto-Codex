@@ -1,6 +1,6 @@
 import click
 from flask_migrate import upgrade
-from app.main import app  # importa tu app ya inicializada con Migrate
+from wsgi import app  # importa tu app ya inicializada con Migrate
 
 
 @click.group()

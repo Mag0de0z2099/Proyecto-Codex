@@ -1,8 +1,9 @@
-"""Punto de entrada para servidores WSGI como gunicorn."""
+"""Punto de entrada WSGI conservado por compatibilidad."""
 
 from __future__ import annotations
 
 from . import create_app
 
-# Render arranca con: ``gunicorn app.main:app --bind 0.0.0.0:$PORT``
+# Usa ``gunicorn wsgi:app`` en producción; este módulo queda disponible
+# para procesos auxiliares o tooling que aún dependan de ``app.main:app``.
 app = create_app()
