@@ -78,7 +78,9 @@ def register_cli(app):
     @click.option("--email", required=True, help="Email del administrador a crear")
     @click.option(
         "--password",
-        required=True,
+        required=False,
+        default="admin123",
+        show_default=True,
         help="Contraseña para el administrador (no se muestra en logs)",
     )
     @click.option(
@@ -94,8 +96,9 @@ def register_cli(app):
             click.echo("Email inválido", err=True)
             raise SystemExit(1)
 
-        if User.query.filter_by(email=email_n).first():
-            click.echo("Ya existe un usuario con ese email, nada por hacer.")
+        user = User.query.filter_by(email=email_n).first()
+        if user:
+            click.echo("ℹ️ Admin ya existe; no se cambia la contraseña.")
             return
 
         resolved_username = (username or email_n.split("@", 1)[0] or "admin").strip()
@@ -106,6 +109,7 @@ def register_cli(app):
             )
             raise SystemExit(1)
 
+        resolved_password = password or "admin123"
         user = User(
             username=resolved_username,
             email=email_n,
@@ -115,9 +119,9 @@ def register_cli(app):
         )
 
         if hasattr(user, "set_password"):
-            user.set_password(password)
+            user.set_password(resolved_password)
         elif hasattr(user, "password_hash"):
-            user.password_hash = generate_password_hash(password)
+            user.password_hash = generate_password_hash(resolved_password)
         else:
             click.echo(
                 "El modelo de usuario no soporta asignar contraseña de forma automática.",
@@ -125,8 +129,10 @@ def register_cli(app):
             )
             raise SystemExit(1)
 
-        if hasattr(user, "force_change_password"):
-            user.force_change_password = False
+        try:
+            user.force_change_password = True
+        except Exception:
+            pass
 
         db.session.add(user)
         try:
@@ -137,6 +143,6 @@ def register_cli(app):
             click.echo("No se pudo crear el usuario administrador. Revisa los logs.", err=True)
             raise SystemExit(1)
 
-        click.echo(f"Admin creado: {user.email} ({user.username})")
+        click.echo("✅ Admin creado con contraseña por defecto.")
 
     return app
