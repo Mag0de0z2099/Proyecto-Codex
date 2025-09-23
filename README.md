@@ -1,5 +1,7 @@
 # Proyecto Codex
 
+Reemplaza en README.md la línea del badge de CI - Tests por la siguiente:
+
 [![CI - Tests](https://github.com/Mag0de0z2099/Proyecto-Codex/actions/workflows/ci.yml/badge.svg)](https://github.com/Mag0de0z2099/Proyecto-Codex/actions/workflows/ci.yml)
 [![Coverage](https://img.shields.io/codecov/c/github/Mag0de0z2099/Proyecto-Codex?branch=main)](https://codecov.io/gh/Mag0de0z2099/Proyecto-Codex)
 [![Deploy on Render](https://img.shields.io/badge/Render-Deployed-brightgreen)](https://dashboard.render.com/)
