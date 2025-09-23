@@ -1,0 +1,83 @@
+name: CI - Lite
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "app/**"
+      - "tests/**"
+      - "requirements.txt"
+      - "pytest.ini"
+      - "codecov.yml"
+      - ".github/workflows/ci-lite.yml"
+  pull_request:
+    branches: [ "main" ]
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "app/**"
+      - "tests/**"
+      - "requirements.txt"
+      - "pytest.ini"
+      - "codecov.yml"
+      - ".github/workflows/ci-lite.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: ci-lite-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  changed:
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.changes.outputs.code }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            code:
+              - 'app/**'
+              - 'tests/**'
+              - 'requirements.txt'
+              - 'pytest.ini'
+
+  tests:
+    needs: changed
+    if: needs.changed.outputs.code == 'true' && github.event.pull_request.draft != true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: 'pip'
+          cache-dependency-path: 'requirements.txt'
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt || true
+          pip install pytest pytest-cov
+      - name: Run tests (lite)
+        run: |
+          pytest -q --maxfail=1 --disable-warnings \
+            --cov=app --cov-branch \
+            --cov-report=xml:coverage.xml \
+            --junitxml=junit.xml -o junit_family=legacy
+      - name: Upload test results (Analytics)
+        if: ${{ !cancelled() }}
+        uses: codecov/test-results-action@v1
+        with:
+          files: junit.xml
+          flags: lite
+          token: ${{ secrets.CODECOV_TOKEN }}
+      - name: Upload coverage (one file)
+        uses: codecov/codecov-action@v5
+        with:
+          files: coverage.xml
+          flags: lite
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: false
