@@ -1,55 +1,57 @@
-"""Configuración compartida para las pruebas."""
-
-from __future__ import annotations
-
 import os
 import sys
 from pathlib import Path
 
 import pytest
 
-
-# Aseguramos que la raíz del proyecto esté en sys.path
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 
-@pytest.fixture
-def app(monkeypatch, tmp_path):
-    """Instancia de la aplicación configurada para pruebas con DB temporal."""
-
-    monkeypatch.setenv("SECRET_KEY", "tests-secret")
-    monkeypatch.setenv("DATA_DIR", str(tmp_path / "data"))
-
-    from app import create_app
-    from app.db import db
-
-    application = create_app("test")
-    ctx = application.app_context()
-    ctx.push()
-    db.create_all()
-
-    yield application
-
-    db.session.remove()
-    db.drop_all()
-    ctx.pop()
-
-
-@pytest.fixture
-def client(app):
-    """Cliente de pruebas basado en la aplicación de testing."""
-
-    with app.test_client() as test_client:
-        yield test_client
-
-
-@pytest.fixture
-def db_session(app):
-    from app.db import db
+@pytest.fixture(scope="session")
+def app():
+    """
+    Devuelve una instancia de Flask para pruebas.
+    Intenta importar create_app(); si no existe, busca una variable app.
+    Ajusta el import si tu paquete no es 'app'.
+    """
+    os.environ.setdefault("FLASK_ENV", "testing")
 
     try:
-        yield db.session
-    finally:
-        db.session.rollback()
+        # Ruta común: app/__init__.py define create_app()
+        from app import create_app
+
+        flask_app = create_app()
+    except Exception:
+        # Fallback: módulo con variable global 'app' (wsgi.py o similar)
+        try:
+            from app import app as flask_app  # type: ignore
+        except Exception:
+            # Si usas wsgi.py como entrada
+            from wsgi import app as flask_app  # type: ignore
+
+    flask_app.config.setdefault("TESTING", True)
+    return flask_app
+
+
+@pytest.fixture()
+def client(app):
+    return app.test_client()
+
+
+@pytest.fixture()
+def db_session(app):
+    """Provee una sesión de base de datos aislada por prueba."""
+    from app.db import db
+
+    with app.app_context():
+        db.drop_all()
+        db.create_all()
+        try:
+            yield db.session
+            db.session.commit()
+        finally:
+            db.session.rollback()
+            db.drop_all()
+            db.session.remove()

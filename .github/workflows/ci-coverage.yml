@@ -25,14 +25,14 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt || true
           pip install pytest pytest-cov
-          # Si tu app se instala como paquete, agrega: pip install -e .
+          # pip install -e .   # si empaquetas tu app
 
       - name: Run tests with coverage
         run: |
           pytest -q --maxfail=1 --disable-warnings \
             --cov=app --cov-report=term-missing \
             --cov-report=xml:coverage.xml
-        # ⚠️ Cambia "app" si tu código está en otro directorio (ej. src)
+        # Cambia --cov=app si tu código vive en otro directorio
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5

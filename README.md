@@ -2,9 +2,7 @@
 
 [![CI - Coverage](https://github.com/Mag0de0z2099/Proyecto-Codex/actions/workflows/ci-coverage.yml/badge.svg)](https://github.com/Mag0de0z2099/Proyecto-Codex/actions/workflows/ci-coverage.yml)
 [![codecov](https://codecov.io/gh/Mag0de0z2099/Proyecto-Codex/branch/main/graph/badge.svg)](https://codecov.io/gh/Mag0de0z2099/Proyecto-Codex)
-[![Deploy on Render](https://img.shields.io/badge/Render-Deployed-brightgreen)](https://dashboard.render.com/)
-[![Heroku](https://img.shields.io/badge/Heroku-Ready-blueviolet)](https://www.heroku.com/)
-[![Fly.io](https://img.shields.io/badge/Fly.io-Ready-8A2BE2)](https://fly.io/)
+
 
 ---
 
@@ -14,9 +12,6 @@
 Servidor Flask para Codex Primera configuración
 
 
-[![CI - Coverage](https://github.com/Mag0de0z2099/Proyecto-Codex/actions/workflows/ci-coverage.yml/badge.svg)](https://github.com/Mag0de0z2099/Proyecto-Codex/actions/workflows/ci-coverage.yml)
-[![codecov](https://codecov.io/gh/Mag0de0z2099/Proyecto-Codex/branch/main/graph/badge.svg)](https://codecov.io/gh/Mag0de0z2099/Proyecto-Codex)
-[![Render](https://img.shields.io/website?url=https%3A%2F%2Fproyecto-codex.onrender.com&label=Render%20Deploy&style=flat-square)](https://proyecto-codex.onrender.com)
 
 ## Checklist de despliegue seguro
 
@@ -98,3 +93,9 @@ honcho start
 Verás un servicio levantando Gunicorn (`web`) y otro ejecutando `worker.py`. Esto resulta útil para probar integración con colas de mensajes antes de desplegar.
 
 Documentar estos comandos en el repositorio evita dudas al desplegar en diferentes proveedores.
+
+### Créditos
+- Autor: **José Ramírez Rosique**
+- Colaboración de IA: **Elyra (ChatGPT)**
+- Automatización/edición asistida: **Codex**
+
