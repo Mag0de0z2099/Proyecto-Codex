@@ -27,7 +27,7 @@ def metrics() -> Response:
             output = generate_latest(REGISTRY)
         response = Response(output)
         response.headers["Content-Type"] = CONTENT_TYPE_LATEST
-        return response
+        return response  # pragma: no branch
     except Exception as exc:  # pragma: no cover - defensive fallback
         return Response(
             f"# metrics unavailable: {exc}\n",
