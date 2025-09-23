@@ -1,24 +1,92 @@
+codecov:
+  require_ci_to_pass: yes
+
 coverage:
   precision: 2
   round: down
-  range: 60..95
+  range: 70..100
 
   status:
     project:
       default:
-        target: 70
-        threshold: 2
-        informational: false
+        target: 80        # ⬅️ súbelo a 90 cuando estabilice
+        threshold: 1
     patch:
       default:
-        target: 70
-        threshold: 2
-        informational: false
+        target: 75
+        threshold: 1
+
+    # Metas por flag (ver sección flags)
+    flags:
+      api:
+        target: 80
+      auth:
+        target: 80
+      models:
+        target: 80
+      routes:
+        target: 80
+      services:
+        target: 80
+      utils:
+        target: 80
 
 ignore:
   - "tests/**"
   - "migrations/**"
   - "docs/**"
-  - "**/__init__.py"
+  - "static/**"
+  - "templates/**"
   - "wsgi.py"
   - "manage.py"
+  - "render.yaml"
+  - "seed_and_scan.sh"
+  - "verify_metrics.sh"
+  - "create_pr_ui_logo.sh"
+  - "runtime.txt"
+  - "Procfile"
+
+flags:
+  api:
+    paths:
+      - app/api/
+  auth:
+    paths:
+      - app/auth/
+      - app/simple_auth/
+  models:
+    paths:
+      - app/models/
+  routes:
+    paths:
+      - app/routes/
+      - app/blueprints/
+  services:
+    paths:
+      - app/services/
+  utils:
+    paths:
+      - app/utils/
+
+component_management:
+  individual_components:
+    - name: API
+      paths:
+        - app/api/**
+    - name: Auth
+      paths:
+        - app/auth/**
+        - app/simple_auth/**
+    - name: Models
+      paths:
+        - app/models/**
+    - name: Routes
+      paths:
+        - app/routes/**
+        - app/blueprints/**
+    - name: Services
+      paths:
+        - app/services/**
+    - name: Utils
+      paths:
+        - app/utils/**
