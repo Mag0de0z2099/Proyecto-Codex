@@ -10,10 +10,12 @@ from pathlib import Path
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from apscheduler.schedulers.background import BackgroundScheduler
-from flask import Flask, Response, g, has_request_context, request
+from flask import Flask, g, has_request_context, request
 from pytz import timezone
 from werkzeug.exceptions import HTTPException
 
+from .api.metrics import bp as metrics_bp
+from .api.version import bp as version_bp
 from .blueprints.admin import bp_admin
 from .blueprints.api.v1 import bp_api_v1
 from .blueprints.auth import bp_auth
@@ -213,6 +215,8 @@ def create_app(config_name: str | None = None) -> Flask:
     app.register_blueprint(bp_web)
     app.register_blueprint(bp_admin)
     app.register_blueprint(bp_api_v1, url_prefix="/api/v1")
+    app.register_blueprint(metrics_bp)
+    app.register_blueprint(version_bp)
     app.register_blueprint(assets_bp)
     app.register_blueprint(bp_ping)
 
@@ -222,30 +226,6 @@ def create_app(config_name: str | None = None) -> Flask:
 
     register_cli(app)
     register_sync_cli(app)
-
-    @app.get("/metrics")
-    def metrics():
-        try:
-            from prometheus_client import (
-                CONTENT_TYPE_LATEST,
-                CollectorRegistry,
-                generate_latest,
-                multiprocess,
-            )
-
-            registry = None
-            if os.getenv("PROMETHEUS_MULTIPROC_DIR"):
-                registry = CollectorRegistry()
-                multiprocess.MultiProcessCollector(registry)
-
-            output = generate_latest(registry)
-            return Response(output, mimetype=CONTENT_TYPE_LATEST)
-        except Exception as e:
-            return Response(
-                f"# metrics unavailable: {e}\n",
-                mimetype="text/plain",
-                status=503,
-            )
 
     if os.getenv("SCHEDULER_ENABLED", "0") == "1":
         from app.services.scanner import scan_all_folders
