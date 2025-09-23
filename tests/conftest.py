@@ -13,15 +13,14 @@ if str(PROJECT_ROOT) not in sys.path:
 @pytest.fixture(scope="session")
 def app():
     os.environ.setdefault("FLASK_ENV", "testing")
+    # Usa SQLite en memoria si tu app lee DATABASE_URL
+    os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")
 
     try:
-        # Factory pattern
         from app import create_app
         flask_app = create_app()
     except Exception:
-        # Fallback si solo hay app global
         from app import app as flask_app
-
     return flask_app
 
 

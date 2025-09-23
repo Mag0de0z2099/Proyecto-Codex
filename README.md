@@ -5,6 +5,14 @@ Servidor Flask para Codex Primera configuración
 
 [![CI - Coverage](https://github.com/Mag0de0z2099/Proyecto-Codex/actions/workflows/ci-coverage.yml/badge.svg)](https://github.com/Mag0de0z2099/Proyecto-Codex/actions/workflows/ci-coverage.yml)
 [![codecov](https://codecov.io/gh/Mag0de0z2099/Proyecto-Codex/branch/main/graph/badge.svg)](https://codecov.io/gh/Mag0de0z2099/Proyecto-Codex)
+
+<!-- Badges por flag (Codecov Pro) -->
+[![api](https://codecov.io/gh/Mag0de0z2099/Proyecto-Codex/branch/main/graph/badge.svg?flag=api)](https://app.codecov.io/gh/Mag0de0z2099/Proyecto-Codex/flags/api)
+[![auth](https://codecov.io/gh/Mag0de0z2099/Proyecto-Codex/branch/main/graph/badge.svg?flag=auth)](https://app.codecov.io/gh/Mag0de0z2099/Proyecto-Codex/flags/auth)
+[![models](https://codecov.io/gh/Mag0de0z2099/Proyecto-Codex/branch/main/graph/badge.svg?flag=models)](https://app.codecov.io/gh/Mag0de0z2099/Proyecto-Codex/flags/models)
+[![routes](https://codecov.io/gh/Mag0de0z2099/Proyecto-Codex/branch/main/graph/badge.svg?flag=routes)](https://app.codecov.io/gh/Mag0de0z2099/Proyecto-Codex/flags/routes)
+[![services](https://codecov.io/gh/Mag0de0z2099/Proyecto-Codex/branch/main/graph/badge.svg?flag=services)](https://app.codecov.io/gh/Mag0de0z2099/Proyecto-Codex/flags/services)
+[![utils](https://codecov.io/gh/Mag0de0z2099/Proyecto-Codex/branch/main/graph/badge.svg?flag=utils)](https://app.codecov.io/gh/Mag0de0z2099/Proyecto-Codex/flags/utils)
 [![Render](https://img.shields.io/website?url=https%3A%2F%2Fproyecto-codex.onrender.com&label=Render%20Deploy&style=flat-square)](https://proyecto-codex.onrender.com)
 
 ## Checklist de despliegue seguro
