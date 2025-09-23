@@ -1,24 +1,24 @@
 coverage:
   precision: 2
   round: down
-  range: "50...90"
+  range: 60..95
 
   status:
     project:
       default:
-        target: 70%
-        threshold: 2%
-        base: auto
+        target: 70
+        threshold: 2
+        informational: false
     patch:
       default:
-        target: 60%
-        threshold: 1%
-
-comment:
-  layout: "reach,diff,flags,files"
-  behavior: default
-  require_changes: true
+        target: 70
+        threshold: 2
+        informational: false
 
 ignore:
-  - "tests/"
-  - "migrations/"
+  - "tests/**"
+  - "migrations/**"
+  - "docs/**"
+  - "**/__init__.py"
+  - "wsgi.py"
+  - "manage.py"

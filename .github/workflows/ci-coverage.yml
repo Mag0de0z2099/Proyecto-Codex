@@ -1,31 +1,19 @@
 name: CI - Coverage
-
 on:
   push:
-    branches: ["main"]
+    branches: [ "main" ]
   pull_request:
-    branches: ["main"]
+    branches: [ "main" ]
+
+permissions:
+  contents: read
 
 jobs:
-  coverage:
+  tests:
     runs-on: ubuntu-latest
-
-    env:
-      # ✅ Asegura que 'from app import ...' funcione cuando Alembic corre desde migrations/
-      PYTHONPATH: ${{ github.workspace }}
-      # ✅ DB de pruebas (sin sslmode)
-      DATABASE_URL: "sqlite:///.tmp/test.db"
-      # ✅ Llave de pruebas larga (no usar en prod)
-      SECRET_KEY: "this_is_a_long_fake_secret_key_for_tests_1234567890_change_me_please_0123456789"
-      # ✅ Evita reloader/debug en CI (no queremos arrancar server)
-      FLASK_ENV: "production"
-      PIP_DISABLE_PIP_VERSION_CHECK: "1"
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -35,32 +23,20 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          # Si ya están en requirements.txt, estas instalaciones se omiten sin problema
           pip install -r requirements.txt || true
-          pip install pytest pytest-cov alembic || true
-
-      - name: Prepare test DB folder
-        run: mkdir -p .tmp
-
-      - name: Run Alembic migrations (test DB)
-        run: |
-          # Cinturón y tirantes: garantizar PYTHONPATH
-          export PYTHONPATH="$PWD"
-          alembic -c migrations/alembic.ini upgrade head
+          pip install pytest pytest-cov
+          # Si tu app se instala como paquete, agrega: pip install -e .
 
       - name: Run tests with coverage
         run: |
           pytest -q --maxfail=1 --disable-warnings \
-            --cov=. --cov-report=xml --cov-report=term-missing
+            --cov=app --cov-report=term-missing \
+            --cov-report=xml:coverage.xml
+        # ⚠️ Cambia "app" si tu código está en otro directorio (ej. src)
 
-      # --- Opcional: subir cobertura a Codecov ---
-      # A) Guarda tu token como secreto CODECOV_TOKEN en GitHub
-      # B) Descomenta este paso
-      # - name: Upload coverage to Codecov
-      #   uses: codecov/codecov-action@v4
-      #   with:
-      #     token: ${{ secrets.CODECOV_TOKEN }}
-      #     files: coverage.xml
-      #     flags: unittests
-      #     fail_ci_if_error: false
-      #     verbose: true
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: coverage.xml
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true
