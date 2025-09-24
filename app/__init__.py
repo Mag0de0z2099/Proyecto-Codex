@@ -5,14 +5,12 @@ from __future__ import annotations
 import logging
 import os
 import sys
-import uuid
 from pathlib import Path
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from apscheduler.schedulers.background import BackgroundScheduler
-from flask import Flask, g, has_request_context, request
+from flask import Flask, g, has_request_context
 from pytz import timezone
-from werkzeug.exceptions import HTTPException
 
 from .api.metrics import bp as metrics_bp
 from .api.version import bp as version_bp
@@ -26,6 +24,7 @@ from .routes.assets import assets_bp
 from .routes.public import public_bp
 from .config import get_config
 from .db import db
+from .errors import register_error_handlers
 from .extensions import csrf, init_auth_extensions, limiter
 from .metrics import cleanup_multiprocess_directory
 from .utils.scan_lock import get_scan_lock
@@ -171,17 +170,7 @@ def create_app(config_name: str | None = None) -> Flask:
 
     set_security_headers(app)
 
-    @app.before_request
-    def _assign_request_id():  # pragma: no cover - trivial
-        request_id = request.headers.get("X-Request-ID") or uuid.uuid4().hex
-        g.request_id = request_id
-
-    @app.after_request
-    def _add_request_id_header(response):  # pragma: no cover - simple header
-        request_id = getattr(g, "request_id", None)
-        if request_id:
-            response.headers.setdefault("X-Request-ID", request_id)
-        return response
+    register_error_handlers(app)
 
     # Variables globales seguras para Jinja (evita usar `current_app` en plantillas)
     @app.context_processor
@@ -269,13 +258,6 @@ def create_app(config_name: str | None = None) -> Flask:
         scheduler.start()
         app.extensions.setdefault("apscheduler", scheduler)
         app.logger.info("Scheduler ON cada %s min (TZ=%s)", interval_min, tz)
-
-    @app.errorhandler(Exception)
-    def handle_any_error(err):  # pragma: no cover - logging side-effect
-        if isinstance(err, HTTPException):
-            return err
-        app.logger.exception("Unhandled exception")
-        return ("", 500)
 
     secret_key = app.config.get("SECRET_KEY", "")
     if not secret_key or len(secret_key) < 32:
