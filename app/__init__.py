@@ -2,29 +2,15 @@
 
 from __future__ import annotations
 
-import logging
 import os
-import sys
 from pathlib import Path
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from apscheduler.schedulers.background import BackgroundScheduler
-from flask import Flask, g, has_request_context
+from flask import Flask
 from pytz import timezone
-
-from .api.metrics import bp as metrics_bp
-from .api.version import bp as version_bp
-from .api.v1.todos import bp as todos_v1_bp
-from .api.v1.users import bp as users_v1_bp
-from .blueprints.admin import bp_admin
-from .blueprints.api.v1 import bp_api_v1
-from .blueprints.auth import bp_auth
-from .blueprints.ping import bp_ping
-from .blueprints.web import bp_web
 from .cli_sync import register_sync_cli
-from .routes.assets import assets_bp
-from .routes.public import public_bp
-from .config import get_config
+from .config import load_config
 from .db import db
 from .errors import register_error_handlers
 from .extensions import csrf, init_auth_extensions, limiter
@@ -34,45 +20,8 @@ from .cli import register_cli
 from .migrate_ext import init_migrations
 from .security_headers import set_security_headers
 from .storage import ensure_dirs
-
-
-class RequestIDFilter(logging.Filter):
-    """Attach the current request id (if any) to log records."""
-
-    def filter(self, record: logging.LogRecord) -> bool:  # pragma: no cover - filter logic
-        if has_request_context():
-            record.request_id = getattr(g, "request_id", "-")
-        else:
-            record.request_id = "-"
-        return True
-
-
-def configure_logging(app: Flask) -> None:
-    """Configure structured logging to stdout for the application."""
-
-    log_level_name = str(app.config.get("LOG_LEVEL", "INFO")).upper()
-    log_level = getattr(logging, log_level_name, logging.INFO)
-    formatter = logging.Formatter(
-        "%(asctime)s %(levelname)s [%(request_id)s] %(name)s: %(message)s"
-    )
-
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setLevel(log_level)
-    handler.setFormatter(formatter)
-    handler.addFilter(RequestIDFilter())
-
-    gunicorn_error_logger = logging.getLogger("gunicorn.error")
-    app.logger.handlers = []
-    if gunicorn_error_logger.handlers:
-        for existing in gunicorn_error_logger.handlers:
-            existing.addFilter(RequestIDFilter())
-            existing.setFormatter(formatter)
-            existing.setLevel(log_level)
-            app.logger.addHandler(existing)
-    else:
-        app.logger.addHandler(handler)
-
-    app.logger.setLevel(log_level)
+from .registry import register_blueprints
+from .logging_cfg import setup_logging
 
 
 def _normalize_db_url(raw: str | None) -> str:
@@ -120,7 +69,7 @@ def create_app(config_name: str | None = None) -> Flask:
     app = Flask(__name__)
     raw_uri = os.environ.get("DATABASE_URL", "")
 
-    app.config.from_object(get_config(config_name))
+    app.config.from_object(load_config(config_name))
 
     configured_uri = str(app.config.get("SQLALCHEMY_DATABASE_URI", ""))
     uri = _normalize_db_url(raw_uri or configured_uri)
@@ -134,7 +83,7 @@ def create_app(config_name: str | None = None) -> Flask:
         os.getenv("ALLOW_SELF_SIGNUP", "false").lower() in {"1", "true", "yes", "y"},
     )
 
-    configure_logging(app)
+    setup_logging(app)
 
     # DEBUG: imprime la URI y, si es SQLite, la ruta absoluta del archivo
     try:
@@ -199,23 +148,17 @@ def create_app(config_name: str | None = None) -> Flask:
 
     # Blueprints
     from . import models  # noqa: F401
-    from .api import v1 as _api_v1  # noqa: F401
 
-    app.register_blueprint(public_bp)
-    app.register_blueprint(bp_auth)
-    app.register_blueprint(bp_web)
-    app.register_blueprint(bp_admin)
-    app.register_blueprint(bp_api_v1, url_prefix="/api/v1")
-    app.register_blueprint(todos_v1_bp)
-    app.register_blueprint(users_v1_bp)
-    app.register_blueprint(metrics_bp)
-    app.register_blueprint(version_bp)
-    app.register_blueprint(assets_bp)
-    app.register_blueprint(bp_ping)
+    blueprints = register_blueprints(app)
 
     # Exentamos la API pública JSON del CSRF global
-    csrf.exempt(bp_api_v1)
-    limiter.exempt(bp_ping)
+    api_v1_bp = blueprints.get("api_v1")
+    if api_v1_bp is not None:
+        csrf.exempt(api_v1_bp)
+
+    ping_bp = blueprints.get("ping")
+    if ping_bp is not None:
+        limiter.exempt(ping_bp)
 
     register_cli(app)
     register_sync_cli(app)

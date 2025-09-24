@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import re
 from collections.abc import Mapping
 from http import HTTPStatus
 from flask import (
@@ -28,6 +27,7 @@ from app.extensions import limiter
 from app.security import generate_reset_token, parse_reset_token
 from app.models import Invite, User
 from app.utils.strings import normalize_email
+from app.utils.validators import is_valid_email
 from app.simple_auth.store import ensure_bootstrap_admin, verify
 
 bp_auth = Blueprint("auth", __name__, url_prefix="/auth", template_folder="templates")
@@ -117,9 +117,6 @@ def login_post():
         current_app.logger.exception("Login error")
         flash("Error interno. Intenta de nuevo.", "danger")
         return render_template("auth/login.html"), HTTPStatus.INTERNAL_SERVER_ERROR
-
-
-EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
 @bp_auth.before_app_request
@@ -293,7 +290,7 @@ def forgot_password_post():
         wants_json = False
 
     email = normalize_email(raw_email)
-    if not email or not EMAIL_RE.match(email):
+    if not email or not is_valid_email(email):
         if wants_json:
             return (
                 jsonify({"ok": False, "error": "Email inválido."}),

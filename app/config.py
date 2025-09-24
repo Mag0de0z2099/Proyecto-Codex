@@ -1,133 +1,117 @@
-from __future__ import annotations
-
 import os
 from datetime import timedelta
 from pathlib import Path
 
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = BASE_DIR.parent
-INSTANCE_DIR = PROJECT_ROOT / "instance"
-INSTANCE_DIR.mkdir(parents=True, exist_ok=True)
-def resolve_db_uri() -> str:
-    url = os.getenv("DATABASE_URL", "")
-    if url.startswith("postgres://"):
-        url = url.replace("postgres://", "postgresql://", 1)
-    if url:
-        if (
-            "sslmode=" not in url
-            and "localhost" not in url
-            and "127.0.0.1" not in url
-        ):
-            sep = "&" if "?" in url else "?"
-            url = f"{url}{sep}sslmode=require"
-        return url
-    return "sqlite:///dev.db"  # solo para desarrollo local
 
 
-SQLALCHEMY_DATABASE_URI = resolve_db_uri()
-SQLALCHEMY_ENGINE_OPTIONS: dict[str, object] = {"pool_pre_ping": True}
-if SQLALCHEMY_DATABASE_URI.startswith("sqlite:"):
-    SQLALCHEMY_ENGINE_OPTIONS["connect_args"] = {"check_same_thread": False}
-
-RATELIMIT_STORAGE_URI = os.getenv("REDIS_URL", "memory://")
-
-if (
-    os.getenv("FLASK_ENV") == "production"
-    and SQLALCHEMY_DATABASE_URI.startswith("sqlite:")
-    and os.getenv("CI", "").lower() not in {"true", "1"}
-):
-    raise RuntimeError("DATABASE_URL no definido en producción (detectado sqlite)")
-
-_RESOLVED_DB_URI = SQLALCHEMY_DATABASE_URI
-_RATELIMIT_STORAGE_URI = RATELIMIT_STORAGE_URI
+def _bool_env(name: str, default: bool = False) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
-class BaseConfig:
-    DEBUG = False
+def _list_env(name: str) -> list[str]:
+    raw = os.getenv(name, "")
+    if not raw:
+        return []
+    return [item.strip() for item in raw.split(",") if item.strip()]
+
+
+def _engine_options(uri: str) -> dict[str, object]:
+    options: dict[str, object] = {"pool_pre_ping": True}
+    if uri.startswith("sqlite:"):
+        options["connect_args"] = {"check_same_thread": False}
+    return options
+
+
+class Config:
+    APP_NAME = "Proyecto-Codex"
     TESTING = False
-    SECRET_KEY = os.getenv("SECRET_KEY", "superseguro")
-    SECURITY_PASSWORD_SALT = os.getenv("SECURITY_PASSWORD_SALT", "dev-salt")
-    MAIL_SERVER = os.getenv("MAIL_SERVER", "")
-    MAIL_PORT = int(os.getenv("MAIL_PORT", 587))
-    MAIL_USE_TLS = os.getenv("MAIL_USE_TLS", "true").lower() in ("1", "true", "yes")
-    MAIL_USERNAME = os.getenv("MAIL_USERNAME", "")
-    MAIL_PASSWORD = os.getenv("MAIL_PASSWORD", "")
-    MAIL_DEFAULT_SENDER = os.getenv("MAIL_DEFAULT_SENDER", "no-reply@codex.local")
-    DATA_DIR = os.getenv("DATA_DIR", str(PROJECT_ROOT / "data"))
-    SQLALCHEMY_DATABASE_URI = _RESOLVED_DB_URI
-    SQLALCHEMY_TRACK_MODIFICATIONS = False
-    SQLALCHEMY_ENGINE_OPTIONS = dict(SQLALCHEMY_ENGINE_OPTIONS)
-    RATELIMIT_STORAGE_URI = _RATELIMIT_STORAGE_URI
-    AUTH_SIMPLE = os.getenv("AUTH_SIMPLE", "0").lower() in ("1", "true", "yes")
-    SESSION_COOKIE_HTTPONLY = True
-    _secure_cookies_flag = os.getenv("SECURE_COOKIES")
-    SESSION_COOKIE_SECURE = (
-        os.getenv("SESSION_COOKIE_SECURE", _secure_cookies_flag or "False")
-        .lower()
-        in ("1", "true", "yes")
-    )
-    SESSION_COOKIE_SAMESITE = os.getenv("SESSION_COOKIE_SAMESITE", "Lax")
-    REMEMBER_COOKIE_DURATION = timedelta(
-        seconds=int(os.getenv("REMEMBER_COOKIE_DURATION", "86400"))
-    )
-    LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
-    SIGNUP_MODE = os.getenv("SIGNUP_MODE", "invite")
+    DEBUG = False
+
+    def __init__(self) -> None:
+        self.SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret")
+        self.SECURITY_PASSWORD_SALT = os.getenv("SECURITY_PASSWORD_SALT", "dev-salt")
+        self.DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///codex.db")
+        self.SQLALCHEMY_DATABASE_URI = self.DATABASE_URL
+        self.SQLALCHEMY_TRACK_MODIFICATIONS = False
+        self.SQLALCHEMY_ENGINE_OPTIONS = _engine_options(self.SQLALCHEMY_DATABASE_URI)
+        self.RATELIMIT_STORAGE_URI = os.getenv(
+            "RATELIMIT_STORAGE_URI", os.getenv("REDIS_URL", "memory://")
+        )
+        self.LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+        self.DATA_DIR = os.getenv("DATA_DIR", str(PROJECT_ROOT / "data"))
+        self.AUTH_SIMPLE = _bool_env("AUTH_SIMPLE", True)
+        self.ALLOW_SELF_SIGNUP = _bool_env("ALLOW_SELF_SIGNUP", False)
+        self.SIGNUP_MODE = os.getenv("SIGNUP_MODE", "invite")
+        self.ALLOWLIST_DOMAINS = _list_env("ALLOWLIST_DOMAINS")
+        self.SESSION_COOKIE_HTTPONLY = True
+        self.SESSION_COOKIE_SECURE = _bool_env("SESSION_COOKIE_SECURE")
+        self.SESSION_COOKIE_SAMESITE = os.getenv("SESSION_COOKIE_SAMESITE", "Lax")
+        self.REMEMBER_COOKIE_DURATION = timedelta(
+            seconds=int(os.getenv("REMEMBER_COOKIE_DURATION", "86400"))
+        )
+        self.FAKE_USERS = os.getenv("FAKE_USERS") == "1"
+        self.FAKE_TODOS = os.getenv("FAKE_TODOS") == "1"
+        self.FAKE_AUTH = os.getenv("FAKE_AUTH") == "1"
+        self.APP_VERSION = os.getenv("APP_VERSION", "dev")
+        self.GIT_SHA = os.getenv("GIT_SHA", "local")
+        self.DEBUG = _bool_env("DEBUG", self.DEBUG)
 
 
-class DevelopmentConfig(BaseConfig):
+class DevelopmentConfig(Config):
     DEBUG = True
 
+    def __init__(self) -> None:
+        super().__init__()
+        self.DEBUG = True
 
-class TestingConfig(BaseConfig):
+
+class ProductionConfig(Config):
+    DEBUG = False
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.DEBUG = False
+
+
+class TestingConfig(Config):
     TESTING = True
     DEBUG = False
-    SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
-    WTF_CSRF_ENABLED = False
-    SQLALCHEMY_ENGINE_OPTIONS = {
-        **BaseConfig.SQLALCHEMY_ENGINE_OPTIONS,
-        "connect_args": {"check_same_thread": False},
-    }
-    SIGNUP_MODE = os.getenv("SIGNUP_MODE", "open")
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.DEBUG = False
+        self.DATABASE_URL = "sqlite:///:memory:"
+        self.SQLALCHEMY_DATABASE_URI = self.DATABASE_URL
+        self.SQLALCHEMY_ENGINE_OPTIONS = _engine_options(self.SQLALCHEMY_DATABASE_URI)
+        self.WTF_CSRF_ENABLED = False
+        self.AUTH_SIMPLE = True
 
 
-class ProductionConfig(BaseConfig):
-    DEBUG = False
-    TESTING = False
-    SESSION_COOKIE_SECURE = True
-    SESSION_COOKIE_SAMESITE = "Lax"
+def load_config(env: str | None = None) -> Config:
+    env_name = (env or os.getenv("APP_ENV") or os.getenv("FLASK_ENV") or "production").lower()
+    if env_name in {"test", "testing"}:
+        cfg: Config = TestingConfig()
+    elif env_name in {"prod", "production"}:
+        cfg = ProductionConfig()
+    elif env_name in {"dev", "development"}:
+        cfg = DevelopmentConfig()
+    else:
+        cfg = Config()
 
+    cfg.SQLALCHEMY_DATABASE_URI = cfg.DATABASE_URL
+    cfg.SQLALCHEMY_ENGINE_OPTIONS = _engine_options(cfg.SQLALCHEMY_DATABASE_URI)
 
-_CONFIG_MAP: dict[str, type[BaseConfig]] = {
-    "development": DevelopmentConfig,
-    "dev": DevelopmentConfig,
-    "testing": TestingConfig,
-    "test": TestingConfig,
-    "production": ProductionConfig,
-    "prod": ProductionConfig,
-    "default": DevelopmentConfig,
-}
+    if (
+        env_name in {"prod", "production"}
+        and cfg.SQLALCHEMY_DATABASE_URI.startswith("sqlite:")
+        and os.getenv("CI", "").lower() not in {"true", "1"}
+    ):
+        raise RuntimeError("DATABASE_URL no definido en producción (detectado sqlite)")
 
-
-def get_config(name: str | None = None) -> type[BaseConfig]:
-    key = (
-        name
-        or os.getenv("CONFIG")
-        or os.getenv("FLASK_ENV")
-        or os.getenv("ENV")
-        or "development"
-    ).lower()
-    return _CONFIG_MAP.get(key, DevelopmentConfig)
-
-
-__all__ = [
-    "resolve_db_uri",
-    "SQLALCHEMY_DATABASE_URI",
-    "SQLALCHEMY_ENGINE_OPTIONS",
-    "RATELIMIT_STORAGE_URI",
-    "get_config",
-    "BaseConfig",
-    "DevelopmentConfig",
-    "TestingConfig",
-    "ProductionConfig",
-]
+    return cfg
