@@ -14,6 +14,7 @@ from pytz import timezone
 
 from .api.metrics import bp as metrics_bp
 from .api.version import bp as version_bp
+from .api.v1.todos import bp as todos_v1_bp
 from .api.v1.users import bp as users_v1_bp
 from .blueprints.admin import bp_admin
 from .blueprints.api.v1 import bp_api_v1
@@ -205,6 +206,7 @@ def create_app(config_name: str | None = None) -> Flask:
     app.register_blueprint(bp_web)
     app.register_blueprint(bp_admin)
     app.register_blueprint(bp_api_v1, url_prefix="/api/v1")
+    app.register_blueprint(todos_v1_bp)
     app.register_blueprint(users_v1_bp)
     app.register_blueprint(metrics_bp)
     app.register_blueprint(version_bp)
