@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-import re
 import secrets
 from datetime import date, datetime, timedelta, timezone
 from functools import wraps
@@ -36,14 +35,12 @@ from app.models import (
     Project,
     User,
 )
-from app.security import generate_reset_token
 from app.auth.roles import ROLES, admin_required, role_required
 from app.utils.rbac import require_roles, require_approved
+from app.utils.validators import is_valid_email
+from app.security import generate_reset_token
 
 bp_admin = Blueprint("admin", __name__, template_folder="templates", url_prefix="/admin")
-
-EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
-
 
 @bp_admin.app_context_processor
 def _admin_template_helpers():
@@ -462,7 +459,7 @@ def admin_create_user():
         flash("El nombre de usuario es obligatorio.", "danger")
         return redirect(url_for("admin.admin_new_user"))
 
-    if email_raw and not EMAIL_RE.match(email_raw):
+    if email_raw and not is_valid_email(email_raw):
         flash("Email inválido.", "danger")
         return redirect(url_for("admin.admin_new_user"))
 

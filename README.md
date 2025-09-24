@@ -3,6 +3,11 @@
 Servidor Flask para Codex Primera configuración
 
 
+## Autores
+- Mag0de0z2099  
+- Codex
+
+
 [![CI - Coverage](https://github.com/Mag0de0z2099/Proyecto-Codex/actions/workflows/ci-coverage.yml/badge.svg)](https://github.com/Mag0de0z2099/Proyecto-Codex/actions/workflows/ci-coverage.yml)
 [![codecov](https://codecov.io/gh/Mag0de0z2099/Proyecto-Codex/branch/main/graph/badge.svg)](https://codecov.io/gh/Mag0de0z2099/Proyecto-Codex)
 
