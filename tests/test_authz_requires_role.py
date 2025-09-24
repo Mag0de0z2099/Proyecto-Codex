@@ -30,6 +30,10 @@ def _register_bp(app, required_roles=("admin", "manager")):
     app.register_blueprint(bp)
 
 
+def register_test_bp(app, required_roles=("admin", "manager")):
+    _register_bp(app, required_roles=required_roles)
+
+
 def test_requires_role_forbidden_without_identity(client, app):
     _register_bp(app)
     response = client.get("/_test/authz/panel")
@@ -43,3 +47,16 @@ def test_requires_role_allows_debug_header(client, app):
         headers={"X-Debug-Role": "admin"},
     )
     assert response.status_code == 200
+
+
+def test_header_is_ignored_when_not_testing(client, app, monkeypatch):
+    app.testing = False
+    monkeypatch.setenv("FLASK_ENV", "production")
+
+    register_test_bp(app)
+
+    res = client.get(
+        "/_test/authz/panel",
+        headers={"X-Debug-Role": "admin"},
+    )
+    assert res.status_code == 403
