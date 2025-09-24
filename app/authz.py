@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from functools import wraps
 from typing import Any, Callable, Iterable, TypeVar, cast
 
@@ -30,6 +31,32 @@ def _resolve_roles(raw: Any) -> set[str]:
     if value:
         roles.add(value)
     return roles
+
+
+def _current_role():
+    """
+    Rol actual. El header X-Debug-Role solo se permite en modo testing.
+    """
+    # Header solo válido en tests
+    role = request.headers.get("X-Debug-Role")
+    if role and (current_app.config.get("TESTING") or os.getenv("FLASK_ENV") == "testing"):
+        return role
+
+    # flask_login (si está instalado)
+    try:
+        from flask_login import current_user  # type: ignore
+
+        if getattr(current_user, "is_authenticated", False):
+            return getattr(current_user, "role", None) or getattr(current_user, "roles", None)
+    except Exception:
+        pass
+
+    # g.user (objeto o dict)
+    user = getattr(g, "user", None)
+    if user is not None:
+        return getattr(user, "role", None) or getattr(user, "roles", None)
+
+    return None
 
 
 def _get_current_user() -> Any | None:
@@ -80,8 +107,8 @@ def requires_role(*required_roles: str) -> Callable[[F], F]:
             if not normalized:
                 return view(*args, **kwargs)
 
-            debug_role = request.headers.get("X-Debug-Role", "").strip().lower()
-            if debug_role and debug_role in normalized:
+            current_roles = _resolve_roles(_current_role())
+            if current_roles & normalized:
                 return view(*args, **kwargs)
 
             user_roles = _roles_for_entity(getattr(g, "user", None))

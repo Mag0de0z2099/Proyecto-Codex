@@ -20,8 +20,8 @@ services:
     buildCommand: |
       pip install --upgrade pip
       pip install -r requirements.txt
-    preDeployCommand: |
-      alembic -c migrations/alembic.ini upgrade head && \
-      FLASK_APP=app:create_app flask seed-admin --email admin@admin.com --password admin123
+    preDeploy:
+      - flask db upgrade || true
+      - flask seed-admin --email $ADMIN_EMAIL --password $ADMIN_PASSWORD --role admin
     startCommand: gunicorn -w 3 wsgi:app
     healthCheckPath: /healthz
