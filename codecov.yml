@@ -15,7 +15,7 @@ coverage:
       default:
         target: 70
         threshold: 2
-        informational: true   # ← no bloquea el merge
+        informational: true
 
     # Metas por flag (ver sección flags)
     flags:
