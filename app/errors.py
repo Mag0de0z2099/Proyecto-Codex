@@ -57,6 +57,10 @@ def register_error_handlers(app):
     def _405(e):
         return _json_error(405, getattr(e, "description", "Method Not Allowed"))
 
+    @app.errorhandler(409)
+    def _409(e):
+        return _json_error(409, getattr(e, "description", "Conflict"))
+
     @app.errorhandler(Exception)
     def _500(e):
         # log y respuesta JSON coherente

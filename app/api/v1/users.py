@@ -1,5 +1,7 @@
-from flask import Blueprint, jsonify, current_app
+from flask import Blueprint, jsonify, current_app, request, abort
 import os
+import re
+from app.services.user_service import create_user
 
 bp = Blueprint("users_v1", __name__, url_prefix="/api/v1")
 
@@ -36,3 +38,29 @@ def list_users():
     except Exception:
         # Evitar 500 en CI si hay dependencias externas
         return jsonify(users=[]), 200
+
+
+_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+@bp.post("/users")
+def create_user_endpoint():
+    data = request.get_json(silent=True) or {}
+    email = (data.get("email") or "").strip().lower()
+    password = data.get("password") or ""
+    role = (data.get("role") or "user").strip() or "user"
+
+    if not email:
+        abort(400, description="Field 'email' is required.")
+    if not _EMAIL_RE.match(email):
+        abort(400, description="Invalid email format.")
+    if not password or len(password) < 6:
+        abort(400, description="Password must be at least 6 characters.")
+
+    try:
+        user = create_user(email=email, password=password, role=role, app=current_app)
+    except ValueError:
+        abort(409, description="User with that email already exists.")
+
+    # Respuesta sanitizada (sin password)
+    return jsonify(user=user), 201
