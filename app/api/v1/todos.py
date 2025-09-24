@@ -1,36 +1,21 @@
-from __future__ import annotations
+from flask import Blueprint, jsonify, request, abort, current_app
 
-from flask import jsonify, request
-from werkzeug.exceptions import BadRequest
+from app.services.todo_service import list_todos, create_todo
 
-from ...db import db
-from ...models import Todo
-from . import bp
-
-
-def _parse_payload() -> dict[str, object]:
-    payload = request.get_json(silent=True)
-    if payload is None:
-        raise BadRequest("JSON body required.")
-    if not isinstance(payload, dict):
-        raise BadRequest("JSON object expected.")
-    return payload
+bp = Blueprint("todos_v1", __name__, url_prefix="/api/v1")
 
 
 @bp.get("/todos")
-def list_todos():
-    todos = Todo.query.order_by(Todo.id.asc()).all()
-    return jsonify([todo.to_dict() for todo in todos])
+def get_todos():
+    return jsonify(todos=list_todos(current_app)), 200
 
 
 @bp.post("/todos")
-def create_todo():
-    payload = _parse_payload()
-    title = str(payload.get("title") or "").strip()
+def post_todo():
+    data = request.get_json(silent=True) or {}
+    title = (data.get("title") or "").strip()
     if not title:
-        raise BadRequest("title is required")
-
-    todo = Todo(title=title)
-    db.session.add(todo)
-    db.session.commit()
-    return jsonify(todo.to_dict()), 201
+        abort(400, description="Field 'title' is required and must be a non-empty string.")
+    done = bool(data.get("done", False))
+    todo = create_todo(title=title, done=done, app=current_app)
+    return jsonify(todo=todo), 201
