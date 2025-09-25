@@ -5,6 +5,7 @@ from typing import Any
 
 from flask import Blueprint, current_app, jsonify, request
 
+from app.extensions import limiter, user_or_ip
 from app.security.guards import requires_auth, requires_role
 from app.services.user_service import approve_user as service_approve_user
 from app.services.user_service import list_users as service_list_users
@@ -37,6 +38,7 @@ def _serialize_user(user: Any) -> dict[str, Any]:
 @bp.get("/users")
 @requires_auth
 @requires_role("admin")
+@limiter.limit("60 per minute", key_func=user_or_ip)
 def list_users():
     """Return users supporting filters, search and pagination."""
 
@@ -80,6 +82,7 @@ def list_users():
 @bp.patch("/users/<int:user_id>/approve")
 @requires_auth
 @requires_role("admin")
+@limiter.limit("30 per minute", key_func=user_or_ip)
 def approve_user(user_id: int):
     try:
         user = service_approve_user(user_id)

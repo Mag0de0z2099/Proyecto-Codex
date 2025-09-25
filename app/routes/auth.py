@@ -6,7 +6,7 @@ import logging
 
 from flask import Blueprint, g, jsonify, request, session
 
-from app.extensions import limiter
+from app.extensions import limiter, user_or_ip
 from app.security.guards import requires_auth
 from app.security.jwt import decode_jwt, encode_jwt, encode_refresh_jwt, gen_jti
 from app.services.auth_service import verify_credentials
@@ -87,6 +87,7 @@ def login() -> tuple[object, int]:
 
 @bp.get("/me")
 @requires_auth
+@limiter.limit("120 per minute", key_func=user_or_ip)
 def me() -> tuple[object, int]:
     """Return current user basic information."""
 
@@ -94,6 +95,7 @@ def me() -> tuple[object, int]:
 
 
 @bp.post("/refresh")
+@limiter.limit("20 per minute", key_func=user_or_ip)
 def refresh() -> tuple[object, int]:
     """Issue a new access/refresh pair using a refresh token."""
 
@@ -179,6 +181,7 @@ def refresh() -> tuple[object, int]:
 
 
 @bp.post("/logout")
+@limiter.limit("30 per minute", key_func=user_or_ip)
 def logout() -> tuple[object, int]:
     """Revoke a specific refresh token."""
 
@@ -214,6 +217,7 @@ def logout() -> tuple[object, int]:
 
 @bp.post("/logout_all")
 @requires_auth
+@limiter.limit("10 per minute", key_func=user_or_ip)
 def logout_all() -> tuple[object, int]:
     """Revoke all refresh tokens for the authenticated user."""
 

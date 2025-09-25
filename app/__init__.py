@@ -8,6 +8,7 @@ from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from flask import Flask
+from flask_cors import CORS
 from pytz import timezone
 from .cli_sync import register_sync_cli
 from .config import load_config
@@ -119,6 +120,21 @@ def create_app(config_name: str | None = None) -> Flask:
     init_migrations(app, db)
     init_auth_extensions(app)
     limiter.init_app(app)
+
+    # CORS para la API (se limita a rutas /api/*)
+    origins_env = os.getenv("CORS_ORIGINS", "")
+    origins = [origin.strip() for origin in origins_env.split(",") if origin.strip()] or [
+        "http://localhost:3000"
+    ]
+    CORS(
+        app,
+        resources={r"/api/*": {"origins": origins}},
+        supports_credentials=False,
+        methods=["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
+        allow_headers=["Authorization", "Content-Type"],
+        expose_headers=["Content-Disposition"],
+        max_age=600,
+    )
 
     set_security_headers(app)
 

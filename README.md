@@ -195,3 +195,25 @@ En Render puedes crear un **cron job** (o servicio programado) que ejecute ese c
 
 - Configura el nivel con `LOG_LEVEL` (`INFO` por defecto).
 - Los eventos clave (`login_ok`, `login_failed`, `login_not_approved`, `refresh_ok`, `refresh_revoked_or_expired`, `logout_ok`, `logout_all_ok`, `logout_missing_token`, `logout_invalid_refresh`) se emiten en JSON a stdout, listo para agregadores.
+
+## CORS y límites por endpoint
+
+Configura orígenes permitidos (separados por coma):
+
+```bash
+# Render → Settings → Environment
+CORS_ORIGINS=https://mi-frontend.com,https://admin.miapp.com
+```
+
+Rutas CORS:
+
+- Se aplica **solo** a `/api/*` (el panel `/admin/*` no expone CORS).
+
+Límites por endpoint (por usuario o IP):
+
+- `POST /api/v1/auth/login` → **5/min** por IP
+- `POST /api/v1/auth/refresh` → **20/min** por usuario/IP
+- `GET /api/v1/auth/me` → **120/min** por usuario/IP
+- `GET /api/v1/users` → **60/min** por usuario/IP
+- `PATCH /api/v1/users/:id/approve` → **30/min** por usuario/IP
+- `GET /api/v1/users/export.csv` → **10/min** por usuario/IP

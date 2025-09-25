@@ -21,6 +21,20 @@ db = SQLAlchemy()
 limiter = Limiter(key_func=get_remote_address, headers_enabled=True, default_limits=[])
 
 
+def user_or_ip():
+    """Usa el identificador de usuario autenticado si existe; si no, la IP."""
+    try:
+        from flask import g
+
+        user_id = getattr(g, "current_user_id", None)
+        if user_id:
+            return f"user:{user_id}"
+    except Exception:  # pragma: no cover - fallback seguro
+        pass
+
+    return get_remote_address()
+
+
 def init_auth_extensions(app):
     """Inicializa las extensiones relacionadas con autenticación."""
     bcrypt.init_app(app)
