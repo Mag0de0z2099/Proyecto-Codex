@@ -156,6 +156,10 @@ def create_app(config_name: str | None = None) -> Flask:
     if api_v1_bp is not None:
         csrf.exempt(api_v1_bp)
 
+    auth_api_bp = blueprints.get("auth_api")
+    if auth_api_bp is not None:
+        csrf.exempt(auth_api_bp)
+
     ping_bp = blueprints.get("ping")
     if ping_bp is not None:
         limiter.exempt(ping_bp)

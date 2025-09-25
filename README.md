@@ -20,6 +20,25 @@ Servidor Flask para Codex Primera configuración
 [![utils](https://codecov.io/gh/Mag0de0z2099/Proyecto-Codex/branch/main/graph/badge.svg?flag=utils)](https://app.codecov.io/gh/Mag0de0z2099/Proyecto-Codex/flags/utils)
 [![Render](https://img.shields.io/website?url=https%3A%2F%2Fproyecto-codex.onrender.com&label=Render%20Deploy&style=flat-square)](https://proyecto-codex.onrender.com)
 
+## Deploy rápido
+
+1. **Variables obligatorias**: define `DATABASE_URL` y `SECRET_KEY` antes de desplegar.
+2. **Migración y seed**:
+
+   ```bash
+   alembic -c migrations/alembic.ini upgrade head
+   FLASK_APP=app:create_app flask seed-admin --email admin@admin.com --password admin123
+   ```
+
+3. **Smoke tests**:
+
+   ```bash
+   curl -s https://tu-app.onrender.com/healthz
+   curl -s -X POST https://tu-app.onrender.com/api/v1/auth/login \
+     -H "Content-Type: application/json" \
+     -d '{"email":"admin@admin.com","password":"admin123"}'
+   ```
+
 ## Checklist de despliegue seguro
 
 Configura las variables de entorno **antes** de desplegar en Render u otra plataforma:
@@ -49,7 +68,7 @@ FLASK_APP=app:create_app flask seed-admin --email admin@admin.com --password NUE
 ## Operación
 
 - **Gunicorn:** El Procfile y `render.yaml` inician el proyecto con `gunicorn -w 3 -t 60 wsgi:app`.
-- **Healthcheck:** `GET /healthz` devuelve `{"ok": true}` para liveness probes; `/api/v1/health` valida la conexión a la base.
+- **Healthcheck:** `GET /healthz` devuelve `{"status": "ok"}` para liveness probes; `/api/v1/health` valida la conexión a la base.
 - **Logging estructurado:** todos los logs van a `stdout` en JSON-like plano, incluyen `X-Request-ID` y respetan `LOG_LEVEL`.
 - **Rate limiting:** `/auth/forgot-password` limita solicitudes a `5/minuto` y `30/hora` por IP.
 

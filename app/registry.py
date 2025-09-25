@@ -14,6 +14,8 @@ from app.blueprints.auth import bp_auth
 from app.blueprints.ping import bp_ping
 from app.blueprints.web import bp_web
 from app.routes.assets import assets_bp
+from app.routes.auth import bp as auth_api_bp
+from app.routes.health import bp as health_bp
 from app.routes.public import public_bp
 
 
@@ -32,6 +34,8 @@ def register_blueprints(app: Flask) -> dict[str, Blueprint]:
         (version_bp, {}),
         (assets_bp, {}),
         (bp_ping, {}),
+        (health_bp, {}),
+        (auth_api_bp, {}),
     ]
 
     registry: dict[str, Blueprint] = {}

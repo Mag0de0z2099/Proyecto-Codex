@@ -2,26 +2,16 @@ services:
   - type: web
     name: proyecto-codex
     env: python
-    envVars:
-      - key: SECRET_KEY
-        sync: false
-      - key: DATABASE_URL
-        sync: false
-      - key: FLASK_ENV
-        value: production
-      - key: FLASK_DEBUG
-        value: "0"
-      - key: LOG_LEVEL
-        value: INFO
-      - key: FLASK_APP
-        value: app:create_app
-      - key: ALLOW_SELF_SIGNUP
-        value: "false"
-    buildCommand: |
-      pip install --upgrade pip
-      pip install -r requirements.txt
-    preDeploy:
-      - flask db upgrade || true
-      - flask seed-admin --email $ADMIN_EMAIL --password $ADMIN_PASSWORD --role admin
+    buildCommand: pip install -r requirements.txt
+    preDeployCommand: |
+      alembic -c migrations/alembic.ini upgrade head && \
+      FLASK_APP=app:create_app flask seed-admin --email admin@admin.com --password admin123
     startCommand: gunicorn -w 3 wsgi:app
     healthCheckPath: /healthz
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: codex-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
