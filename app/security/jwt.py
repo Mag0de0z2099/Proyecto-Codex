@@ -1,4 +1,5 @@
 import time
+import uuid
 
 import jwt
 from flask import current_app
@@ -32,5 +33,12 @@ def decode_jwt(token: str) -> dict | None:
         return None
 
 
-def encode_refresh_jwt(payload: dict, ttl_seconds: int = 7 * 24 * 3600) -> str:
-    return encode_jwt(payload, ttl_seconds=ttl_seconds, typ="refresh")
+def gen_jti() -> str:
+    return uuid.uuid4().hex
+
+
+def encode_refresh_jwt(
+    payload: dict, ttl_seconds: int = 7 * 24 * 3600, jti: str | None = None
+) -> str:
+    token_jti = jti or gen_jti()
+    return encode_jwt({**payload, "jti": token_jti}, ttl_seconds=ttl_seconds, typ="refresh")
