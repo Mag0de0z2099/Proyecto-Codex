@@ -12,6 +12,7 @@ from werkzeug.security import generate_password_hash
 from app.db import db
 from app.models import User
 from app.services.auth_service import ensure_admin_user
+from app.services.maintenance_service import cleanup_expired_refresh_tokens
 from app.utils.strings import normalize_email
 
 
@@ -107,5 +108,18 @@ def register_cli(app):
             raise SystemExit(1)
 
         click.echo(f"✅ Admin listo: {user.email} ({user.username})")
+
+    @app.cli.command("cleanup-refresh")
+    @click.option(
+        "--grace-days",
+        default=0,
+        show_default=True,
+        help="Días de gracia para conservar refresh expirados.",
+    )
+    def cleanup_refresh(grace_days: int) -> None:
+        """Eliminar refresh tokens expirados y revocados antiguos."""
+
+        result = cleanup_expired_refresh_tokens(grace_days=grace_days)
+        click.echo(f"Cleanup done: {result}")
 
     return app

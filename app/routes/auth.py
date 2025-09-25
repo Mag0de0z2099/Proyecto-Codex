@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+
 from flask import Blueprint, g, jsonify, request, session
 
 from app.extensions import limiter
@@ -16,6 +18,8 @@ from app.services.token_service import (
 )
 
 bp = Blueprint("auth_api", __name__, url_prefix="/api/v1/auth")
+
+log = logging.getLogger("auth")
 
 
 @bp.post("/login")
@@ -32,9 +36,22 @@ def login() -> tuple[object, int]:
         str(password) if password is not None else None,
     )
     if user is None:
+        log.warning(
+            "login failed",
+            extra={"event": "login_failed", "email": email, "status": 401},
+        )
         return jsonify({"detail": "invalid credentials"}), 401
 
     if not getattr(user, "is_approved", False):
+        log.warning(
+            "login not approved",
+            extra={
+                "event": "login_not_approved",
+                "user_id": None,
+                "email": email,
+                "status": 403,
+            },
+        )
         return jsonify({"detail": "not approved"}), 403
 
     role = getattr(user, "role", "user")
@@ -46,6 +63,15 @@ def login() -> tuple[object, int]:
         {"sub": user.id, "email": user.email, "role": role}, jti=refresh_jti
     )
     create_refresh_record(user_id=user.id, jti=refresh_jti)
+    log.info(
+        "login ok",
+        extra={
+            "event": "login_ok",
+            "user_id": user.id,
+            "email": user.email,
+            "status": 200,
+        },
+    )
     session["token"] = access_token
     return (
         jsonify(
@@ -81,10 +107,18 @@ def refresh() -> tuple[object, int]:
         token = body.get("refresh_token")
 
     if not token:
+        log.warning(
+            "refresh missing token",
+            extra={"event": "refresh_missing_token", "status": 401},
+        )
         return jsonify({"detail": "refresh token required"}), 401
 
     data = decode_jwt(token) or {}
     if data.get("typ") != "refresh":
+        log.warning(
+            "refresh invalid",
+            extra={"event": "refresh_invalid", "status": 401},
+        )
         return jsonify({"detail": "invalid refresh"}), 401
 
     sub = data.get("sub")
@@ -92,12 +126,28 @@ def refresh() -> tuple[object, int]:
     try:
         sub_int = int(sub)
     except (TypeError, ValueError):
+        log.warning(
+            "refresh invalid",
+            extra={"event": "refresh_invalid", "status": 401},
+        )
         return jsonify({"detail": "invalid refresh"}), 401
 
     if not old_jti:
+        log.warning(
+            "refresh invalid",
+            extra={"event": "refresh_invalid", "status": 401},
+        )
         return jsonify({"detail": "invalid refresh"}), 401
 
     if not is_active(old_jti, user_id=sub_int):
+        log.warning(
+            "refresh revoked or expired",
+            extra={
+                "event": "refresh_revoked_or_expired",
+                "user_id": sub_int,
+                "status": 401,
+            },
+        )
         return jsonify({"detail": "refresh revoked or expired"}), 401
 
     revoke_jti(old_jti)
@@ -111,6 +161,10 @@ def refresh() -> tuple[object, int]:
         {"sub": sub_int, "email": data.get("email"), "role": role}, jti=new_jti
     )
     create_refresh_record(user_id=sub_int, jti=new_jti)
+    log.info(
+        "refresh ok",
+        extra={"event": "refresh_ok", "user_id": sub_int, "status": 200},
+    )
     session["token"] = access_token
     return (
         jsonify(
@@ -138,14 +192,23 @@ def logout() -> tuple[object, int]:
         token = body.get("refresh_token")
 
     if not token:
+        log.warning(
+            "logout missing token",
+            extra={"event": "logout_missing_token", "status": 400},
+        )
         return jsonify({"detail": "refresh token required"}), 400
 
     data = decode_jwt(token) or {}
     if data.get("typ") != "refresh" or "jti" not in data:
+        log.warning(
+            "logout invalid refresh",
+            extra={"event": "logout_invalid_refresh", "status": 401},
+        )
         return jsonify({"detail": "invalid refresh"}), 401
 
     revoke_jti(str(data["jti"]))
     session.pop("token", None)
+    log.info("logout ok", extra={"event": "logout_ok", "status": 200})
     return jsonify({"detail": "logged out"}), 200
 
 
@@ -161,4 +224,8 @@ def logout_all() -> tuple[object, int]:
 
     revoke_all_for_user(user_id)
     session.pop("token", None)
+    log.info(
+        "logout all ok",
+        extra={"event": "logout_all_ok", "user_id": user_id, "status": 200},
+    )
     return jsonify({"detail": "all sessions revoked"}), 200

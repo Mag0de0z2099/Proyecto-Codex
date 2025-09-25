@@ -6,6 +6,7 @@ from werkzeug.security import generate_password_hash
 from app import create_app
 from app.extensions import db
 from app.models import User
+from app.services.maintenance_service import cleanup_expired_refresh_tokens
 
 app = create_app()
 
@@ -43,6 +44,16 @@ def seed_admin(email: str, password: str) -> None:
 
         db.session.commit()
         click.echo(f"Seeded admin: {email}")
+
+
+@app.cli.command("cleanup-refresh")
+@click.option("--grace-days", default=0, show_default=True, help="Días de gracia para conservar expirados.")
+def cleanup_refresh(grace_days: int) -> None:
+    """Delete expired refresh tokens using optional grace days."""
+
+    with app.app_context():
+        result = cleanup_expired_refresh_tokens(grace_days=grace_days)
+        click.echo(f"Cleanup done: {result}")
 
 
 if __name__ == "__main__":

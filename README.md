@@ -180,3 +180,18 @@ curl -s -X POST "$BASE/api/v1/auth/refresh" -H "Content-Type: application/json" 
 ### Rate-limit de login
 - Límite: **5 intentos por minuto por IP** (HTTP 429 al exceder).
 ```
+
+## Mantenimiento (cron)
+
+Comando para limpiar refresh expirados:
+
+```bash
+FLASK_APP=app:create_app flask cleanup-refresh --grace-days=0
+```
+
+En Render puedes crear un **cron job** (o servicio programado) que ejecute ese comando una vez al día (por ejemplo, 03:30 UTC).
+
+## Telemetría (logs JSON)
+
+- Configura el nivel con `LOG_LEVEL` (`INFO` por defecto).
+- Los eventos clave (`login_ok`, `login_failed`, `login_not_approved`, `refresh_ok`, `refresh_revoked_or_expired`, `logout_ok`, `logout_all_ok`, `logout_missing_token`, `logout_invalid_refresh`) se emiten en JSON a stdout, listo para agregadores.

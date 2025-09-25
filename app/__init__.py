@@ -20,7 +20,7 @@ from .migrate_ext import init_migrations
 from .security_headers import set_security_headers
 from .storage import ensure_dirs
 from .registry import register_blueprints
-from .logging_cfg import setup_logging
+from .telemetry import setup_logging
 
 
 def _normalize_db_url(raw: str | None) -> str:
@@ -69,6 +69,7 @@ def create_app(config_name: str | None = None) -> Flask:
     raw_uri = os.environ.get("DATABASE_URL", "")
 
     app.config.from_object(load_config(config_name))
+    app.config.setdefault("LOG_LEVEL", "INFO")
 
     configured_uri = str(app.config.get("SQLALCHEMY_DATABASE_URI", ""))
     uri = _normalize_db_url(raw_uri or configured_uri)
