@@ -8,6 +8,7 @@ from pathlib import Path
 
 from flask import (
     Blueprint,
+    Response,
     current_app,
     flash,
     jsonify,
@@ -600,6 +601,41 @@ def users():
         q=search,
         status=status,
     )
+
+
+@bp_admin.get("/users.csv")
+@login_required
+@require_approved
+@admin_required
+@require_roles("admin")
+def users_export_csv():
+    status = request.args.get("status") or ""
+    search = request.args.get("q", "")
+
+    try:
+        rows, _meta = service_list_users(
+            status=status or None,
+            search=search or None,
+        )
+    except Exception:
+        rows = []
+
+    def _generate():
+        yield "id,email,is_approved,approved_at\n"
+        for row in rows:
+            approved_at = getattr(row, "approved_at", None)
+            approved_str = (
+                f"{approved_at.isoformat()}Z" if approved_at is not None else ""
+            )
+            email = getattr(row, "email", "")
+            is_approved = 1 if getattr(row, "is_approved", False) else 0
+            yield f"{getattr(row, 'id', '')},\"{email}\",{is_approved},{approved_str}\n"
+
+    headers = {
+        "Content-Disposition": 'attachment; filename="users_export.csv"',
+        "Content-Type": "text/csv; charset=utf-8",
+    }
+    return Response(_generate(), headers=headers)
 
 
 @bp_admin.post("/users/role")

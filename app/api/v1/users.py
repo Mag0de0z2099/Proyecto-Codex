@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import os
-from typing import Any
+from typing import Any, Iterator
 
-from flask import Blueprint, current_app, jsonify, request
+from flask import Blueprint, Response, current_app, jsonify, request
 
 from app.security.guards import requires_auth, requires_role
 from app.services.user_service import approve_user as service_approve_user
@@ -92,3 +92,35 @@ def approve_user(user_id: int):
     if hasattr(user, "to_dict"):
         return jsonify(user=user.to_dict()), 200
     return jsonify({"detail": "approved"}), 200
+
+
+@bp.get("/users/export.csv")
+@requires_auth
+@requires_role("admin")
+def export_users_csv():
+    """Stream a CSV export with the full user list matching the filters."""
+
+    status = request.args.get("status")
+    search = request.args.get("q")
+
+    try:
+        rows, _meta = service_list_users(status=status, search=search)
+    except Exception:
+        rows = []
+
+    def _generate() -> Iterator[str]:
+        yield "id,email,is_approved,approved_at\n"
+        for row in rows:
+            approved_at = getattr(row, "approved_at", None)
+            approved_str = (
+                f"{approved_at.isoformat()}Z" if approved_at is not None else ""
+            )
+            email = getattr(row, "email", "")
+            is_approved = 1 if getattr(row, "is_approved", False) else 0
+            yield f"{getattr(row, 'id', '')},\"{email}\",{is_approved},{approved_str}\n"
+
+    headers = {
+        "Content-Disposition": 'attachment; filename="users_export.csv"',
+        "Content-Type": "text/csv; charset=utf-8",
+    }
+    return Response(_generate(), headers=headers)

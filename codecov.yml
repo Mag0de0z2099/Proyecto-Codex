@@ -12,11 +12,15 @@ coverage:
         target: auto
         threshold: 2%
         informational: true
+        only_pulls: true
+        # evita fallos cuando Codecov no encuentra base de comparación
+        base: auto
     patch:
       default:
         target: auto
         threshold: 2%
         informational: true
+        only_pulls: true
 
     # Metas por flag (ver sección flags)
     flags:
@@ -44,6 +48,9 @@ coverage:
         target: 80
         threshold: 2%
         informational: true
+
+github_checks:
+  annotations: false
 
 ignore:
   - "tests/**"
@@ -81,6 +88,8 @@ flags:
   utils:
     paths:
       - app/utils/
+  lite:
+    carryforward: true
 
 component_management:
   individual_components:

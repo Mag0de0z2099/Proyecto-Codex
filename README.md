@@ -180,3 +180,12 @@ curl -s -X POST "$BASE/api/v1/auth/refresh" -H "Content-Type: application/json" 
 ### Rate-limit de login
 - Límite: **5 intentos por minuto por IP** (HTTP 429 al exceder).
 ```
+
+## Panel Admin (web)
+
+- `GET /admin/users` – listado con filtros (?status=pending|approved).
+- `POST /admin/users/<id>/approve` – botón “Aprobar” (actualiza con HTMX).
+- `GET /admin/users.csv` – exporta CSV con los filtros actuales.
+
+### Export CSV (API)
+`GET /api/v1/users/export.csv?status=...&q=...` (requiere JWT admin).

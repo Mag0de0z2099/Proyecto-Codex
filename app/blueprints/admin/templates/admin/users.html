@@ -29,8 +29,9 @@
         {% endfor %}
       </select>
     </div>
-    <div class="align-end">
+    <div class="align-end stack-h gap-1">
       <button type="submit" class="btn btn-outline">Aplicar</button>
+      <a class="btn btn-outline" href="{{ url_for('admin.users_export_csv', status=status or None, q=q or None) }}">Exportar CSV</a>
     </div>
   </form>
 
