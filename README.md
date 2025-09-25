@@ -181,6 +181,15 @@ curl -s -X POST "$BASE/api/v1/auth/refresh" -H "Content-Type: application/json" 
 - Límite: **5 intentos por minuto por IP** (HTTP 429 al exceder).
 ```
 
+## Panel Admin (web)
+
+- `GET /admin/users` – listado con filtros (?status=pending|approved).
+- `POST /admin/users/<id>/approve` – botón “Aprobar” (actualiza con HTMX).
+- `GET /admin/users.csv` – exporta CSV con los filtros actuales.
+
+### Export CSV (API)
+`GET /api/v1/users/export.csv?status=...&q=...` (requiere JWT admin).
+
 ## Mantenimiento (cron)
 
 Comando para limpiar refresh expirados:
@@ -189,9 +198,10 @@ Comando para limpiar refresh expirados:
 FLASK_APP=app:create_app flask cleanup-refresh --grace-days=0
 ```
 
-En Render puedes crear un **cron job** (o servicio programado) que ejecute ese comando una vez al día (por ejemplo, 03:30 UTC).
+En Render puedes crear un cron job (o servicio programado) que ejecute ese comando una vez al día (por ejemplo, 03:30 UTC).
 
 ## Telemetría (logs JSON)
 
-- Configura el nivel con `LOG_LEVEL` (`INFO` por defecto).
-- Los eventos clave (`login_ok`, `login_failed`, `login_not_approved`, `refresh_ok`, `refresh_revoked_or_expired`, `logout_ok`, `logout_all_ok`, `logout_missing_token`, `logout_invalid_refresh`) se emiten en JSON a stdout, listo para agregadores.
+Configura el nivel con `LOG_LEVEL` (INFO por defecto).
+
+Los eventos clave (`login_ok`, `login_failed`, `login_not_approved`, `refresh_ok`, `refresh_revoked_or_expired`, `logout_ok`, `logout_all_ok`, `logout_missing_token`, `logout_invalid_refresh`) se emiten en JSON a stdout, listo para agregadores.
