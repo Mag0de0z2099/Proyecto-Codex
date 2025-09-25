@@ -170,6 +170,13 @@ REFRESH="<Pega_aquí_el_refresh_token>"
 curl -s -X POST "$BASE/api/v1/auth/refresh" -H "Content-Type: application/json" \
   -d "{\"refresh_token\":\"$REFRESH\"}"
 
+### Denylist y cierre de sesión
+- `POST /api/v1/auth/logout`  \
+  Revoca **ese** refresh (enviar como `Authorization: Bearer <refresh>` o body `{"refresh_token": "..."}`).
+
+- `POST /api/v1/auth/logout_all` *(requiere access token)*  \
+  Revoca **todos** los refresh del usuario (cierre de sesión global).
+
 ### Rate-limit de login
 - Límite: **5 intentos por minuto por IP** (HTTP 429 al exceder).
 ```
