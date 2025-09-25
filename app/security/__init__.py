@@ -1,6 +1,21 @@
+"""Security helpers for JWT auth, guards and tokens."""
+
 from __future__ import annotations
+
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from flask import current_app
+
+from .jwt import encode_jwt, decode_jwt  # noqa: F401
+from .guards import requires_auth, requires_role  # noqa: F401
+
+__all__ = [
+    "encode_jwt",
+    "decode_jwt",
+    "requires_auth",
+    "requires_role",
+    "generate_reset_token",
+    "parse_reset_token",
+]
 
 
 def _serializer() -> URLSafeTimedSerializer:
