@@ -158,6 +158,14 @@ curl -s "$BASE/api/v1/users?status=pending" -H "Authorization: Bearer $TOKEN"
 
 ### Refresh token
 # Pide nuevos tokens usando el refresh recibido en /auth/login
+
+### Listado con filtros, búsqueda y paginación
+`GET /api/v1/users` acepta estos parámetros opcionales:
+
+- `status`: `pending` o `approved`.
+- `q`: fragmento del correo a buscar (no sensible a mayúsculas).
+- `page`: número de página (por defecto 1).
+- `per_page`: cantidad por página (por defecto 10, máximo 100).
 REFRESH="<Pega_aquí_el_refresh_token>"
 curl -s -X POST "$BASE/api/v1/auth/refresh" -H "Content-Type: application/json" \
   -d "{\"refresh_token\":\"$REFRESH\"}"

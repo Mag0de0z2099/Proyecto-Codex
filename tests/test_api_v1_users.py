@@ -59,9 +59,11 @@ def test_users_fake_backend_returns_list(client, app, monkeypatch, app_ctx):
     res = client.get("/api/v1/users", headers=headers)
     assert res.status_code == 200 and res.is_json
     data = res.get_json()
-    assert isinstance(data.get("users"), list)
-    assert len(data["users"]) >= 2
-    assert "email" in data["users"][0]
+    assert isinstance(data.get("items"), list)
+    assert len(data["items"]) >= 2
+    assert "email" in data["items"][0]
+    assert "meta" in data
+    assert data["meta"]["total"] >= 2
 
 
 def test_users_db_path_graceful(client, app, monkeypatch, app_ctx):
@@ -72,5 +74,6 @@ def test_users_db_path_graceful(client, app, monkeypatch, app_ctx):
     res = client.get("/api/v1/users", headers=headers)
     assert res.status_code == 200 and res.is_json
     data = res.get_json()
-    assert "users" in data
-    assert isinstance(data["users"], list)
+    assert "items" in data
+    assert isinstance(data["items"], list)
+    assert "meta" in data
