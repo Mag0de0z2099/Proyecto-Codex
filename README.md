@@ -177,6 +177,33 @@ curl -s -X POST "$BASE/api/v1/auth/refresh" -H "Content-Type: application/json" 
 - `POST /api/v1/auth/logout_all` *(requiere access token)*  \
   Revoca **todos** los refresh del usuario (cierre de sesión global).
 
+## CORS y límites por endpoint
+
+Configura orígenes permitidos (separados por coma):
+
+```bash
+# Render → Settings → Environment
+CORS_ORIGINS=https://mi-frontend.com,https://admin.miapp.com
+```
+
+Rutas CORS
+
+Se aplica solo a /api/* (el panel /admin/* no expone CORS).
+
+Límites por endpoint (clave por usuario si está autenticado; si no, por IP):
+
+POST /api/v1/auth/login → 5/min
+
+POST /api/v1/auth/refresh → 20/min
+
+GET /api/v1/auth/me → 120/min
+
+GET /api/v1/users → 60/min
+
+PATCH /api/v1/users/:id/approve → 30/min
+
+GET /api/v1/users/export.csv → 10/min
+
 ### Rate-limit de login
 - Límite: **5 intentos por minuto por IP** (HTTP 429 al exceder).
 ```
