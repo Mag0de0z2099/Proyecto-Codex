@@ -1,108 +1,32 @@
 codecov:
-  require_ci_to_pass: yes
+  require_ci_to_pass: true
+  notify:
+    wait_for_ci: true
 
 coverage:
   precision: 2
   round: down
-  range: 50..90
-
+  range: 60..95
   status:
     project:
       default:
-        target: auto
-        threshold: 2%
-        informational: true
+        target: 70%
+        threshold: 1%
+        informational: false
+        only_pulls: true
     patch:
       default:
-        target: auto
-        threshold: 2%
-        informational: true
-
-    # Metas por flag (ver sección flags)
-    flags:
-      api:
-        target: 80
-        threshold: 2%
-        informational: true
-      auth:
-        target: 80
-        threshold: 2%
-        informational: true
-      models:
-        target: 80
-        threshold: 2%
-        informational: true
-      routes:
-        target: 80
-        threshold: 2%
-        informational: true
-      services:
-        target: 80
-        threshold: 2%
-        informational: true
-      utils:
-        target: 80
-        threshold: 2%
-        informational: true
+        target: 70%
+        threshold: 0%
+        informational: false
+        only_pulls: true
 
 ignore:
-  - "tests/**"
   - "migrations/**"
-  - "docs/**"
-  - "static/**"
-  - "templates/**"
-  - "wsgi.py"
-  - "manage.py"
-  - "render.yaml"
-  - "seed_and_scan.sh"
-  - "verify_metrics.sh"
-  - "create_pr_ui_logo.sh"
-  - "runtime.txt"
-  - "Procfile"
+  - "tests/**"
+  - "app/templates/**"
+  - "app/static/**"
 
 flags:
-  api:
-    paths:
-      - app/api/
-  auth:
-    paths:
-      - app/auth/
-      - app/simple_auth/
-  models:
-    paths:
-      - app/models/
-  routes:
-    paths:
-      - app/routes/
-      - app/blueprints/
-  services:
-    paths:
-      - app/services/
-  utils:
-    paths:
-      - app/utils/
-
-component_management:
-  individual_components:
-    - name: API
-      paths:
-        - app/api/**
-    - name: Auth
-      paths:
-        - app/auth/**
-        - app/simple_auth/**
-    - name: Models
-      paths:
-        - app/models/**
-    - name: Routes
-      paths:
-        - app/routes/**
-        - app/blueprints/**
-    - name: Services
-      paths:
-        - app/services/**
-    - name: Utils
-      paths:
-        - app/utils/**
-
-comment: false
+  unit:
+    carryforward: true
