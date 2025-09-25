@@ -78,11 +78,4 @@ jobs:
           files: junit.xml
           flags: lite
           token: ${{ secrets.CODECOV_TOKEN }}
-      - name: Upload coverage (one file)
-        uses: codecov/codecov-action@v5
-        with:
-          files: coverage.xml
-          flags: lite
-          token: ${{ secrets.CODECOV_TOKEN }}
-          fail_ci_if_error: false
-          verbose: false
+      # (Coverage upload centralizado en ci-coverage-stable.yml)

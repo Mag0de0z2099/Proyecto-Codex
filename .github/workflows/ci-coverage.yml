@@ -57,14 +57,7 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           verbose: true
 
-      - name: Upload coverage to Codecov - ${{ matrix.part }}
-        uses: codecov/codecov-action@v5
-        with:
-          files: coverage-${{ matrix.part }}.xml
-          flags: ${{ matrix.part }}
-          token: ${{ secrets.CODECOV_TOKEN }}
-          fail_ci_if_error: false
-          verbose: true
+      # (Coverage uploads centralizados en ci-coverage-stable.yml)
 
   coverage-all:
     runs-on: ubuntu-latest
@@ -100,11 +93,4 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           verbose: true
 
-      - name: Upload combined coverage
-        uses: codecov/codecov-action@v5
-        with:
-          files: coverage.xml
-          flags: all
-          token: ${{ secrets.CODECOV_TOKEN }}
-          fail_ci_if_error: false
-          verbose: true
+      # (Coverage uploads centralizados en ci-coverage-stable.yml)
