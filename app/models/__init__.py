@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from flask_login import UserMixin
@@ -155,7 +155,7 @@ class User(db.Model, UserMixin):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     username: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
-    email: Mapped[str | None] = mapped_column(String(254), unique=False, nullable=True, index=True)
+    email: Mapped[str] = mapped_column(String(254), unique=True, nullable=False, index=True)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     role: Mapped[str] = mapped_column(
         String(20),
@@ -178,7 +178,18 @@ class User(db.Model, UserMixin):
     title: Mapped[str | None] = mapped_column(String(80), nullable=True)
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     force_change_password: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    is_active: Mapped[bool] = mapped_column(
+        Boolean,
+        default=True,
+        nullable=False,
+        server_default=expression.true(),
+    )
+    is_approved: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        nullable=False,
+        server_default=expression.false(),
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
     __table_args__ = (
@@ -200,6 +211,15 @@ class User(db.Model, UserMixin):
                 pass
         return check_password_hash(stored, password)
 
+    def approve(self) -> None:
+        self.is_approved = True
+        if not self.approved_at:
+            self.approved_at = datetime.now(timezone.utc)
+        try:
+            self.status = "approved"
+        except Exception:
+            self.status = getattr(self, "status", None) or "approved"
+
     def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
@@ -213,6 +233,7 @@ class User(db.Model, UserMixin):
             "is_admin": self.is_admin,
             "force_change_password": self.force_change_password,
             "is_active": self.is_active,
+            "is_approved": self.is_approved,
             "created_at": self.created_at.isoformat() + "Z",
         }
 
@@ -222,22 +243,43 @@ class User(db.Model, UserMixin):
     def can_admin(self) -> bool:
         return self.role == "admin"
 
-    @property
-    def is_approved(self) -> bool:
-        return (self.status or "").lower() == "approved"
-
     def __repr__(self) -> str:
         return f"<User {self.username}>"
 
 
+def _sync_user_flags(target: User) -> None:
+    target.email = normalize_email(target.email)
+    status_value = (getattr(target, "status", "") or "").lower()
+
+    if status_value == "approved" and not getattr(target, "is_approved", False):
+        target.is_approved = True
+
+    if getattr(target, "is_approved", False):
+        if status_value != "approved":
+            try:
+                target.status = "approved"
+            except Exception:
+                pass
+        if not target.approved_at:
+            target.approved_at = datetime.now(timezone.utc)
+    else:
+        if status_value == "approved":
+            try:
+                target.status = "pending"
+            except Exception:
+                pass
+        if status_value != "approved":
+            target.approved_at = None
+
+
 @event.listens_for(User, "before_insert", propagate=True)
 def _user_before_insert(mapper, connection, target):  # pragma: no cover - SQLAlchemy hook
-    target.email = normalize_email(target.email)
+    _sync_user_flags(target)
 
 
 @event.listens_for(User, "before_update", propagate=True)
 def _user_before_update(mapper, connection, target):  # pragma: no cover - SQLAlchemy hook
-    target.email = normalize_email(target.email)
+    _sync_user_flags(target)
 
 
 @login_manager.user_loader

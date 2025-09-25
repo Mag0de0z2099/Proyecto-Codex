@@ -11,6 +11,7 @@ from werkzeug.security import generate_password_hash
 
 from app.db import db
 from app.models import User
+from app.services.auth_service import ensure_admin_user
 from app.utils.strings import normalize_email
 
 
@@ -92,62 +93,19 @@ def register_cli(app):
         help="Username opcional (por defecto se deriva del email)",
     )
     def seed_admin(email: str, password: str, username: str | None = None):
-        """Crear o asegurar la existencia de un admin de forma no interactiva."""
-
-        email_n = normalize_email(email)
-        if not email_n:
-            click.echo("Email inválido", err=True)
-            raise SystemExit(1)
-
-        user = User.query.filter_by(email=email_n).first()
-        if user:
-            click.echo("ℹ️ Admin ya existe; no se cambia la contraseña.")
-            return
-
-        resolved_username = (username or email_n.split("@", 1)[0] or "admin").strip()
-        if User.query.filter_by(username=resolved_username).first():
-            click.echo(
-                "Ya existe un usuario con ese username; especifica otro con --username.",
-                err=True,
-            )
-            raise SystemExit(1)
+        """Crear o actualizar un administrador de forma no interactiva."""
 
         resolved_password = password or "admin123"
-        user = User(
-            username=resolved_username,
-            email=email_n,
-            role="admin",
-            is_admin=True,
-            is_active=True,
-            status="approved",
-            approved_at=datetime.now(timezone.utc),
-        )
-
-        if hasattr(user, "set_password"):
-            user.set_password(resolved_password)
-        elif hasattr(user, "password_hash"):
-            user.password_hash = generate_password_hash(resolved_password)
-        else:
-            click.echo(
-                "El modelo de usuario no soporta asignar contraseña de forma automática.",
-                err=True,
-            )
+        try:
+            user = ensure_admin_user(email=email, password=resolved_password, username=username)
+        except ValueError:
+            click.echo("Email inválido", err=True)
             raise SystemExit(1)
-
-        try:
-            user.force_change_password = True
-        except Exception:
-            pass
-
-        db.session.add(user)
-        try:
-            db.session.commit()
         except Exception as exc:  # pragma: no cover - feedback interactivo
-            db.session.rollback()
-            current_app.logger.exception("No se pudo crear el admin", exc_info=exc)
-            click.echo("No se pudo crear el usuario administrador. Revisa los logs.", err=True)
+            current_app.logger.exception("No se pudo crear/actualizar el admin", exc_info=exc)
+            click.echo("No se pudo crear/actualizar el usuario administrador.", err=True)
             raise SystemExit(1)
 
-        click.echo("✅ Admin creado con contraseña por defecto.")
+        click.echo(f"✅ Admin listo: {user.email} ({user.username})")
 
     return app
