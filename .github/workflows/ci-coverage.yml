@@ -1,0 +1,5 @@
+name: (deprecated) ci-coverage
+on:
+  workflow_call:
+  workflow_dispatch:
+jobs: {}
