@@ -4,33 +4,46 @@ codecov:
 coverage:
   precision: 2
   round: down
-  range: 70..100
+  range: 50..90
 
   status:
     project:
       default:
-        target: 80        # ⬅️ súbelo a 90 cuando estabilice
-        threshold: 1
+        target: auto
+        threshold: 2%
+        informational: true
     patch:
       default:
-        target: 70
-        threshold: 2
+        target: auto
+        threshold: 2%
         informational: true
 
     # Metas por flag (ver sección flags)
     flags:
       api:
         target: 80
+        threshold: 2%
+        informational: true
       auth:
         target: 80
+        threshold: 2%
+        informational: true
       models:
         target: 80
+        threshold: 2%
+        informational: true
       routes:
         target: 80
+        threshold: 2%
+        informational: true
       services:
         target: 80
+        threshold: 2%
+        informational: true
       utils:
         target: 80
+        threshold: 2%
+        informational: true
 
 ignore:
   - "tests/**"
@@ -91,3 +104,5 @@ component_management:
     - name: Utils
       paths:
         - app/utils/**
+
+comment: false

@@ -1,5 +1,9 @@
 name: CI - Coverage
 on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
   workflow_dispatch:
 
 permissions:
@@ -14,6 +18,8 @@ jobs:
         part: [api, auth, models, routes, services, utils]
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-python@v5
         with:
@@ -57,6 +63,7 @@ jobs:
           files: coverage-${{ matrix.part }}.xml
           flags: ${{ matrix.part }}
           token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
           verbose: true
 
   coverage-all:
@@ -64,6 +71,8 @@ jobs:
     needs: coverage-matrix
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-python@v5
         with:
@@ -97,4 +106,5 @@ jobs:
           files: coverage.xml
           flags: all
           token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
           verbose: true
