@@ -139,3 +139,20 @@ curl -s -X POST https://<tu-servicio>.onrender.com/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"admin@admin.com","password":"admin123"}'
 ```
+
+## Autenticación JWT
+```bash
+BASE="https://<tu-servicio>.onrender.com"
+LOGIN=$(curl -s -X POST "$BASE/api/v1/auth/login" -H "Content-Type: application/json" \
+  -d '{"email":"admin@admin.com","password":"admin123"}')
+TOKEN=$(python - <<'PY'
+import json,sys; print(json.load(sys.stdin).get("access_token",""))
+PY
+<<<"$LOGIN")
+
+# Ver perfil
+curl -s "$BASE/api/v1/auth/me" -H "Authorization: Bearer $TOKEN"
+
+# Listar pendientes (requiere admin)
+curl -s "$BASE/api/v1/users?status=pending" -H "Authorization: Bearer $TOKEN"
+```
