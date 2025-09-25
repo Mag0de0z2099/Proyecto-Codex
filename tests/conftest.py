@@ -10,6 +10,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from app.db import db
+from app.extensions import limiter
 
 
 @pytest.fixture(scope="session")
@@ -41,3 +42,4 @@ def app_ctx(app):
         finally:
             db.session.remove()
             db.drop_all()
+            limiter.reset()

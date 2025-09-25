@@ -155,4 +155,13 @@ curl -s "$BASE/api/v1/auth/me" -H "Authorization: Bearer $TOKEN"
 
 # Listar pendientes (requiere admin)
 curl -s "$BASE/api/v1/users?status=pending" -H "Authorization: Bearer $TOKEN"
+
+### Refresh token
+# Pide nuevos tokens usando el refresh recibido en /auth/login
+REFRESH="<Pega_aquí_el_refresh_token>"
+curl -s -X POST "$BASE/api/v1/auth/refresh" -H "Content-Type: application/json" \
+  -d "{\"refresh_token\":\"$REFRESH\"}"
+
+### Rate-limit de login
+- Límite: **5 intentos por minuto por IP** (HTTP 429 al exceder).
 ```
