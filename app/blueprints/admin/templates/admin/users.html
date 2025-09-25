@@ -8,6 +8,32 @@
     <a href="{{ url_for('admin.admin_new_user') }}" class="btn btn-primary btn-wide">➕ Crear usuario</a>
   </div>
 
+  <form method="get" class="filters stack-h gap-2">
+    <div>
+      <label for="q">Buscar</label>
+      <input id="q" type="search" name="q" value="{{ q or '' }}" placeholder="Correo o usuario">
+    </div>
+    <div>
+      <label for="status">Estado</label>
+      <select id="status" name="status">
+        <option value="" {{ 'selected' if not status else '' }}>Todos</option>
+        <option value="pending" {{ 'selected' if status == 'pending' else '' }}>Pendientes</option>
+        <option value="approved" {{ 'selected' if status == 'approved' else '' }}>Aprobados</option>
+      </select>
+    </div>
+    <div>
+      <label for="per_page">Por página</label>
+      <select id="per_page" name="per_page">
+        {% for size in (5, 10, 20, 50, 100) %}
+          <option value="{{ size }}" {{ 'selected' if meta.per_page == size else '' }}>{{ size }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="align-end">
+      <button type="submit" class="btn btn-outline">Aplicar</button>
+    </div>
+  </form>
+
   <div class="table-grid header-8">
     <div class="th">Usuario</div>
     <div class="th">Rol</div>
@@ -88,6 +114,20 @@
         <div>—</div>
       {% endif %}
     {% endfor %}
+  </div>
+
+  <div class="stack-h space-between align-center mt-3">
+    <div>
+      Total: <strong>{{ meta.total }}</strong> · Página {{ meta.page }} de {{ meta.pages }}
+    </div>
+    <div class="stack-h gap-2">
+      {% if meta.page > 1 %}
+        <a class="btn btn-outline" href="{{ url_for('admin.users', status=status or None, q=q or None, per_page=meta.per_page, page=meta.page - 1) }}">◀ Anterior</a>
+      {% endif %}
+      {% if meta.page < meta.pages %}
+        <a class="btn btn-outline" href="{{ url_for('admin.users', status=status or None, q=q or None, per_page=meta.per_page, page=meta.page + 1) }}">Siguiente ▶</a>
+      {% endif %}
+    </div>
   </div>
 </div>
 {% endblock %}

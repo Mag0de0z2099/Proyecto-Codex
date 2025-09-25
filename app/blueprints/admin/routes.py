@@ -39,6 +39,7 @@ from app.auth.roles import ROLES, admin_required, role_required
 from app.utils.rbac import require_roles, require_approved
 from app.utils.validators import is_valid_email
 from app.security import generate_reset_token
+from app.services.user_service import list_users as service_list_users
 
 bp_admin = Blueprint("admin", __name__, template_folder="templates", url_prefix="/admin")
 
@@ -562,9 +563,43 @@ def reject_user(user_id: int):
 @require_roles("admin", "supervisor")
 @role_required("admin", "supervisor")
 def users():
-    users = User.query.order_by(User.username).all()
+    status = request.args.get("status") or ""
+    search = request.args.get("q", "")
+
+    def _parse(value: str | None, default: int, minimum: int = 1, maximum: int = 100) -> int:
+        try:
+            parsed = int(value) if value else default
+        except (TypeError, ValueError):
+            return default
+        if parsed < minimum:
+            parsed = minimum
+        if parsed > maximum:
+            parsed = maximum
+        return parsed
+
+    page = _parse(request.args.get("page"), 1)
+    per_page = _parse(request.args.get("per_page"), 20, minimum=5, maximum=100)
+
+    try:
+        rows, meta = service_list_users(
+            status=status or None,
+            search=search or None,
+            page=page,
+            per_page=per_page,
+        )
+    except Exception:
+        rows = []
+        meta = {"page": page, "per_page": per_page, "pages": 1, "total": 0}
+
     roles = list(ROLES)
-    return render_template("admin/users.html", users=users, ROLES=roles)
+    return render_template(
+        "admin/users.html",
+        users=rows,
+        ROLES=roles,
+        meta=meta,
+        q=search,
+        status=status,
+    )
 
 
 @bp_admin.post("/users/role")
