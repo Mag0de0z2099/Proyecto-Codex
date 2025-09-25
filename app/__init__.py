@@ -151,6 +151,22 @@ def create_app(config_name: str | None = None) -> Flask:
 
     blueprints = register_blueprints(app)
 
+    # Registro de blueprints existentes
+    try:
+        from .routes.health import bp as health_bp
+
+        app.register_blueprint(health_bp)
+    except Exception:
+        # Evita romper si el import difiere durante refactors
+        pass
+
+    try:
+        from .routes.auth import bp as auth_bp
+
+        app.register_blueprint(auth_bp)
+    except Exception:
+        pass
+
     # Exentamos la API pública JSON del CSRF global
     api_v1_bp = blueprints.get("api_v1")
     if api_v1_bp is not None:
