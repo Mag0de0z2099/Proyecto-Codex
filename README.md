@@ -139,3 +139,14 @@ curl -s -X POST https://<tu-servicio>.onrender.com/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"admin@admin.com","password":"admin123"}'
 ```
+
+### Flujo de aprobación (solo admin en pruebas)
+> Para las pruebas usamos el header `X-Role: admin` como pase de administrador.
+```bash
+# Listar pendientes
+curl -s "$BASE/api/v1/users?status=pending"
+
+# Aprobar usuario (header simulado)
+USER_ID=2
+curl -s -X PATCH "$BASE/api/v1/users/$USER_ID/approve" -H "X-Role: admin"
+```

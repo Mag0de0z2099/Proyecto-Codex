@@ -1,5 +1,6 @@
 from __future__ import annotations
-from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
+
+from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from flask import current_app
 
 
@@ -19,3 +20,6 @@ def parse_reset_token(token: str, max_age: int = 3600) -> str | None:
         return _serializer().loads(token, max_age=max_age)
     except (BadSignature, SignatureExpired):
         return None
+
+
+__all__ = ["generate_reset_token", "parse_reset_token", "_serializer"]
