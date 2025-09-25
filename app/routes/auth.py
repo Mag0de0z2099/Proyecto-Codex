@@ -12,14 +12,11 @@ bp = Blueprint("auth_api", __name__, url_prefix="/api/v1/auth")
 @bp.post("/login")
 def login() -> tuple[object, int]:
     """Validate credentials and return a development token."""
-    payload = request.get_json(silent=True) or {}
+    payload = request.get_json(force=True, silent=True) or {}
     email = payload.get("email")
     password = payload.get("password")
 
-    if not email or not password:
-        return jsonify({"detail": "invalid credentials"}), 401
-
-    user = verify_credentials(str(email), str(password))
+    user = verify_credentials(str(email) if email is not None else None, str(password) if password is not None else None)
     if user is None:
         return jsonify({"detail": "invalid credentials"}), 401
 

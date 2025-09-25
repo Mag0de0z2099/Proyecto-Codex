@@ -119,3 +119,23 @@ honcho start
 Verás un servicio levantando Gunicorn (`web`) y otro ejecutando `worker.py`. Esto resulta útil para probar integración con colas de mensajes antes de desplegar.
 
 Documentar estos comandos en el repositorio evita dudas al desplegar en diferentes proveedores.
+
+## Deploy rápido en Render
+
+Variables necesarias:
+- `DATABASE_URL` (cadena interna de Postgres con `?sslmode=require`)
+- `SECRET_KEY` (cualquier cadena segura)
+
+**Pre-deploy** corre migraciones y crea el admin:
+```bash
+alembic -c migrations/alembic.ini upgrade head && \
+FLASK_APP=app:create_app flask seed-admin --email admin@admin.com --password admin123
+```
+
+### Endpoints de verificación
+```bash
+curl -s https://<tu-servicio>.onrender.com/healthz
+curl -s -X POST https://<tu-servicio>.onrender.com/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@admin.com","password":"admin123"}'
+```
