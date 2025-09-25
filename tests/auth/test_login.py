@@ -31,6 +31,7 @@ def test_login_ok_returns_token(client, app_ctx):
     payload = response.get_json()
     assert response.status_code == 200
     assert "access_token" in payload and payload["access_token"]
+    assert "refresh_token" in payload and payload["refresh_token"]
     assert payload.get("token_type") == "bearer"
 
 

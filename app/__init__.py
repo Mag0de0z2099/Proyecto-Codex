@@ -11,9 +11,8 @@ from flask import Flask
 from pytz import timezone
 from .cli_sync import register_sync_cli
 from .config import load_config
-from .db import db
 from .errors import register_error_handlers
-from .extensions import csrf, init_auth_extensions, limiter
+from .extensions import csrf, db, init_auth_extensions, limiter
 from .metrics import cleanup_multiprocess_directory
 from .utils.scan_lock import get_scan_lock
 from .cli import register_cli
@@ -114,10 +113,11 @@ def create_app(config_name: str | None = None) -> Flask:
     ):
         cleanup_multiprocess_directory()
 
-    # DB
+    # DB y extensiones compartidas
     db.init_app(app)
     init_migrations(app, db)
     init_auth_extensions(app)
+    limiter.init_app(app)
 
     set_security_headers(app)
 

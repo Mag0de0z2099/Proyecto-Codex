@@ -4,6 +4,7 @@ import logging
 import uuid
 
 from flask import g, jsonify, request
+from flask_limiter.errors import RateLimitExceeded
 
 
 def _json_error(status: int, message: str | None = None):
@@ -56,6 +57,10 @@ def register_error_handlers(app):
     @app.errorhandler(405)
     def _405(e):
         return _json_error(405, getattr(e, "description", "Method Not Allowed"))
+
+    @app.errorhandler(RateLimitExceeded)
+    def _429(e):
+        return _json_error(429, getattr(e, "description", "Too Many Requests"))
 
     @app.errorhandler(Exception)
     def _500(e):
