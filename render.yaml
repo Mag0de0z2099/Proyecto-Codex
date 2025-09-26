@@ -1,17 +1,19 @@
 services:
   - type: web
-    name: proyecto-codex
+    name: sgc-servidor
     env: python
+    plan: free
     buildCommand: pip install -r requirements.txt
     preDeployCommand: >
       alembic -c migrations/alembic.ini upgrade head &&
       FLASK_APP=app:create_app flask seed-admin --email admin@admin.com --password admin123
-    startCommand: gunicorn -w 3 wsgi:app
-    healthCheckPath: /healthz
+    startCommand: >
+      gunicorn "app:create_app()" --bind 0.0.0.0:$PORT --workers 2
     envVars:
-      - key: DATABASE_URL
-        fromDatabase:
-          name: codex-db
-          property: connectionString
-      - key: SECRET_KEY
-        generateValue: true
+      - key: FLASK_ENV
+        value: production
+      - key: PYTHONPATH
+        value: .
+      - key: DATA_DIR
+        value: /data
+      # DATABASE_URL y SECRET_KEY ya están configuradas en el panel; no dupliques aquí.
