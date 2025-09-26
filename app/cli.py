@@ -7,6 +7,7 @@ from getpass import getpass
 
 import click
 from flask import current_app
+from sqlalchemy import func
 from werkzeug.security import generate_password_hash
 
 from app.db import db
@@ -108,6 +109,64 @@ def register_cli(app):
             raise SystemExit(1)
 
         click.echo(f"✅ Admin listo: {user.email} ({user.username})")
+
+    @app.cli.command("show-user")
+    @click.option(
+        "--id",
+        "identifier",
+        required=True,
+        help="ID numérico, email o username del usuario",
+    )
+    def show_user(identifier: str) -> None:
+        """Mostrar información básica de un usuario."""
+
+        ident = (identifier or "").strip()
+        if not ident:
+            click.echo("Proporciona un identificador válido.", err=True)
+            raise SystemExit(1)
+
+        user: User | None = None
+        if ident.isdigit():
+            try:
+                user = db.session.get(User, int(ident))
+            except Exception:
+                user = None
+
+        if user is None:
+            normalized = normalize_email(ident)
+            if normalized:
+                user = (
+                    db.session.query(User)
+                    .filter(func.lower(User.email) == normalized)
+                    .one_or_none()
+                )
+
+        if user is None and hasattr(User, "username"):
+            lowered = ident.lower()
+            user = (
+                db.session.query(User)
+                .filter(func.lower(User.username) == lowered)
+                .one_or_none()
+            )
+
+        if user is None:
+            click.echo("Usuario no encontrado.", err=True)
+            raise SystemExit(1)
+
+        fields: list[tuple[str, object]] = [
+            ("id", getattr(user, "id", None)),
+            ("email", getattr(user, "email", None)),
+        ]
+
+        if hasattr(user, "username"):
+            fields.append(("username", getattr(user, "username", None)))
+
+        for attr in ["role", "status", "is_active", "is_admin", "is_approved"]:
+            if hasattr(user, attr):
+                fields.append((attr, getattr(user, attr)))
+
+        for name, value in fields:
+            click.echo(f"{name}: {value}")
 
     @app.cli.command("cleanup-refresh")
     @click.option(

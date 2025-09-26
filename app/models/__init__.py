@@ -249,6 +249,9 @@ class User(db.Model, UserMixin):
 
 def _sync_user_flags(target: User) -> None:
     target.email = normalize_email(target.email)
+    username_value = getattr(target, "username", None)
+    if isinstance(username_value, str):
+        target.username = username_value.strip().lower()
     status_value = (getattr(target, "status", "") or "").lower()
 
     if status_value == "approved" and not getattr(target, "is_approved", False):

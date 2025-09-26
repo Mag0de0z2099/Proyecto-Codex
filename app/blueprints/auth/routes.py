@@ -33,6 +33,41 @@ from app.simple_auth.store import ensure_bootstrap_admin, verify
 bp_auth = Blueprint("auth", __name__, url_prefix="/auth", template_folder="templates")
 
 
+def find_user_by_identifier(identifier: str | None) -> User | None:
+    ident = (identifier or "").strip()
+    if not ident:
+        return None
+
+    if ident.isdigit():
+        try:
+            user = db.session.get(User, int(ident))
+        except Exception:
+            user = None
+        else:
+            if user is not None:
+                return user
+
+    normalized = normalize_email(ident)
+    if normalized:
+        user = (
+            db.session.query(User)
+            .filter(func.lower(User.email) == normalized)
+            .one_or_none()
+        )
+        if user is not None:
+            return user
+
+    if hasattr(User, "username"):
+        lowered = ident.lower()
+        return (
+            db.session.query(User)
+            .filter(func.lower(User.username) == lowered)
+            .one_or_none()
+        )
+
+    return None
+
+
 def _resolve_role(entity: Mapping[str, object] | User | None) -> str:
     if isinstance(entity, Mapping):
         role = str(entity.get("role") or "").strip().lower()
@@ -70,13 +105,15 @@ def _redirect_for_role(role: str, next_url: str | None = None):
 @bp_auth.post("/login")
 def login_post():
     try:
-        username = (request.form.get("username") or "").strip()
+        identifier = (request.form.get("username") or "").strip()
+        if not identifier:
+            identifier = (request.form.get("email") or "").strip()
         password = request.form.get("password") or ""
 
         # === MODO SIMPLE: SIN DB ===
         if current_app.config.get("AUTH_SIMPLE", True):
             ensure_bootstrap_admin(current_app)
-            user = verify(current_app, username, password)
+            user = verify(current_app, identifier, password)
             if user:
                 role = _resolve_role(user)
                 session["user"] = {**user, "role": role}
@@ -92,7 +129,7 @@ def login_post():
         # flash("Usuario o contraseña inválidos.", "danger")
         # return redirect(url_for("auth.login"))
 
-        user = User.query.filter_by(username=username).first()
+        user = find_user_by_identifier(identifier)
         if not user or not user.check_password(password):
             flash("Usuario o contraseña inválidos.", "danger")
             return render_template("auth/login.html"), HTTPStatus.UNAUTHORIZED
