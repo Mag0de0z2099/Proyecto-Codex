@@ -10,7 +10,7 @@ from flask import current_app
 from werkzeug.security import generate_password_hash
 
 from app.db import db
-from app.models import Equipo, User
+from app.models import Equipo, Operador, User
 from app.services.auth_service import ensure_admin_user
 from app.services.maintenance_service import cleanup_expired_refresh_tokens
 from app.utils.strings import normalize_email
@@ -135,5 +135,29 @@ def register_cli(app):
                 db.session.add(Equipo(**payload))
         db.session.commit()
         click.echo("Equipos seed: OK")
+
+    @app.cli.command("seed-operadores")
+    def seed_operadores():
+        """Cargar operadores de demostración si no existen."""
+
+        data = [
+            {
+                "nombre": "Juan Pérez",
+                "identificacion": "OP-001",
+                "puesto": "operador",
+                "licencia": "A",
+            },
+            {
+                "nombre": "María López",
+                "identificacion": "OP-002",
+                "puesto": "ayudante",
+                "licencia": "-",
+            },
+        ]
+        for payload in data:
+            if not Operador.query.filter_by(identificacion=payload.get("identificacion")).first():
+                db.session.add(Operador(**payload))
+        db.session.commit()
+        click.echo("Operadores seed: OK")
 
     return app

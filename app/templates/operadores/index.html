@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Operadores</h1>
+<form method="get" class="mb-3">
+  <input name="q" value="{{ q }}" placeholder="Buscar por nombre / ID / puesto">
+  <button type="submit">Buscar</button>
+  <a href="{{ url_for('operadores.nuevo') }}">Nuevo</a>
+</form>
+<table>
+  <thead><tr><th>Nombre</th><th>ID</th><th>Puesto</th><th>Status</th><th></th></tr></thead>
+  <tbody>
+  {% for op in operadores %}
+    <tr>
+      <td><a href="{{ url_for('operadores.detalle', op_id=op.id) }}">{{ op.nombre }}</a></td>
+      <td>{{ op.identificacion or '-' }}</td>
+      <td>{{ op.puesto or '-' }}</td>
+      <td>{{ op.status }}</td>
+      <td>
+        <a href="{{ url_for('operadores.editar', op_id=op.id) }}">Editar</a>
+        <form action="{{ url_for('operadores.eliminar', op_id=op.id) }}" method="post" style="display:inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" onclick="return confirm('¿Eliminar?')">Eliminar</button>
+        </form>
+      </td>
+    </tr>
+  {% else %}
+    <tr><td colspan="5">No hay operadores registrados.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
