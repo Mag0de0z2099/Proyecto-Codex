@@ -3,6 +3,8 @@ from __future__ import annotations
 from datetime import datetime
 from enum import Enum
 
+from sqlalchemy.dialects.postgresql import ENUM as PGEnum
+
 from app.db import db
 
 
@@ -69,7 +71,9 @@ class ChecklistAnswer(db.Model):
     checklist_id = db.Column(db.Integer, db.ForeignKey("checklists.id"), nullable=False)
     item_id = db.Column(db.Integer, db.ForeignKey("cl_items.id"), nullable=False)
     result = db.Column(
-        db.Enum(AnswerEnum, name="answerenum"), nullable=False, default=AnswerEnum.OK
+        PGEnum("OK", "FAIL", "NA", name="answerenum", create_type=False),
+        nullable=False,
+        default="OK",
     )
     note = db.Column(db.String(255))
     photo_path = db.Column(db.String(255))
