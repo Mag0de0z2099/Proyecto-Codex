@@ -19,7 +19,7 @@ from flask_login import (
     login_user,
     logout_user,
 )
-from sqlalchemy import func
+from sqlalchemy import func, or_
 
 from app.authz import login_required
 from app.db import db
@@ -31,6 +31,31 @@ from app.utils.validators import is_valid_email
 from app.simple_auth.store import ensure_bootstrap_admin, verify
 
 bp_auth = Blueprint("auth", __name__, url_prefix="/auth", template_folder="templates")
+
+
+def find_user_by_identifier(identifier: str) -> User | None:
+    ident = (identifier or "").strip().lower()
+    if not ident:
+        return None
+
+    query = db.session.query(User)
+    conditions = [func.lower(User.email) == ident]
+
+    username_column = getattr(User, "username", None)
+    if username_column is not None:
+        conditions.append(func.lower(username_column) == ident)
+
+    if len(conditions) == 1:
+        return query.filter(conditions[0]).first()
+
+    return query.filter(or_(*conditions)).first()
+
+
+def _is_truthy_flag(entity: User, name: str) -> bool:
+    if not hasattr(entity, name):
+        return True
+    value = getattr(entity, name)
+    return value in (True, 1, "true", "approved", "active")
 
 
 def _resolve_role(entity: Mapping[str, object] | User | None) -> str:
@@ -70,7 +95,12 @@ def _redirect_for_role(role: str, next_url: str | None = None):
 @bp_auth.post("/login")
 def login_post():
     try:
-        username = (request.form.get("username") or "").strip()
+        identifier = (
+            request.form.get("usuario")
+            or request.form.get("username")
+            or ""
+        ).strip()
+        username = identifier
         password = request.form.get("password") or ""
 
         # === MODO SIMPLE: SIN DB ===
@@ -92,17 +122,20 @@ def login_post():
         # flash("Usuario o contraseña inválidos.", "danger")
         # return redirect(url_for("auth.login"))
 
-        user = User.query.filter_by(username=username).first()
+        user = find_user_by_identifier(identifier)
         if not user or not user.check_password(password):
             flash("Usuario o contraseña inválidos.", "danger")
             return render_template("auth/login.html"), HTTPStatus.UNAUTHORIZED
 
-        if getattr(user, "status", "approved") != "approved":
+        status_value = (getattr(user, "status", "approved") or "").lower()
+        if status_value != "approved":
             flash("Tu cuenta está pendiente de aprobación.", "warning")
             return redirect(url_for("auth.login"))
 
-        if not getattr(user, "is_active", True):
-            flash("Tu cuenta está inactiva. Contacta al administrador.", "warning")
+        if not all(
+            _is_truthy_flag(user, flag) for flag in ("is_active", "active", "approved", "is_approved")
+        ):
+            flash("Cuenta pendiente o rechazada. Contacta al administrador.", "warning")
             return redirect(url_for("auth.login"))
 
         login_user(user)
