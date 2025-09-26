@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
 
 
 revision = "20251012_create_checklists_tables"
@@ -11,12 +12,12 @@ down_revision = "20251011_create_operadores_table"
 branch_labels = None
 depends_on = None
 
-answer_enum = sa.Enum("OK", "FAIL", "NA", name="answerenum")
-
-
 def upgrade() -> None:
-    bind = op.get_bind()
-    answer_enum.create(bind, checkfirst=True)
+    # Crear el tipo ENUM si no existe
+    answer_enum = postgresql.ENUM(
+        "OK", "FAIL", "NA", name="answerenum", create_type=False
+    )
+    answer_enum.create(op.get_bind(), checkfirst=True)
 
     op.create_table(
         "cl_templates",
@@ -66,9 +67,11 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    answer_enum = postgresql.ENUM(
+        "OK", "FAIL", "NA", name="answerenum", create_type=False
+    )
     op.drop_table("cl_answers")
     op.drop_table("checklists")
     op.drop_table("cl_items")
     op.drop_table("cl_templates")
-    bind = op.get_bind()
-    answer_enum.drop(bind, checkfirst=True)
+    answer_enum.drop(op.get_bind(), checkfirst=True)
