@@ -6,7 +6,7 @@ from alembic import op
 import sqlalchemy as sa
 
 
-revision = "20250924_add_refresh_tokens_table"
+revision = "rev_20250924_refresh_tokens"
 down_revision = "20250924_add_approval_fields"
 branch_labels = None
 depends_on = None
