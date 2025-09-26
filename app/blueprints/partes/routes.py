@@ -89,11 +89,24 @@ def nuevo():
     equipos = Equipo.query.order_by(Equipo.codigo).all()
     operadores = Operador.query.order_by(Operador.nombre).all() if Operador else []
     hoy = date.today().isoformat()
+    pre = {
+        "fecha": request.args.get("fecha") or hoy,
+        "equipo_id": request.args.get("equipo_id"),
+        "operador_id": request.args.get("operador_id"),
+        "turno": request.args.get("turno") or "matutino",
+        "ubicacion": request.args.get("ubicacion"),
+        "clima": request.args.get("clima"),
+        "horas_inicio": request.args.get("horas_inicio"),
+        "horas_fin": request.args.get("horas_fin"),
+        "combustible_l": request.args.get("combustible_l"),
+        "observaciones": request.args.get("observaciones"),
+    }
     return render_template(
         "partes/nuevo.html",
         equipos=equipos,
         operadores=operadores,
         hoy=hoy,
+        pre=pre,
     )
 
 

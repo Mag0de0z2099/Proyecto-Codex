@@ -62,6 +62,13 @@
   </header>
 
   <main class="container">
+    <nav>
+      <a href="{{ url_for('equipos.index') }}">Equipos</a> |
+      <a href="{{ url_for('operadores.index') }}">Operadores</a> |
+      <a href="{{ url_for('checklists.index') }}">Checklists</a> |
+      <a href="{{ url_for('partes.index') }}">Partes</a>
+    </nav>
+    <hr>
     {% if current_user.is_authenticated and (current_user.is_approved is defined) and not current_user.is_approved %}
       <div class="alert alert-warning" role="status">
         Tu cuenta aún no ha sido aprobada. Algunas secciones pueden estar bloqueadas.

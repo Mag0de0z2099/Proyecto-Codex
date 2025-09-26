@@ -23,6 +23,7 @@ from app.models import (
     ChecklistItem,
     ChecklistTemplate,
     Equipo,
+    ParteDiaria,
 )
 
 try:  # pragma: no cover - módulo opcional
@@ -53,6 +54,10 @@ def index():
         )
     rows = query.order_by(Checklist.created_at.desc()).limit(200).all()
     return render_template("checklists/index.html", rows=rows, q=q)
+
+
+def _parte_existente_para_checklist(cl_id: int) -> ParteDiaria | None:
+    return ParteDiaria.query.filter_by(checklist_id=cl_id).first()
 
 
 @bp.get("/nuevo")
@@ -158,6 +163,41 @@ def guardar(cl_id: int):
     return redirect(url_for("checklists.detalle", cl_id=cl.id))
 
 
+@bp.post("/<int:cl_id>/generar_parte")
+def generar_parte(cl_id: int):
+    cl = Checklist.query.get_or_404(cl_id)
+    existente = _parte_existente_para_checklist(cl.id)
+    if existente:
+        flash("Este checklist ya tiene un parte generado.", "info")
+        return redirect(url_for("partes.editar", parte_id=existente.id))
+
+    horas_trabajadas = None
+    if (
+        cl.hours_start is not None
+        and cl.hours_end is not None
+        and cl.hours_end >= cl.hours_start
+    ):
+        horas_trabajadas = cl.hours_end - cl.hours_start
+
+    parte = ParteDiaria(
+        fecha=cl.date,
+        equipo_id=cl.equipment_id,
+        operador_id=cl.operator_id,
+        turno=cl.shift or "matutino",
+        ubicacion=cl.location,
+        clima=cl.weather,
+        horas_inicio=cl.hours_start,
+        horas_fin=cl.hours_end,
+        horas_trabajadas=horas_trabajadas,
+        observaciones=cl.notes or "",
+        checklist_id=cl.id,
+    )
+    db.session.add(parte)
+    db.session.commit()
+    flash("Parte diario generado desde el checklist.", "success")
+    return redirect(url_for("partes.editar", parte_id=parte.id))
+
+
 @bp.get("/<int:cl_id>")
 def detalle(cl_id: int):
     cl = Checklist.query.get_or_404(cl_id)
@@ -172,6 +212,7 @@ def detalle(cl_id: int):
         cl=cl,
         items_by_section=items,
         answers=answers,
+        parte=_parte_existente_para_checklist(cl.id),
     )
 
 
