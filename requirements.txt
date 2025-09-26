@@ -1,13 +1,24 @@
-# Web framework
-Flask==3.0.3
+# Core web framework
+Flask>=3.0.0
+Werkzeug>=3.0.0
+itsdangerous>=2.2.0
+Jinja2>=3.1.6
 
-# Servidor WSGI para producción
-gunicorn==22.0.0
+# WSGI server
+gunicorn>=23.0.0
 
-# Utilidades para seguridad de Flask
-itsdangerous==2.2.0
-Jinja2==3.1.4
-Werkzeug==3.0.3
+# Database
+SQLAlchemy>=2.0.0
+Flask-SQLAlchemy>=3.1.1
+Flask-Migrate>=4.0.5
+alembic>=1.13.2
+psycopg[binary]>=3.2.0
+
+# CLI and helpers
+click>=8.1.7
+python-dotenv>=1.0.1
+
+# Optional Flask extensions used elsewhere en el proyecto
 Flask-Login>=0.6.3
 Flask-Bcrypt>=1.0.1
 Flask-WTF>=1.2.1
@@ -15,22 +26,13 @@ Flask-Limiter>=3.7.0
 PyJWT>=2.9.0
 email-validator>=2.2.0
 
-# Testing
-pytest==8.3.3
-pytest-cov==5.0.0
-Flask-SQLAlchemy>=3.1.1
-SQLAlchemy>=2.0.30
-
-# Migraciones
-Flask-Migrate==4.0.7
-alembic>=1.13.2
-
-# Drivers de base de datos
-psycopg[binary]>=3.2,<4
-
 # Scheduler y zonas horarias
 APScheduler>=3.10.4
 pytz>=2024.1
 
 # Metrics
 prometheus-client>=0.20.0
+
+# Testing
+pytest==8.3.3
+pytest-cov==5.0.0
