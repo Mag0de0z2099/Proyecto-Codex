@@ -15,7 +15,7 @@ from sqlalchemy import (
     Text,
     event,
 )
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, validates
 from sqlalchemy.sql import expression
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -245,6 +245,16 @@ class User(db.Model, UserMixin):
 
     def __repr__(self) -> str:
         return f"<User {self.username}>"
+
+    @validates("email")
+    def _validate_email(self, _key: str, value: str | None) -> str | None:
+        return normalize_email(value)
+
+    @validates("username")
+    def _validate_username(self, _key: str, value: str | None) -> str | None:
+        if value is None:
+            return None
+        return value.strip().lower() or None
 
 
 def _sync_user_flags(target: User) -> None:
