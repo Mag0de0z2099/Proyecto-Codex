@@ -183,6 +183,10 @@ def create_app(config_name: str | None = None) -> Flask:
     except Exception:
         pass
 
+    from app.blueprints.partes import bp as partes_bp
+
+    app.register_blueprint(partes_bp)
+
     # Exentamos la API pública JSON del CSRF global
     api_v1_bp = blueprints.get("api_v1")
     if api_v1_bp is not None:

@@ -18,3 +18,9 @@ class Operador(db.Model):
     fecha_alta = db.Column(db.Date, default=datetime.utcnow)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    partes = db.relationship(
+        "ParteDiaria",
+        back_populates="operador",
+        lazy="dynamic",
+    )
