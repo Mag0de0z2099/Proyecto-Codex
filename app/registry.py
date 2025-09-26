@@ -11,6 +11,7 @@ from app.api.v1.users import bp as users_v1_bp
 from app.blueprints.admin import bp_admin
 from app.blueprints.api.v1 import bp_api_v1
 from app.blueprints.auth import bp_auth
+from app.blueprints.equipos import bp as equipos_bp
 from app.blueprints.ping import bp_ping
 from app.blueprints.web import bp_web
 from app.routes.assets import assets_bp
@@ -26,6 +27,7 @@ def register_blueprints(app: Flask) -> dict[str, Blueprint]:
         (public_bp, {}),
         (bp_auth, {}),
         (bp_web, {}),
+        (equipos_bp, {}),
         (bp_admin, {}),
         (bp_api_v1, {"url_prefix": "/api/v1"}),
         (todos_v1_bp, {}),

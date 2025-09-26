@@ -9,4 +9,5 @@ __all__ = [
     "folders",
     "api",
     "ping",
+    "equipos",
 ]
