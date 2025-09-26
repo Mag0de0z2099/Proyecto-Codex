@@ -7,7 +7,7 @@ import sqlalchemy as sa
 
 
 revision = "20251013_create_partes_diarias_tables"
-down_revision = "20251012_create_checklists_tables"
+down_revision = "rev_20251012_checklists"
 branch_labels = None
 depends_on = None
 

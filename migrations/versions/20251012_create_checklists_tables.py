@@ -7,8 +7,8 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 
-revision = "20251012_create_checklists_tables"
-down_revision = "20251011_create_operadores_table"
+revision = "rev_20251012_checklists"
+down_revision = "rev_20251011_operadores"
 branch_labels = None
 depends_on = None
 
