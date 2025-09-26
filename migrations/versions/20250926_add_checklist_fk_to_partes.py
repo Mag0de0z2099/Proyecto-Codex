@@ -8,7 +8,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = "rev_20250926_partes_cl_fk"
-down_revision = "20251013_create_partes_diarias_tables"
+down_revision = "rev_20251012_checklists"
 branch_labels = None
 depends_on = None
 
