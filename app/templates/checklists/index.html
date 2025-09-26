@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Checklists</h1>
+<form method="get" class="mb-2">
+  <input name="q" value="{{ q }}" placeholder="Buscar por equipo...">
+  <button type="submit">Buscar</button>
+  <a class="btn" href="{{ url_for('checklists.nuevo') }}">Nuevo</a>
+</form>
+<table>
+  <thead>
+    <tr>
+      <th>Fecha</th>
+      <th>Equipo</th>
+      <th>Plantilla</th>
+      <th>Estatus</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for r in rows %}
+    <tr>
+      <td>{{ r.date }}</td>
+      <td>{{ r.equipment.codigo if r.equipment else r.equipment_id }}</td>
+      <td>{{ r.template.name if r.template else '-' }}</td>
+      <td><strong>{{ r.overall_status }}</strong></td>
+      <td><a href="{{ url_for('checklists.detalle', cl_id=r.id) }}">Ver</a></td>
+    </tr>
+  {% else %}
+    <tr><td colspan="5">Sin registros</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
