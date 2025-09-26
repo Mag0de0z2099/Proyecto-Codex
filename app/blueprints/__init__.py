@@ -11,4 +11,5 @@ __all__ = [
     "ping",
     "equipos",
     "checklists",
+    "partes",
 ]

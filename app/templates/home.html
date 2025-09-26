@@ -77,6 +77,53 @@
   </div>
 </section>
 
+<section class="py-4">
+  <div class="container">
+    <div class="row g-3">
+      <div class="col-md-3 col-sm-6">
+        <div class="card h-100 border-0 shadow-sm text-center">
+          <div class="card-body">
+            <h6 class="text-muted text-uppercase">Equipos</h6>
+            <p class="display-6 mb-0">{{ stats.equipos if stats else 0 }}</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3 col-sm-6">
+        <div class="card h-100 border-0 shadow-sm text-center">
+          <div class="card-body">
+            <h6 class="text-muted text-uppercase">Operadores</h6>
+            <p class="display-6 mb-0">{{ stats.operadores if stats else 0 }}</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-2 col-sm-4">
+        <div class="card h-100 border-0 shadow-sm text-center">
+          <div class="card-body">
+            <h6 class="text-muted text-uppercase">Partes hoy</h6>
+            <p class="display-6 mb-0">{{ stats.partes_hoy if stats else 0 }}</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-2 col-sm-4">
+        <div class="card h-100 border-0 shadow-sm text-center">
+          <div class="card-body">
+            <h6 class="text-muted text-uppercase">Horas hoy</h6>
+            <p class="display-6 mb-0">{{ '%.1f'|format(stats.horas_hoy) if stats else '0.0' }}</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-2 col-sm-4">
+        <div class="card h-100 border-0 shadow-sm text-center">
+          <div class="card-body">
+            <h6 class="text-muted text-uppercase">Combustible (L)</h6>
+            <p class="display-6 mb-0">{{ '%.1f'|format(stats.combustible_hoy) if stats else '0.0' }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <section class="py-5">
   <div class="container">
     <div class="row g-4">

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from getpass import getpass
 
 import click
@@ -10,7 +10,15 @@ from flask import current_app
 from werkzeug.security import generate_password_hash
 
 from app.db import db
-from app.models import ChecklistItem, ChecklistTemplate, Equipo, Operador, User
+from app.models import (
+    ActividadDiaria,
+    ChecklistItem,
+    ChecklistTemplate,
+    Equipo,
+    Operador,
+    ParteDiaria,
+    User,
+)
 from app.services.auth_service import ensure_admin_user
 from app.services.maintenance_service import cleanup_expired_refresh_tokens
 from app.utils.strings import normalize_email
@@ -159,6 +167,41 @@ def register_cli(app):
                 db.session.add(Operador(**payload))
         db.session.commit()
         click.echo("Operadores seed: OK")
+
+    @app.cli.command("seed-partes-demo")
+    def seed_partes_demo():
+        """Crear un parte diario de demostración vinculado al primer equipo disponible."""
+
+        equipo = Equipo.query.first()
+        if not equipo:
+            click.echo("Primero crea o carga equipos.")
+            return
+
+        parte = ParteDiaria(
+            fecha=date.today(),
+            equipo_id=equipo.id,
+            turno="matutino",
+            ubicacion="Frente A",
+            horas_inicio=1200,
+            horas_fin=1208,
+            combustible_l=45,
+            observaciones="Sin novedades",
+        )
+        parte.actualizar_horas_trabajadas()
+        db.session.add(parte)
+        db.session.flush()
+        db.session.add(
+            ActividadDiaria(
+                parte_id=parte.id,
+                descripcion="Movimiento de material",
+                cantidad=180,
+                unidad="m3",
+                horas=6.5,
+                notas="Zona 1",
+            )
+        )
+        db.session.commit()
+        click.echo("Parte demo: OK")
 
     @app.cli.command("seed-checklist-templates")
     def seed_checklist_templates():
