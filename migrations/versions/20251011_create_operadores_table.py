@@ -6,8 +6,8 @@ from alembic import op
 import sqlalchemy as sa
 
 
-revision = "20251011_create_operadores_table"
-down_revision = "20251010_create_equipos_table"
+revision = "rev_20251011_operadores"
+down_revision = "rev_20250924_refresh_tokens"
 branch_labels = None
 depends_on = None
 
