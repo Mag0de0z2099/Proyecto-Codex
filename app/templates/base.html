@@ -24,6 +24,9 @@
       {% elif session_user %}
         {% set current_role = session_user.get('role') or ('admin' if session_user.get('is_admin') else None) %}
       {% endif %}
+      <a class="btn btn-outline" href="{{ url_for('equipos.index') }}">
+        <span>Equipos</span>
+      </a>
       <div class="toolbar" style="margin-left:auto">
         {% if is_logged %}
           {% if current_role == "admin" %}

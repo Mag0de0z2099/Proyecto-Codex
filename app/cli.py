@@ -10,7 +10,7 @@ from flask import current_app
 from werkzeug.security import generate_password_hash
 
 from app.db import db
-from app.models import User
+from app.models import Equipo, User
 from app.services.auth_service import ensure_admin_user
 from app.services.maintenance_service import cleanup_expired_refresh_tokens
 from app.utils.strings import normalize_email
@@ -121,5 +121,19 @@ def register_cli(app):
 
         result = cleanup_expired_refresh_tokens(grace_days=grace_days)
         click.echo(f"Cleanup done: {result}")
+
+    @app.cli.command("seed-equipos")
+    def seed_equipos():
+        """Cargar equipos de demostración si no existen."""
+
+        data = [
+            {"codigo": "EXC-001", "tipo": "excavadora", "marca": "CAT", "modelo": "320D", "status": "activo"},
+            {"codigo": "DRG-028", "tipo": "draga", "marca": "IHC", "modelo": "28m", "status": "mantenimiento"},
+        ]
+        for payload in data:
+            if not Equipo.query.filter_by(codigo=payload["codigo"]).first():
+                db.session.add(Equipo(**payload))
+        db.session.commit()
+        click.echo("Equipos seed: OK")
 
     return app
