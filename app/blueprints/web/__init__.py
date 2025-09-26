@@ -15,8 +15,8 @@ def index():
 
 
 @bp_web.get("/health")
-def health() -> str:
-    return "ok"
+def health() -> tuple[dict[str, str], int]:
+    return {"status": "ok"}, 200
 
 
 @bp_web.get("/healthz")
