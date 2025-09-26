@@ -17,6 +17,12 @@ class ParteDiaria(db.Model):
         nullable=True,
         index=True,
     )
+    checklist_id = db.Column(
+        db.Integer,
+        db.ForeignKey("checklists.id"),
+        nullable=True,
+        index=True,
+    )
     turno = db.Column(db.String(16), nullable=False, default="matutino")
     ubicacion = db.Column(db.String(128))
     clima = db.Column(db.String(64))
@@ -35,6 +41,7 @@ class ParteDiaria(db.Model):
     )
     equipo = db.relationship("Equipo", back_populates="partes")
     operador = db.relationship("Operador", back_populates="partes")
+    checklist = db.relationship("Checklist", foreign_keys=[checklist_id])
 
     def calcular_horas_trabajadas(self) -> float | None:
         """Devuelve las horas trabajadas si hay horómetros válidos."""

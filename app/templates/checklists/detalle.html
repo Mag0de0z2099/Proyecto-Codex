@@ -2,6 +2,17 @@
 {% block content %}
 <h1>{{ cl.template.name }} — {{ cl.date }} — <strong>{{ cl.overall_status }}</strong></h1>
 <p>
+  {% if parte %}
+    Vinculado a Parte <a href="{{ url_for('partes.detalle', parte_id=parte.id) }}">#{{ parte.id }}</a>
+    <a href="{{ url_for('partes.editar', parte_id=parte.id) }}">(editar)</a>
+  {% else %}
+    <form method="post" action="{{ url_for('checklists.generar_parte', cl_id=cl.id) }}" style="display:inline">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit">Generar Parte Diario</button>
+    </form>
+  {% endif %}
+</p>
+<p>
   Equipo: {{ cl.equipment.codigo if cl.equipment else cl.equipment_id }} |
   Turno: {{ cl.shift }} |
   Ubicación: {{ cl.location }} |
