@@ -10,4 +10,5 @@ __all__ = [
     "api",
     "ping",
     "equipos",
+    "checklists",
 ]

@@ -5,15 +5,7 @@ from random import choice
 
 from app import create_app
 from app.db import db
-from app.models import (
-    Bitacora,
-    ChecklistTemplate,
-    ChecklistTemplateItem,
-    DailyChecklist,
-    DailyChecklistItem,
-    Project,
-    User,
-)
+from app.models import Bitacora, Project, User
 
 
 def ensure_user(username: str, password: str, role: str, title: str | None = None):
@@ -55,50 +47,6 @@ def seed_admin_extra():
             spent=1_250_000,
         )
         db.session.add(project)
-        db.session.commit()
-
-    # Plantilla demo
-    template = ChecklistTemplate.query.filter_by(
-        name="Checklist diario de dragado"
-    ).first()
-    if not template:
-        template = ChecklistTemplate(name="Checklist diario de dragado", project_id=project.id)
-        db.session.add(template)
-        db.session.commit()
-        base_items = [
-            "EPP completo",
-            "Señalización en tierra",
-            "Control de RP/RSU",
-            "Revisión de oleaje/clima",
-            "Mantenimiento básico draga",
-        ]
-        for order, text in enumerate(base_items):
-            db.session.add(
-                ChecklistTemplateItem(template_id=template.id, text=text, order=order)
-            )
-        db.session.commit()
-
-    # Checklist del día
-    if not DailyChecklist.query.filter_by(
-        project_id=project.id, date=date.today()
-    ).first():
-        checklist = DailyChecklist(
-            project_id=project.id,
-            date=date.today(),
-            created_by="admin",
-            status="en_progreso",
-        )
-        db.session.add(checklist)
-        db.session.commit()
-        items = (
-            ChecklistTemplateItem.query.filter_by(template_id=template.id)
-            .order_by(ChecklistTemplateItem.order)
-            .all()
-        )
-        for item in items:
-            db.session.add(
-                DailyChecklistItem(checklist_id=checklist.id, text=item.text, done=False)
-            )
         db.session.commit()
 
     # Bitácoras de ejemplo

@@ -107,6 +107,14 @@ def create_app(config_name: str | None = None) -> Flask:
 
     # Directorios persistentes (DATA_DIR, instance/, etc.)
     ensure_dirs(app)
+
+    upload_root = os.environ.get("UPLOAD_FOLDER") or os.path.join(
+        os.environ.get("DATA_DIR", str(app.config.get("DATA_DIR", "/data"))),
+        "uploads",
+        "checklists",
+    )
+    Path(upload_root).mkdir(parents=True, exist_ok=True)
+    app.config["UPLOAD_CHECKLISTS_DIR"] = upload_root
     if os.getenv("PROMETHEUS_MULTIPROC_CLEAN_ON_START", "0").lower() in (
         "1",
         "true",
@@ -165,6 +173,13 @@ def create_app(config_name: str | None = None) -> Flask:
         from .routes.auth import bp as auth_bp
 
         app.register_blueprint(auth_bp)
+    except Exception:
+        pass
+
+    try:
+        from app.blueprints.checklists import bp as cl_bp
+
+        app.register_blueprint(cl_bp)
     except Exception:
         pass
 

@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ cl.template.name }} — {{ cl.date }} — <strong>{{ cl.overall_status }}</strong></h1>
+<p>
+  Equipo: {{ cl.equipment.codigo if cl.equipment else cl.equipment_id }} |
+  Turno: {{ cl.shift }} |
+  Ubicación: {{ cl.location }} |
+  Clima: {{ cl.weather }}
+</p>
+{% for section, items in items_by_section.items() %}
+  <h2>{{ "Pre-operativo" if section == "PRE" else ("Operación" if section == "OP" else "Post-operativo") }}</h2>
+  <table>
+    <thead>
+      <tr><th>#</th><th>Ítem</th><th>Res</th><th>Nota</th><th>Foto</th></tr>
+    </thead>
+    <tbody>
+    {% for it in items %}
+      {% set a = answers.get(it.id) %}
+      <tr>
+        <td>{{ it.order }}</td>
+        <td>{{ it.text }} {% if it.critical %}<strong>(Crítico)</strong>{% endif %}</td>
+        <td>{{ a.result.value if a else '-' }}</td>
+        <td>{{ a.note if a else '' }}</td>
+        <td>
+          {% if a and a.photo_path %}
+            <a href="{{ url_for('checklists.photo', fname=a.photo_path) }}" target="_blank">ver</a>
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+{% endfor %}
+<button type="button" onclick="window.print()">Imprimir</button>
+{% endblock %}
