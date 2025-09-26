@@ -7,7 +7,7 @@ import sqlalchemy as sa
 
 
 revision = "rev_20251011_operadores"
-down_revision = "rev_20250924_refresh_tokens"
+down_revision = "20251010_create_equipos_table"
 branch_labels = None
 depends_on = None
 
