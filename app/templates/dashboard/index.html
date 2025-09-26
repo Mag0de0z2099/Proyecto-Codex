@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Dashboard</h1>
+
+<!-- Atajos -->
+<p>
+  <a href="{{ url_for('checklists.nuevo') }}">➕ Nuevo Checklist</a> |
+  <a href="{{ url_for('partes.nuevo') }}">➕ Nuevo Parte</a> |
+  <a href="{{ url_for('equipos.nuevo') }}">➕ Nuevo Equipo</a>
+  {% if total_operadores is not none %}| <a href="{{ url_for('operadores.nuevo') }}">➕ Nuevo Operador</a>{% endif %}
+</p>
+
+<!-- KPIs -->
+<div style="display:flex; gap:16px; flex-wrap:wrap;">
+  <div style="border:1px solid #ddd; padding:12px; border-radius:8px; min-width:180px;">
+    <div>Total Equipos</div>
+    <h2>{{ total_equipos }}</h2>
+  </div>
+  <div style="border:1px solid #ddd; padding:12px; border-radius:8px; min-width:180px;">
+    <div>Total Operadores</div>
+    <h2>{{ total_operadores }}</h2>
+  </div>
+  <div style="border:1px solid #ddd; padding:12px; border-radius:8px; min-width:220px;">
+    <div>Partes de hoy ({{ hoy }})</div>
+    <h2>{{ partes_count }}</h2>
+    <small>Horas: {{ '%.2f'|format(horas_hoy) }} &nbsp;•&nbsp; Comb: {{ '%.2f'|format(comb_hoy) }} L</small>
+  </div>
+  <div style="border:1px solid #ddd; padding:12px; border-radius:8px; min-width:220px;">
+    <div>Checklists de hoy ({{ hoy }})</div>
+    <h2>APTO {{ chk_apto }} / NO_APTO {{ chk_noapto }}</h2>
+  </div>
+</div>
+
+<!-- Alertas -->
+<h2 style="margin-top:24px;">Alertas</h2>
+<div style="display:flex; gap:16px; flex-wrap:wrap;">
+  <div style="border:1px solid #f2c; padding:12px; border-radius:8px; min-width:300px;">
+    <h3 style="margin:0 0 8px 0;">NO_APTO (últimos 3 días)</h3>
+    {% if noaptos %}
+    <ul>
+      {% for c in noaptos %}
+        <li>
+          {{ c.date }} — {{ c.template.name }} — <b>{{ c.overall_status }}</b>
+          <a href="{{ url_for('checklists.detalle', cl_id=c.id) }}">ver</a>
+        </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p>Sin NO_APTO recientes 🎉</p>
+    {% endif %}
+  </div>
+
+  <div style="border:1px solid #fc6; padding:12px; border-radius:8px; min-width:300px;">
+    <h3 style="margin:0 0 8px 0;">Partes de hoy incompletos</h3>
+    {% if partes_incompletos %}
+    <ul>
+      {% for p in partes_incompletos %}
+        <li>
+          Parte #{{ p.id }} — Equipo {{ p.equipo_id }}
+          {% if p.horas_trabajadas is none %} • falta <b>horas</b>{% endif %}
+          {% if p.combustible_l is none %} • falta <b>combustible</b>{% endif %}
+          <a href="{{ url_for('partes.editar', parte_id=p.id) }}">editar</a>
+        </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p>Todos los partes de hoy están completos ✅</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
