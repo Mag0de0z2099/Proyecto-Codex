@@ -5,6 +5,7 @@ import io
 from datetime import date
 
 from flask import flash, redirect, render_template, request, send_file, url_for
+from flask_login import login_required
 from sqlalchemy import or_
 from sqlalchemy.orm import joinedload
 
@@ -40,6 +41,7 @@ def _parse_float(value: str | None) -> float | None:
 
 
 @bp.get("/")
+@login_required
 def index():
     d1_raw = request.args.get("d1")
     d2_raw = request.args.get("d2")
@@ -85,6 +87,7 @@ def index():
 
 
 @bp.get("/nuevo")
+@login_required
 def nuevo():
     equipos = Equipo.query.order_by(Equipo.codigo).all()
     operadores = Operador.query.order_by(Operador.nombre).all() if Operador else []
@@ -111,6 +114,7 @@ def nuevo():
 
 
 @bp.post("/crear")
+@login_required
 def crear():
     equipo_id = request.form.get("equipo_id")
     if not equipo_id:
@@ -141,6 +145,7 @@ def crear():
 
 
 @bp.get("/<int:parte_id>/editar")
+@login_required
 def editar(parte_id: int):
     parte = (
         ParteDiaria.query.options(
@@ -162,6 +167,7 @@ def editar(parte_id: int):
 
 
 @bp.post("/<int:parte_id>/agregar_actividad")
+@login_required
 def agregar_actividad(parte_id: int):
     parte = ParteDiaria.query.get_or_404(parte_id)
     actividad = ActividadDiaria(
@@ -179,6 +185,7 @@ def agregar_actividad(parte_id: int):
 
 
 @bp.post("/<int:parte_id>/eliminar_actividad/<int:act_id>")
+@login_required
 def eliminar_actividad(parte_id: int, act_id: int):
     actividad = ActividadDiaria.query.get_or_404(act_id)
     db.session.delete(actividad)
@@ -188,6 +195,7 @@ def eliminar_actividad(parte_id: int, act_id: int):
 
 
 @bp.post("/<int:parte_id>/actualizar")
+@login_required
 def actualizar(parte_id: int):
     parte = ParteDiaria.query.get_or_404(parte_id)
 
@@ -221,6 +229,7 @@ def actualizar(parte_id: int):
 
 
 @bp.post("/<int:parte_id>/eliminar")
+@login_required
 def eliminar(parte_id: int):
     parte = ParteDiaria.query.get_or_404(parte_id)
     db.session.delete(parte)
@@ -230,6 +239,7 @@ def eliminar(parte_id: int):
 
 
 @bp.get("/<int:parte_id>")
+@login_required
 def detalle(parte_id: int):
     parte = (
         ParteDiaria.query.options(
@@ -251,6 +261,7 @@ def detalle(parte_id: int):
 
 
 @bp.get("/export.csv")
+@login_required
 def export_csv():
     d1_raw = request.args.get("d1")
     d2_raw = request.args.get("d2")

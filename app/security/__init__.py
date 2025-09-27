@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+from typing import Iterable
+
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
-from flask import current_app
+from flask import current_app, redirect, request, url_for
+from flask_login import current_user
 
 from .jwt import encode_jwt, decode_jwt  # noqa: F401
 from .guards import requires_auth, requires_role  # noqa: F401
@@ -13,9 +16,26 @@ __all__ = [
     "decode_jwt",
     "requires_auth",
     "requires_role",
+    "require_login",
     "generate_reset_token",
     "parse_reset_token",
 ]
+
+
+def require_login(bp, exclude: Iterable[str] | None = None) -> None:
+    """Apply a login requirement to all routes in a blueprint."""
+
+    exclude_set = set(exclude or ())
+
+    @bp.before_request
+    def _guard():  # type: ignore[func-returns-value]
+        endpoint = (request.endpoint or "").split(".")[-1]
+        if endpoint in exclude_set:
+            return None
+        if not current_user.is_authenticated:
+            return redirect(url_for("auth.login", next=request.url))
+
+    return None
 
 
 def _serializer() -> URLSafeTimedSerializer:

@@ -12,6 +12,7 @@ from flask import (
     send_from_directory,
     url_for,
 )
+from flask_login import login_required
 from sqlalchemy import or_
 from werkzeug.utils import secure_filename
 
@@ -44,6 +45,7 @@ def pick_template_for_equipment(equipo: Equipo) -> ChecklistTemplate | None:
 
 
 @bp.get("/")
+@login_required
 def index():
     q = (request.args.get("q") or "").strip()
     query = Checklist.query
@@ -61,6 +63,7 @@ def _parte_existente_para_checklist(cl_id: int) -> ParteDiaria | None:
 
 
 @bp.get("/nuevo")
+@login_required
 def nuevo():
     equipos = Equipo.query.order_by(Equipo.codigo).all()
     operadores = Operador.query.order_by(Operador.nombre).all() if Operador else []
@@ -74,6 +77,7 @@ def nuevo():
 
 
 @bp.post("/crear")
+@login_required
 def crear():
     equipment_id = int(request.form["equipment_id"])
     template_id = int(request.form.get("template_id") or 0)
@@ -117,6 +121,7 @@ def crear():
 
 
 @bp.get("/<int:cl_id>/editar")
+@login_required
 def editar(cl_id: int):
     cl = Checklist.query.get_or_404(cl_id)
     items: dict[str, list[ChecklistItem]] = {}
@@ -135,6 +140,7 @@ def editar(cl_id: int):
 
 
 @bp.post("/<int:cl_id>/guardar")
+@login_required
 def guardar(cl_id: int):
     cl = Checklist.query.get_or_404(cl_id)
     critical_fail = False
@@ -164,6 +170,7 @@ def guardar(cl_id: int):
 
 
 @bp.post("/<int:cl_id>/generar_parte")
+@login_required
 def generar_parte(cl_id: int):
     cl = Checklist.query.get_or_404(cl_id)
     existente = _parte_existente_para_checklist(cl.id)
@@ -199,6 +206,7 @@ def generar_parte(cl_id: int):
 
 
 @bp.get("/<int:cl_id>")
+@login_required
 def detalle(cl_id: int):
     cl = Checklist.query.get_or_404(cl_id)
     items: dict[str, list[ChecklistItem]] = {}
@@ -217,6 +225,7 @@ def detalle(cl_id: int):
 
 
 @bp.get("/photo/<path:fname>")
+@login_required
 def photo(fname: str):
     return send_from_directory(
         current_app.config["UPLOAD_CHECKLISTS_DIR"], fname, as_attachment=False

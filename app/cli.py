@@ -7,6 +7,7 @@ from getpass import getpass
 
 import click
 from flask import current_app
+from flask.cli import with_appcontext
 from werkzeug.security import generate_password_hash
 
 from app.db import db
@@ -24,7 +25,67 @@ from app.services.maintenance_service import cleanup_expired_refresh_tokens
 from app.utils.strings import normalize_email
 
 
+@click.group()
+def users():
+    """Comandos relacionados con usuarios."""
+
+
+@users.command("ensure-admin")
+@click.option("--email", required=True)
+@click.option("--password", required=True)
+@with_appcontext
+def ensure_admin(email: str, password: str) -> None:
+    """Crear o actualizar un administrador con las credenciales dadas."""
+
+    email = normalize_email(email)
+    if not email:
+        click.echo("Email inválido", err=True)
+        raise SystemExit(1)
+
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        base_username = (email.split("@", 1)[0] or "admin").strip() or "admin"
+        candidate = base_username
+        counter = 1
+        while User.query.filter_by(username=candidate).first():
+            counter += 1
+            candidate = f"{base_username}{counter}"
+        user = User(
+            email=email,
+            username=candidate,
+            role="admin",
+            is_admin=True,
+            is_active=True,
+            status="approved",
+            is_approved=True,
+            approved_at=datetime.now(timezone.utc),
+        )
+        db.session.add(user)
+    else:
+        user.role = "admin"
+        user.is_admin = True
+        user.is_active = True
+        if not getattr(user, "approved_at", None):
+            user.approved_at = datetime.now(timezone.utc)
+        try:
+            user.status = "approved"
+        except Exception:
+            pass
+        if hasattr(user, "is_approved"):
+            user.is_approved = True
+
+    if hasattr(user, "set_password"):
+        user.set_password(password)
+    else:
+        user.password_hash = generate_password_hash(password)
+
+    db.session.commit()
+    click.echo("Admin listo")
+
+
 def register_cli(app):
+    app.cli.add_command(users)
+
     @app.cli.command("create-admin")
     def create_admin():
         """Crear un usuario administrador de forma interactiva."""
