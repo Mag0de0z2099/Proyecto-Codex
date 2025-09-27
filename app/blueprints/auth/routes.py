@@ -70,13 +70,20 @@ def _redirect_for_role(role: str, next_url: str | None = None):
 @bp_auth.post("/login")
 def login_post():
     try:
+        raw_email = request.form.get("email")
+        if raw_email is None:
+            raw_email = request.form.get("username")
+        email = normalize_email(raw_email)
         username = (request.form.get("username") or "").strip()
         password = request.form.get("password") or ""
 
         # === MODO SIMPLE: SIN DB ===
         if current_app.config.get("AUTH_SIMPLE", True):
             ensure_bootstrap_admin(current_app)
-            user = verify(current_app, username, password)
+            simple_identifier = username or (raw_email or "").strip()
+            user = verify(current_app, simple_identifier, password)
+            if not user and email and email != simple_identifier:
+                user = verify(current_app, email, password)
             if user:
                 role = _resolve_role(user)
                 session["user"] = {**user, "role": role}
@@ -92,8 +99,24 @@ def login_post():
         # flash("Usuario o contraseña inválidos.", "danger")
         # return redirect(url_for("auth.login"))
 
-        user = User.query.filter_by(username=username).first()
-        if not user or not user.check_password(password):
+        user = None
+        if email:
+            user = User.query.filter(func.lower(User.email) == email).first()
+        if not user and username:
+            user = User.query.filter(func.lower(User.username) == username.lower()).first()
+        if not user:
+            flash("Usuario o contraseña inválidos.", "danger")
+            return render_template("auth/login.html"), HTTPStatus.UNAUTHORIZED
+
+        if hasattr(user, "check_password"):
+            ok = user.check_password(password)
+        else:
+            from werkzeug.security import check_password_hash
+
+            hashval = getattr(user, "password_hash", getattr(user, "password", ""))
+            ok = check_password_hash(hashval, password)
+
+        if not ok:
             flash("Usuario o contraseña inválidos.", "danger")
             return render_template("auth/login.html"), HTTPStatus.UNAUTHORIZED
 
