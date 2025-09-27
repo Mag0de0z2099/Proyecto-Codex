@@ -3,11 +3,24 @@ services:
     name: proyecto-codex
     env: python
     buildCommand: pip install -r requirements.txt
-    preDeployCommand: >
-      python -c "import os,psycopg; conn=psycopg.connect(os.environ['DATABASE_URL']); cur=conn.cursor(); cur.execute('ALTER TABLE IF EXISTS alembic_version ALTER COLUMN version_num TYPE VARCHAR(64);'); conn.commit(); cur.close(); conn.close()" &&
-      alembic -c migrations/alembic.ini upgrade heads &&
-      FLASK_APP=app:create_app flask seed-admin --email admin@admin.com --password admin123
-    startCommand: gunicorn -w 3 wsgi:app
+    preDeployCommand: |
+      python - <<'PY'
+      import os
+      from sqlalchemy import create_engine, text
+
+      engine = create_engine(os.environ["DATABASE_URL"])
+      with engine.begin() as conn:
+          conn.execute(
+              text(
+                  "ALTER TABLE IF EXISTS alembic_version "
+                  "ALTER COLUMN version_num TYPE VARCHAR(128)"
+              )
+          )
+          print("OK: alembic_version.version_num = VARCHAR(128)")
+      PY
+      && alembic -c migrations/alembic.ini upgrade head
+      && FLASK_APP=app:create_app flask seed-admin --email admin@admin.com --password admin123
+    startCommand: gunicorn -w 2 -k gthread -t 120 -b 0.0.0.0:$PORT 'app:create_app()'
     healthCheckPath: /healthz
     envVars:
       - key: DATABASE_URL

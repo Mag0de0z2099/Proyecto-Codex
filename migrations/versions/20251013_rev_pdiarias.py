@@ -6,7 +6,7 @@ from alembic import op
 import sqlalchemy as sa
 
 
-revision = "20251013_create_partes_diarias_tables"
+revision = "rev_20251013_pdiarias"
 down_revision = "rev_20251012_checklists"
 branch_labels = None
 depends_on = None
