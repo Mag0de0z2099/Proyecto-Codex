@@ -8,7 +8,7 @@ from sqlalchemy.dialects import postgresql
 
 
 revision = "rev_20251012_checklists"
-down_revision = "rev_20251011_operadores"
+down_revision = "20251011_create_operadores_table"
 branch_labels = None
 depends_on = None
 

@@ -6,7 +6,7 @@ from alembic import op
 import sqlalchemy as sa
 
 
-revision = "rev_20251011_operadores"
+revision = "20251011_create_operadores_table"
 down_revision = "20251010_create_equipos_table"
 branch_labels = None
 depends_on = None
