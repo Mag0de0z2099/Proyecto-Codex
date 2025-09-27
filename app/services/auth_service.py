@@ -9,6 +9,30 @@ from app.models import User
 from app.utils.strings import normalize_email
 
 
+def _resolve_username(base: str) -> str:
+    candidate = (base or "").strip() or "admin"
+    return candidate
+
+
+def _unique_username(base: str, *, exclude_id: int | None = None) -> str:
+    """Return a username unique in the database."""
+
+    base_username = _resolve_username(base)
+    candidate = base_username
+    if not hasattr(User, "username"):
+        return candidate
+
+    counter = 1
+    while True:
+        existing = User.query.filter_by(username=candidate)
+        if exclude_id is not None:
+            existing = existing.filter(User.id != exclude_id)
+        if existing.first() is None:
+            return candidate
+        counter += 1
+        candidate = f"{base_username}{counter}"
+
+
 def verify_credentials(email: str, password: str):
     if not email or not password:
         return None
@@ -34,11 +58,12 @@ def ensure_admin_user(
 
     user = User.query.filter_by(email=normalized_email).one_or_none()
     if user is None:
+        resolved_username = _unique_username(resolved_username)
         user = User(email=normalized_email, username=resolved_username)
         db.session.add(user)
     else:
         if hasattr(user, "username") and username:
-            user.username = resolved_username
+            user.username = _unique_username(resolved_username, exclude_id=user.id)
 
     if hasattr(user, "set_password"):
         user.set_password(password)
