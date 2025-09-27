@@ -76,6 +76,7 @@ def login_post():
         email = normalize_email(raw_email)
         username = (request.form.get("username") or "").strip()
         password = request.form.get("password") or ""
+        login_identifier = (raw_email or "").strip().lower()
 
         # === MODO SIMPLE: SIN DB ===
         if current_app.config.get("AUTH_SIMPLE", True):
@@ -100,10 +101,32 @@ def login_post():
         # return redirect(url_for("auth.login"))
 
         user = None
-        if email:
-            user = User.query.filter(func.lower(User.email) == email).first()
-        if not user and username:
-            user = User.query.filter(func.lower(User.username) == username.lower()).first()
+        attempts: list[tuple[str, str]] = []
+        if email and hasattr(User, "email"):
+            attempts.append(("email", email))
+        if login_identifier:
+            if hasattr(User, "email"):
+                attempts.append(("email", login_identifier))
+            if hasattr(User, "username"):
+                attempts.append(("username", login_identifier))
+        if username and hasattr(User, "username"):
+            attempts.append(("username", username.lower()))
+
+        seen: set[tuple[str, str]] = set()
+        for field, value in attempts:
+            key = (field, value)
+            if key in seen:
+                continue
+            seen.add(key)
+            column = getattr(User, field, None)
+            if column is None:
+                continue
+            candidate = User.query.filter(func.lower(column) == value).first()
+            if candidate:
+                user = candidate
+                break
+        if not user and email and hasattr(User, "username"):
+            user = User.query.filter(func.lower(User.username) == email).first()
         if not user:
             flash("Usuario o contraseña inválidos.", "danger")
             return render_template("auth/login.html"), HTTPStatus.UNAUTHORIZED
@@ -114,7 +137,7 @@ def login_post():
             from werkzeug.security import check_password_hash
 
             hashval = getattr(user, "password_hash", getattr(user, "password", ""))
-            ok = check_password_hash(hashval, password)
+            ok = bool(hashval) and check_password_hash(hashval, password)
 
         if not ok:
             flash("Usuario o contraseña inválidos.", "danger")
@@ -128,7 +151,7 @@ def login_post():
             flash("Tu cuenta está inactiva. Contacta al administrador.", "warning")
             return redirect(url_for("auth.login"))
 
-        login_user(user)
+        login_user(user, remember=True)
         if getattr(user, "force_change_password", False):
             flash("Debes actualizar tu contraseña antes de continuar.", "info")
             return redirect(url_for("auth.change_password"))
