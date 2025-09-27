@@ -16,60 +16,33 @@
       </span>
     </div>
     <nav class="nav-right">
-      {% set is_logged = current_user.is_authenticated or session.get('user') %}
-      {% set session_user = session.get('user') or {} %}
-      {% set current_role = None %}
       {% if current_user.is_authenticated %}
-        {% set current_role = current_user.role %}
-      {% elif session_user %}
-        {% set current_role = session_user.get('role') or ('admin' if session_user.get('is_admin') else None) %}
+        <a href="{{ url_for('equipos.index') }}">Equipos</a>
+        <a href="{{ url_for('partes.index') }}">Partes</a>
+        <a href="{{ url_for('checklists.index') }}">Checklists</a>
+        <a href="{{ url_for('operadores.index') }}">Operadores</a>
+        <form method="post" action="{{ url_for('auth.logout') }}" class="inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn" type="submit">Logout</button>
+        </form>
+      {% else %}
+        <a href="{{ url_for('public.home') }}">Inicio</a>
+        <a href="{{ url_for('auth.login') }}" class="btn">Login</a>
       {% endif %}
-      <a class="btn btn-outline" href="{{ url_for('equipos.index') }}">
-        <span>Equipos</span>
-      </a>
-      <a class="btn btn-outline" href="{{ url_for('partes.index') }}">
-        <span>Partes</span>
-      </a>
-      <a class="btn btn-outline" href="{{ url_for('checklists.index') }}">
-        <span>Checklists</span>
-      </a>
-      <a class="btn btn-outline" href="{{ url_for('operadores.index') }}">
-        <span>Operadores</span>
-      </a>
-      <div class="toolbar" style="margin-left:auto">
-        {% if is_logged %}
-          {% if current_role == "admin" %}
-            <a class="btn btn-outline" href="{{ url_for('admin.users_pending') }}">
-              {{ i.bell() }} <span>Pendientes{% if pending_users_count %} ({{ pending_users_count }}){% endif %}</span>
-            </a>
-          {% endif %}
-          <a class="btn btn-outline" href="{{ url_for('admin.dashboard') }}">
-            {{ i.userShield() }} <span>Admin</span>
-          </a>
-          <form method="post" action="{{ url_for('auth.logout') }}" class="inline">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button class="btn btn-primary" type="submit">
-              {{ i.logout() }} <span>Logout</span>
-            </button>
-          </form>
-        {% else %}
-          <a class="btn btn-primary" href="{{ url_for('auth.login') }}">
-            {{ i.key() }} <span>Login</span>
-          </a>
-        {% endif %}
-      </div>
     </nav>
   </header>
 
   <main class="container">
-    <nav>
-      <a href="{{ url_for('dashboard.home') }}">Inicio</a> |
-      <a href="{{ url_for('equipos.index') }}">Equipos</a> |
-      <a href="{{ url_for('operadores.index') }}">Operadores</a> |
-      <a href="{{ url_for('checklists.index') }}">Checklists</a> |
-      <a href="{{ url_for('partes.index') }}">Partes</a>
-    </nav>
-    <hr>
+    {% if current_user.is_authenticated %}
+      <nav>
+        <a href="{{ url_for('dashboard.home') }}">Inicio</a> |
+        <a href="{{ url_for('equipos.index') }}">Equipos</a> |
+        <a href="{{ url_for('operadores.index') }}">Operadores</a> |
+        <a href="{{ url_for('checklists.index') }}">Checklists</a> |
+        <a href="{{ url_for('partes.index') }}">Partes</a>
+      </nav>
+      <hr>
+    {% endif %}
     {% if current_user.is_authenticated and (current_user.is_approved is defined) and not current_user.is_approved %}
       <div class="alert alert-warning" role="status">
         Tu cuenta aún no ha sido aprobada. Algunas secciones pueden estar bloqueadas.

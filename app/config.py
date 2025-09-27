@@ -50,8 +50,10 @@ class Config:
         self.SIGNUP_MODE = os.getenv("SIGNUP_MODE", "invite")
         self.ALLOWLIST_DOMAINS = _list_env("ALLOWLIST_DOMAINS")
         self.SESSION_COOKIE_HTTPONLY = True
-        self.SESSION_COOKIE_SECURE = _bool_env("SESSION_COOKIE_SECURE")
-        self.SESSION_COOKIE_SAMESITE = os.getenv("SESSION_COOKIE_SAMESITE", "Lax")
+        self.REMEMBER_COOKIE_HTTPONLY = True
+        self.SESSION_COOKIE_SECURE = True
+        self.REMEMBER_COOKIE_SECURE = True
+        self.SESSION_COOKIE_SAMESITE = "Lax"
         self.REMEMBER_COOKIE_DURATION = timedelta(
             seconds=int(os.getenv("REMEMBER_COOKIE_DURATION", "86400"))
         )

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from flask import flash, redirect, render_template, request, url_for
+from flask_login import login_required
 
 from app.db import db
 from app.models import Operador
@@ -9,6 +10,7 @@ from . import bp
 
 
 @bp.get("/")
+@login_required
 def index():
     q = (request.args.get("q", "") or "").strip()
     query = Operador.query
@@ -26,11 +28,13 @@ def index():
 
 
 @bp.get("/nuevo")
+@login_required
 def nuevo():
     return render_template("operadores/form.html", op=None)
 
 
 @bp.post("/crear")
+@login_required
 def crear():
     data = {
         k: request.form.get(k)
@@ -47,12 +51,14 @@ def crear():
 
 
 @bp.get("/<int:op_id>/editar")
+@login_required
 def editar(op_id: int):
     op = Operador.query.get_or_404(op_id)
     return render_template("operadores/form.html", op=op)
 
 
 @bp.post("/<int:op_id>/actualizar")
+@login_required
 def actualizar(op_id: int):
     op = Operador.query.get_or_404(op_id)
     for key in ["nombre", "identificacion", "licencia", "puesto", "telefono", "status"]:
@@ -66,6 +72,7 @@ def actualizar(op_id: int):
 
 
 @bp.post("/<int:op_id>/eliminar")
+@login_required
 def eliminar(op_id: int):
     op = Operador.query.get_or_404(op_id)
     db.session.delete(op)
@@ -75,6 +82,7 @@ def eliminar(op_id: int):
 
 
 @bp.get("/<int:op_id>")
+@login_required
 def detalle(op_id: int):
     op = Operador.query.get_or_404(op_id)
     return render_template("operadores/detalle.html", op=op)
