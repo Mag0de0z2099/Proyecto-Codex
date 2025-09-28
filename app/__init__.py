@@ -9,6 +9,8 @@ from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from apscheduler.schedulers.background import BackgroundScheduler
 from flask import Flask
 from flask_login import AnonymousUserMixin
+from sqlalchemy import event
+from sqlalchemy.orm import Session
 from pytz import timezone
 from .cli_sync import register_sync_cli
 from .config import load_config
@@ -78,6 +80,7 @@ def create_app(config_name: str | None = None) -> Flask:
         app.config["LOGIN_DISABLED"] = True
         app.config["WTF_CSRF_ENABLED"] = False
         app.config["RATELIMIT_ENABLED"] = False
+        app.config["JWT_COOKIE_CSRF_PROTECT"] = False
 
         class DevUser(AnonymousUserMixin):
             id = 0
@@ -102,6 +105,19 @@ def create_app(config_name: str | None = None) -> Flask:
             from app.extensions import login_manager
 
             login_manager.anonymous_user = DevUser
+        except Exception:
+            pass
+
+        try:  # pragma: no cover - depende de extensión opcional
+            from flask_cors import CORS
+
+            CORS(app, supports_credentials=True)
+        except Exception:
+            pass
+
+        app.config.setdefault("UPLOAD_DIR", "/opt/render/project/data/uploads")
+        try:
+            os.makedirs(app.config["UPLOAD_DIR"], exist_ok=True)
         except Exception:
             pass
     # ======= FIN DEV MODE =======
@@ -163,11 +179,17 @@ def create_app(config_name: str | None = None) -> Flask:
     # Directorios persistentes (DATA_DIR, instance/, etc.)
     ensure_dirs(app)
 
-    upload_root = os.environ.get("UPLOAD_FOLDER") or os.path.join(
-        os.environ.get("DATA_DIR", str(app.config.get("DATA_DIR", "/data"))),
-        "uploads",
-        "checklists",
-    )
+    upload_root = os.environ.get("UPLOAD_FOLDER")
+    if not upload_root:
+        base_upload_dir = app.config.get("UPLOAD_DIR")
+        if base_upload_dir:
+            upload_root = os.path.join(str(base_upload_dir), "checklists")
+        else:
+            upload_root = os.path.join(
+                os.environ.get("DATA_DIR", str(app.config.get("DATA_DIR", "/data"))),
+                "uploads",
+                "checklists",
+            )
     Path(upload_root).mkdir(parents=True, exist_ok=True)
     app.config["UPLOAD_CHECKLISTS_DIR"] = upload_root
     if os.getenv("PROMETHEUS_MULTIPROC_CLEAN_ON_START", "0").lower() in (
@@ -179,6 +201,19 @@ def create_app(config_name: str | None = None) -> Flask:
 
     # DB y extensiones compartidas
     db.init_app(app)
+
+    if app.config.get("SECURITY_DISABLED"):
+        if not getattr(Session, "_dev_mode_audit_listener", False):
+
+            @event.listens_for(Session, "before_flush")
+            def _fill_audit_fields(session, flush_context, instances):  # pragma: no cover - listener simple
+                for obj in session.new.union(session.dirty):
+                    for field in ("created_by", "updated_by"):
+                        if hasattr(obj, field) and getattr(obj, field, None) in (None, ""):
+                            setattr(obj, field, 0)
+
+            Session._dev_mode_audit_listener = True  # type: ignore[attr-defined]
+
     init_migrations(app, db)
     init_auth_extensions(app)
 

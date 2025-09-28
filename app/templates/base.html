@@ -33,15 +33,17 @@
       </span>
     </div>
     <nav class="nav-right">
-      {% if current_user.is_authenticated %}
+      {% if DEV_MODE or current_user.is_authenticated %}
         <a href="{{ url_for('equipos.index') }}">Equipos</a>
         <a href="{{ url_for('partes.index') }}">Partes</a>
         <a href="{{ url_for('checklists.index') }}">Checklists</a>
         <a href="{{ url_for('operadores.index') }}">Operadores</a>
-        <form method="post" action="{{ url_for('auth.logout') }}" class="inline">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button class="btn" type="submit">Logout</button>
-        </form>
+        {% if not DEV_MODE %}
+          <form method="post" action="{{ url_for('auth.logout') }}" class="inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn" type="submit">Logout</button>
+          </form>
+        {% endif %}
       {% else %}
         <a href="{{ url_for('public.home') }}">Inicio</a>
         <a href="{{ url_for('auth.login') }}" class="btn">Login</a>
@@ -50,7 +52,7 @@
   </header>
 
   <main class="container">
-    {% if current_user.is_authenticated %}
+    {% if DEV_MODE or current_user.is_authenticated %}
       <nav>
         <a href="{{ url_for('dashboard.home') }}">Inicio</a> |
         <a href="{{ url_for('equipos.index') }}">Equipos</a> |

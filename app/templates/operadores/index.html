@@ -4,7 +4,9 @@
 <form method="get" class="mb-3">
   <input name="q" value="{{ q }}" placeholder="Buscar por nombre / ID / puesto">
   <button type="submit">Buscar</button>
-  <a href="{{ url_for('operadores.nuevo') }}">Nuevo</a>
+  {% if DEV_MODE or current_user.is_authenticated %}
+    <a href="{{ url_for('operadores.nuevo') }}">Nuevo</a>
+  {% endif %}
 </form>
 <table>
   <thead><tr><th>Nombre</th><th>ID</th><th>Puesto</th><th>Status</th><th></th></tr></thead>
@@ -16,11 +18,13 @@
       <td>{{ op.puesto or '-' }}</td>
       <td>{{ op.status }}</td>
       <td>
-        <a href="{{ url_for('operadores.editar', op_id=op.id) }}">Editar</a>
-        <form action="{{ url_for('operadores.eliminar', op_id=op.id) }}" method="post" style="display:inline">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button type="submit" onclick="return confirm('¿Eliminar?')">Eliminar</button>
-        </form>
+        {% if DEV_MODE or current_user.is_authenticated %}
+          <a href="{{ url_for('operadores.editar', op_id=op.id) }}">Editar</a>
+          <form action="{{ url_for('operadores.eliminar', op_id=op.id) }}" method="post" style="display:inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" onclick="return confirm('¿Eliminar?')">Eliminar</button>
+          </form>
+        {% endif %}
       </td>
     </tr>
   {% else %}

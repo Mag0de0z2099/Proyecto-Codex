@@ -9,6 +9,13 @@ from flask import abort, current_app, g, redirect, request, session, url_for
 F = TypeVar("F", bound=Callable[..., Any])
 
 
+def _dev_mode_disabled() -> bool:
+    return bool(
+        current_app.config.get("SECURITY_DISABLED")
+        or current_app.config.get("LOGIN_DISABLED")
+    )
+
+
 def _resolve_roles(raw: Any) -> set[str]:
     """Normaliza cualquier representación de roles a un conjunto en minúsculas."""
 
@@ -85,6 +92,8 @@ def _roles_for_entity(entity: Any) -> set[str]:
 def login_required(view: F) -> F:
     @wraps(view)
     def wrapped(*args: Any, **kwargs: Any):
+        if _dev_mode_disabled():
+            return view(*args, **kwargs)
         if current_app.config.get("AUTH_SIMPLE", True):
             return view(*args, **kwargs)
         if session.get("user"):
@@ -104,6 +113,8 @@ def requires_role(*required_roles: str) -> Callable[[F], F]:
     def decorator(view: F) -> F:
         @wraps(view)
         def wrapped(*args: Any, **kwargs: Any):
+            if _dev_mode_disabled():
+                return view(*args, **kwargs)
             if not normalized:
                 return view(*args, **kwargs)
 

@@ -4,7 +4,9 @@
 <form method="get" class="mb-2">
   <input name="q" value="{{ q }}" placeholder="Buscar por equipo...">
   <button type="submit">Buscar</button>
-  <a class="btn" href="{{ url_for('checklists.nuevo') }}">Nuevo</a>
+  {% if DEV_MODE or current_user.is_authenticated %}
+    <a class="btn" href="{{ url_for('checklists.nuevo') }}">Nuevo</a>
+  {% endif %}
 </form>
 <table>
   <thead>

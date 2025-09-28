@@ -4,7 +4,9 @@
 <form method="get" class="mb-3">
   <input name="q" value="{{ q }}" placeholder="Buscar por código / tipo / marca">
   <button type="submit">Buscar</button>
-  <a href="{{ url_for('equipos.nuevo') }}">Nuevo</a>
+  {% if DEV_MODE or current_user.is_authenticated %}
+    <a href="{{ url_for('equipos.nuevo') }}">Nuevo</a>
+  {% endif %}
 </form>
 <table>
   <thead><tr><th>Código</th><th>Tipo</th><th>Marca</th><th>Status</th><th></th></tr></thead>
@@ -14,11 +16,13 @@
       <td><a href="{{ url_for('equipos.detalle', equipo_id=equipo.id) }}">{{ equipo.codigo }}</a></td>
       <td>{{ equipo.tipo }}</td><td>{{ equipo.marca or '-' }}</td><td>{{ equipo.status }}</td>
       <td>
-        <a href="{{ url_for('equipos.editar', equipo_id=equipo.id) }}">Editar</a>
-        <form action="{{ url_for('equipos.eliminar', equipo_id=equipo.id) }}" method="post" style="display:inline">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button type="submit" onclick="return confirm('¿Eliminar?')">Eliminar</button>
-        </form>
+        {% if DEV_MODE or current_user.is_authenticated %}
+          <a href="{{ url_for('equipos.editar', equipo_id=equipo.id) }}">Editar</a>
+          <form action="{{ url_for('equipos.eliminar', equipo_id=equipo.id) }}" method="post" style="display:inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" onclick="return confirm('¿Eliminar?')">Eliminar</button>
+          </form>
+        {% endif %}
       </td>
     </tr>
   {% else %}
