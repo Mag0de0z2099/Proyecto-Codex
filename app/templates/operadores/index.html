@@ -4,10 +4,17 @@
 <form method="get" class="mb-3">
   <input name="q" value="{{ q }}" placeholder="Buscar por nombre / ID / puesto">
   <button type="submit">Buscar</button>
+  {% if DEV_MODE %}
   <a href="{{ url_for('operadores.nuevo') }}">Nuevo</a>
+  {% endif %}
 </form>
 <table>
-  <thead><tr><th>Nombre</th><th>ID</th><th>Puesto</th><th>Status</th><th></th></tr></thead>
+  <thead>
+    <tr>
+      <th>Nombre</th><th>ID</th><th>Puesto</th><th>Status</th>
+      {% if DEV_MODE %}<th></th>{% endif %}
+    </tr>
+  </thead>
   <tbody>
   {% for op in operadores %}
     <tr>
@@ -15,6 +22,7 @@
       <td>{{ op.identificacion or '-' }}</td>
       <td>{{ op.puesto or '-' }}</td>
       <td>{{ op.status }}</td>
+      {% if DEV_MODE %}
       <td>
         <a href="{{ url_for('operadores.editar', op_id=op.id) }}">Editar</a>
         <form action="{{ url_for('operadores.eliminar', op_id=op.id) }}" method="post" style="display:inline">
@@ -22,9 +30,10 @@
           <button type="submit" onclick="return confirm('¿Eliminar?')">Eliminar</button>
         </form>
       </td>
+      {% endif %}
     </tr>
   {% else %}
-    <tr><td colspan="5">No hay operadores registrados.</td></tr>
+    <tr><td colspan="{{ 5 if DEV_MODE else 4 }}">No hay operadores registrados.</td></tr>
   {% endfor %}
   </tbody>
 </table>

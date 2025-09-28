@@ -4,15 +4,23 @@
 <form method="get" class="mb-3">
   <input name="q" value="{{ q }}" placeholder="Buscar por código / tipo / marca">
   <button type="submit">Buscar</button>
+  {% if DEV_MODE %}
   <a href="{{ url_for('equipos.nuevo') }}">Nuevo</a>
+  {% endif %}
 </form>
 <table>
-  <thead><tr><th>Código</th><th>Tipo</th><th>Marca</th><th>Status</th><th></th></tr></thead>
+  <thead>
+    <tr>
+      <th>Código</th><th>Tipo</th><th>Marca</th><th>Status</th>
+      {% if DEV_MODE %}<th></th>{% endif %}
+    </tr>
+  </thead>
   <tbody>
   {% for equipo in equipos %}
     <tr>
       <td><a href="{{ url_for('equipos.detalle', equipo_id=equipo.id) }}">{{ equipo.codigo }}</a></td>
       <td>{{ equipo.tipo }}</td><td>{{ equipo.marca or '-' }}</td><td>{{ equipo.status }}</td>
+      {% if DEV_MODE %}
       <td>
         <a href="{{ url_for('equipos.editar', equipo_id=equipo.id) }}">Editar</a>
         <form action="{{ url_for('equipos.eliminar', equipo_id=equipo.id) }}" method="post" style="display:inline">
@@ -20,9 +28,10 @@
           <button type="submit" onclick="return confirm('¿Eliminar?')">Eliminar</button>
         </form>
       </td>
+      {% endif %}
     </tr>
   {% else %}
-    <tr><td colspan="5">No hay equipos registrados.</td></tr>
+    <tr><td colspan="{{ 5 if DEV_MODE else 4 }}">No hay equipos registrados.</td></tr>
   {% endfor %}
   </tbody>
 </table>

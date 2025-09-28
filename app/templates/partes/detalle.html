@@ -13,7 +13,13 @@
 <p>Operador: {{ p.operador.nombre if p.operador else '-' }}</p>
 <p>Observaciones: {{ p.observaciones or '-' }}</p>
 <p>
-  <a class="btn" href="{{ url_for('partes.editar', parte_id=p.id) }}">Editar</a>
+  {% if DEV_MODE %}
+    <a class="btn" href="{{ url_for('partes.editar', parte_id=p.id) }}">Editar</a>
+    <form method="post" action="{{ url_for('partes.eliminar', parte_id=p.id) }}" style="display:inline" onsubmit="return confirm('¿Eliminar parte?');">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit">Eliminar</button>
+    </form>
+  {% endif %}
   <button onclick="window.print()">Imprimir</button>
   <a class="btn" href="{{ url_for('partes.index') }}">Volver al listado</a>
 </p>

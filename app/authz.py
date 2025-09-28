@@ -85,6 +85,10 @@ def _roles_for_entity(entity: Any) -> set[str]:
 def login_required(view: F) -> F:
     @wraps(view)
     def wrapped(*args: Any, **kwargs: Any):
+        if current_app.config.get("SECURITY_DISABLED") or current_app.config.get(
+            "LOGIN_DISABLED"
+        ):
+            return view(*args, **kwargs)
         if current_app.config.get("AUTH_SIMPLE", True):
             return view(*args, **kwargs)
         if session.get("user"):
@@ -105,6 +109,11 @@ def requires_role(*required_roles: str) -> Callable[[F], F]:
         @wraps(view)
         def wrapped(*args: Any, **kwargs: Any):
             if not normalized:
+                return view(*args, **kwargs)
+
+            if current_app.config.get("SECURITY_DISABLED") or current_app.config.get(
+                "LOGIN_DISABLED"
+            ):
                 return view(*args, **kwargs)
 
             current_roles = _resolve_roles(_current_role())

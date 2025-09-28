@@ -78,6 +78,7 @@ def create_app(config_name: str | None = None) -> Flask:
         app.config["LOGIN_DISABLED"] = True
         app.config["WTF_CSRF_ENABLED"] = False
         app.config["RATELIMIT_ENABLED"] = False
+        app.config["JWT_COOKIE_CSRF_PROTECT"] = False
 
         class DevUser(AnonymousUserMixin):
             id = 0
@@ -102,6 +103,13 @@ def create_app(config_name: str | None = None) -> Flask:
             from app.extensions import login_manager
 
             login_manager.anonymous_user = DevUser
+        except Exception:
+            pass
+
+        try:
+            from flask_cors import CORS
+
+            CORS(app, supports_credentials=True)
         except Exception:
             pass
     # ======= FIN DEV MODE =======

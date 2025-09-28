@@ -8,5 +8,7 @@
   <li>Teléfono: {{ op.telefono or '-' }}</li>
   <li>Status: {{ op.status }}</li>
 </ul>
+{% if DEV_MODE %}
 <a href="{{ url_for('operadores.editar', op_id=op.id) }}">Editar</a>
+{% endif %}
 {% endblock %}

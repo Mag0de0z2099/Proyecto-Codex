@@ -4,7 +4,9 @@
 <form method="get" class="mb-2">
   <input name="q" value="{{ q }}" placeholder="Buscar por equipo...">
   <button type="submit">Buscar</button>
+  {% if DEV_MODE %}
   <a class="btn" href="{{ url_for('checklists.nuevo') }}">Nuevo</a>
+  {% endif %}
 </form>
 <table>
   <thead>
@@ -13,7 +15,7 @@
       <th>Equipo</th>
       <th>Plantilla</th>
       <th>Estatus</th>
-      <th></th>
+      <th>Acciones</th>
     </tr>
   </thead>
   <tbody>
@@ -23,7 +25,12 @@
       <td>{{ r.equipment.codigo if r.equipment else r.equipment_id }}</td>
       <td>{{ r.template.name if r.template else '-' }}</td>
       <td><strong>{{ r.overall_status }}</strong></td>
-      <td><a href="{{ url_for('checklists.detalle', cl_id=r.id) }}">Ver</a></td>
+      <td>
+        <a href="{{ url_for('checklists.detalle', cl_id=r.id) }}">Ver</a>
+        {% if DEV_MODE %}
+          <a href="{{ url_for('checklists.editar', cl_id=r.id) }}">Editar</a>
+        {% endif %}
+      </td>
     </tr>
   {% else %}
     <tr><td colspan="5">Sin registros</td></tr>

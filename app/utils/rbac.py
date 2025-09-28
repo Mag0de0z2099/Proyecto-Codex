@@ -26,6 +26,10 @@ def require_roles(*roles: str):
     def deco(fn):
         @wraps(fn)
         def wrap(*a, **k):
+            if current_app.config.get("SECURITY_DISABLED") or current_app.config.get(
+                "LOGIN_DISABLED"
+            ):
+                return fn(*a, **k)
             if current_app.config.get("AUTH_SIMPLE", False):
                 role = _resolve_session_role()
                 if role is None:
@@ -53,6 +57,10 @@ def require_approved(fn):
 
     @wraps(fn)
     def wrap(*a, **k):
+        if current_app.config.get("SECURITY_DISABLED") or current_app.config.get(
+            "LOGIN_DISABLED"
+        ):
+            return fn(*a, **k)
         if current_app.config.get("AUTH_SIMPLE", False):
             if not session.get("user"):
                 abort(401)
