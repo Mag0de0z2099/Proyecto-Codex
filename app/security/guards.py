@@ -1,11 +1,15 @@
 from functools import wraps
-from flask import request, jsonify, g
+from flask import current_app, request, jsonify, g
 from .jwt import decode_jwt
 
 
 def requires_auth(fn):
     @wraps(fn)
     def wrapper(*args, **kwargs):
+        if current_app.config.get("SECURITY_DISABLED") or current_app.config.get(
+            "LOGIN_DISABLED"
+        ):
+            return fn(*args, **kwargs)
         auth = request.headers.get("Authorization", "")
         if not auth.startswith("Bearer "):
             return jsonify({"detail": "unauthorized"}), 401
@@ -26,6 +30,10 @@ def requires_role(required: str):
     def decorator(fn):
         @wraps(fn)
         def wrapper(*args, **kwargs):
+            if current_app.config.get("SECURITY_DISABLED") or current_app.config.get(
+                "LOGIN_DISABLED"
+            ):
+                return fn(*args, **kwargs)
             # Si ya pasó por requires_auth, usamos el rol del token
             role = getattr(g, "current_user_role", None)
             # Fallback para pruebas antiguas con X-Role
