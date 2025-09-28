@@ -6,7 +6,9 @@
   <label>al <input type="date" name="d2" value="{{ d2 or '' }}"></label>
   <input name="q" value="{{ q }}" placeholder="Buscar por código o tipo de equipo...">
   <button type="submit">Filtrar</button>
+  {% if DEV_MODE %}
   <a class="btn" href="{{ url_for('partes.nuevo') }}">Nuevo</a>
+  {% endif %}
   <a class="btn" href="{{ url_for('partes.export_csv', d1=d1, d2=d2, q=q) }}">Exportar CSV</a>
 </form>
 <p>
@@ -22,7 +24,7 @@
       <th>Turno</th>
       <th>Horas</th>
       <th>Comb (L)</th>
-      <th></th>
+      <th>Acciones</th>
     </tr>
   </thead>
   <tbody>
@@ -36,6 +38,13 @@
       <td>{{ '%.2f'|format(r.combustible_l) if r.combustible_l is not none else '-' }}</td>
       <td>
         <a href="{{ url_for('partes.detalle', parte_id=r.id) }}">Ver</a>
+        {% if DEV_MODE %}
+          <a href="{{ url_for('partes.editar', parte_id=r.id) }}">Editar</a>
+          <form action="{{ url_for('partes.eliminar', parte_id=r.id) }}" method="post" style="display:inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" onclick="return confirm('¿Eliminar parte?')">Eliminar</button>
+          </form>
+        {% endif %}
       </td>
     </tr>
   {% else %}

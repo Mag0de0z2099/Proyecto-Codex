@@ -206,6 +206,10 @@ def login_post():
 
 @bp_auth.before_app_request
 def _enforce_force_change_password():
+    if current_app.config.get("SECURITY_DISABLED") or current_app.config.get(
+        "LOGIN_DISABLED"
+    ):
+        return None
     allowed = {"auth.logout", "auth.change_password", "static"}
     if (
         current_user.is_authenticated

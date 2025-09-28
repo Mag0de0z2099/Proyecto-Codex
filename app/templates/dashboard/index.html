@@ -3,12 +3,14 @@
 <h1>Dashboard</h1>
 
 <!-- Atajos -->
+{% if DEV_MODE %}
 <p>
   <a href="{{ url_for('checklists.nuevo') }}">➕ Nuevo Checklist</a> |
   <a href="{{ url_for('partes.nuevo') }}">➕ Nuevo Parte</a> |
   <a href="{{ url_for('equipos.nuevo') }}">➕ Nuevo Equipo</a>
   {% if total_operadores is not none %}| <a href="{{ url_for('operadores.nuevo') }}">➕ Nuevo Operador</a>{% endif %}
 </p>
+{% endif %}
 
 <!-- KPIs -->
 <div style="display:flex; gap:16px; flex-wrap:wrap;">
@@ -59,7 +61,7 @@
           Parte #{{ p.id }} — Equipo {{ p.equipo_id }}
           {% if p.horas_trabajadas is none %} • falta <b>horas</b>{% endif %}
           {% if p.combustible_l is none %} • falta <b>combustible</b>{% endif %}
-          <a href="{{ url_for('partes.editar', parte_id=p.id) }}">editar</a>
+          {% if DEV_MODE %}<a href="{{ url_for('partes.editar', parte_id=p.id) }}">editar</a>{% endif %}
         </li>
       {% endfor %}
     </ul>
