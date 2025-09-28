@@ -5,9 +5,26 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>{% block title %}SGC — Obra de Dragado{% endblock %}</title>
+  {% if DEV_MODE %}
+  <meta name="robots" content="noindex,nofollow">
+  {% endif %}
   <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
 </head>
 <body>
+  {% if DEV_MODE %}
+  <div class="dev-banner">DEV MODE — security disabled</div>
+  <style>
+    .dev-banner{
+      position:fixed; top:0; left:0; right:0;
+      background:#FBBF24; color:#111;
+      font:600 14px/1.1 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      text-align:center; padding:8px 10px; z-index:9999;
+      box-shadow:0 1px 3px rgba(0,0,0,.2)
+    }
+    /* Evita que el banner tape el contenido */
+    body { padding-top: 44px; }
+  </style>
+  {% endif %}
   <header class="navbar">
     <div class="nav-left">
       <span class="brand">

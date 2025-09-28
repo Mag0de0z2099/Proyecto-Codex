@@ -209,6 +209,17 @@ def create_app(config_name: str | None = None) -> Flask:
             "pending_users_count": pending_count,
         }
 
+    @app.context_processor
+    def inject_dev_mode_flag():
+        from flask import current_app
+
+        return {
+            "DEV_MODE": bool(
+                current_app.config.get("SECURITY_DISABLED")
+                or current_app.config.get("LOGIN_DISABLED")
+            )
+        }
+
     # Blueprints
     from . import models  # noqa: F401
 
