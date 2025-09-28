@@ -8,6 +8,7 @@ from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from flask import Flask
+from flask_login import AnonymousUserMixin
 from pytz import timezone
 from .cli_sync import register_sync_cli
 from .config import load_config
@@ -71,6 +72,40 @@ def create_app(config_name: str | None = None) -> Flask:
     app.config.from_object(load_config(config_name))
     app.config.setdefault("LOG_LEVEL", "INFO")
 
+    # === MODO DEV: apaga seguridad si DISABLE_SECURITY=1 ===
+    if os.getenv("DISABLE_SECURITY") == "1":
+        app.config["LOGIN_DISABLED"] = True
+        app.config["WTF_CSRF_ENABLED"] = False
+
+        class DevUser(AnonymousUserMixin):
+            @property
+            def is_authenticated(self):
+                return True
+
+            @property
+            def is_active(self):
+                return True
+
+            @property
+            def is_anonymous(self):
+                return False
+
+            id = 0
+            email = "dev@local"
+            username = "dev@local"
+            role = "admin"
+            is_admin = True
+
+        from app.extensions import login_manager
+
+        login_manager.anonymous_user = DevUser
+
+        try:
+            limiter.enabled = False
+        except Exception:
+            pass
+    # === fin MODO DEV ===
+
     configured_uri = str(app.config.get("SQLALCHEMY_DATABASE_URI", ""))
     uri = _normalize_db_url(raw_uri or configured_uri)
     app.config["SQLALCHEMY_DATABASE_URI"] = uri
@@ -126,7 +161,8 @@ def create_app(config_name: str | None = None) -> Flask:
     db.init_app(app)
     init_migrations(app, db)
     init_auth_extensions(app)
-    limiter.init_app(app)
+    if os.getenv("DISABLE_SECURITY") != "1":
+        limiter.init_app(app)
 
     set_security_headers(app)
 
