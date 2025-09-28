@@ -36,7 +36,9 @@ class Config:
     def __init__(self) -> None:
         self.SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret")
         self.SECURITY_PASSWORD_SALT = os.getenv("SECURITY_PASSWORD_SALT", "dev-salt")
-        self.DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///codex.db")
+        default_sqlite_path = PROJECT_ROOT / "instance" / "codex.db"
+        default_sqlite_uri = f"sqlite:///{default_sqlite_path}"
+        self.DATABASE_URL = os.getenv("DATABASE_URL", default_sqlite_uri)
         self.SQLALCHEMY_DATABASE_URI = self.DATABASE_URL
         self.SQLALCHEMY_TRACK_MODIFICATIONS = False
         self.SQLALCHEMY_ENGINE_OPTIONS = _engine_options(self.SQLALCHEMY_DATABASE_URI)
@@ -97,6 +99,12 @@ class TestingConfig(Config):
 
 def load_config(env: str | None = None) -> Config:
     env_name = (env or os.getenv("APP_ENV") or os.getenv("FLASK_ENV") or "production").lower()
+
+    if env is None and env_name in {"prod", "production"}:
+        db_url_env = os.getenv("DATABASE_URL", "")
+        running_ci = os.getenv("CI", "").lower() in {"true", "1"}
+        if not running_ci and (not db_url_env or db_url_env.startswith("sqlite:")):
+            env_name = "development"
     if env_name in {"test", "testing"}:
         cfg: Config = TestingConfig()
     elif env_name in {"prod", "production"}:
