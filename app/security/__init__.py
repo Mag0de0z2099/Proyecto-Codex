@@ -29,6 +29,10 @@ def require_login(bp, exclude: Iterable[str] | None = None) -> None:
 
     @bp.before_request
     def _guard():  # type: ignore[func-returns-value]
+        if current_app.config.get("SECURITY_DISABLED") or current_app.config.get(
+            "LOGIN_DISABLED"
+        ):
+            return None
         endpoint = (request.endpoint or "").split(".")[-1]
         if endpoint in exclude_set:
             return None
