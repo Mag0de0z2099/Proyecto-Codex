@@ -72,12 +72,20 @@ def create_app(config_name: str | None = None) -> Flask:
     app.config.from_object(load_config(config_name))
     app.config.setdefault("LOG_LEVEL", "INFO")
 
-    # === MODO DEV: apaga seguridad si DISABLE_SECURITY=1 ===
+    # ======= DEV MODE: seguridad apagada por bandera =======
     if os.getenv("DISABLE_SECURITY") == "1":
+        app.config["SECURITY_DISABLED"] = True
         app.config["LOGIN_DISABLED"] = True
         app.config["WTF_CSRF_ENABLED"] = False
+        app.config["RATELIMIT_ENABLED"] = False
 
         class DevUser(AnonymousUserMixin):
+            id = 0
+            email = "dev@local"
+            username = "dev@local"
+            role = "admin"
+            is_admin = True
+
             @property
             def is_authenticated(self):
                 return True
@@ -90,21 +98,33 @@ def create_app(config_name: str | None = None) -> Flask:
             def is_anonymous(self):
                 return False
 
-            id = 0
-            email = "dev@local"
-            username = "dev@local"
-            role = "admin"
-            is_admin = True
-
-        from app.extensions import login_manager
-
-        login_manager.anonymous_user = DevUser
-
         try:
-            limiter.enabled = False
+            from app.extensions import login_manager
+
+            login_manager.anonymous_user = DevUser
         except Exception:
             pass
-    # === fin MODO DEV ===
+    # ======= FIN DEV MODE =======
+
+    # Inicializa extensiones aquí (después de setear flags):
+    try:
+        from app.extensions import login_manager
+
+        login_manager.init_app(app)
+    except Exception:
+        pass
+
+    try:
+        csrf.init_app(app)
+    except Exception:
+        pass
+
+    try:
+        limiter.init_app(app)
+        if app.config.get("RATELIMIT_ENABLED") is False:
+            setattr(limiter, "enabled", False)
+    except Exception:
+        pass
 
     configured_uri = str(app.config.get("SQLALCHEMY_DATABASE_URI", ""))
     uri = _normalize_db_url(raw_uri or configured_uri)
@@ -161,8 +181,6 @@ def create_app(config_name: str | None = None) -> Flask:
     db.init_app(app)
     init_migrations(app, db)
     init_auth_extensions(app)
-    if os.getenv("DISABLE_SECURITY") != "1":
-        limiter.init_app(app)
 
     set_security_headers(app)
 

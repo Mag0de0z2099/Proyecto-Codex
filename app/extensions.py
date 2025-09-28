@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import os
-
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager
 from flask_limiter import Limiter
@@ -26,6 +24,3 @@ limiter = Limiter(key_func=get_remote_address, headers_enabled=True, default_lim
 def init_auth_extensions(app):
     """Inicializa las extensiones relacionadas con autenticación."""
     bcrypt.init_app(app)
-    login_manager.init_app(app)
-    if os.getenv("DISABLE_SECURITY") != "1" and app.config.get("WTF_CSRF_ENABLED", True):
-        csrf.init_app(app)
