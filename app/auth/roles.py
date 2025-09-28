@@ -43,6 +43,10 @@ def role_required(*allowed_roles: str):
     def decorator(fn):
         @wraps(fn)
         def wrapper(*args, **kwargs):
+            if current_app.config.get("LOGIN_DISABLED") or current_app.config.get(
+                "WTF_CSRF_ENABLED"
+            ) is False:
+                return fn(*args, **kwargs)
             if current_app.config.get("AUTH_SIMPLE", False):
                 role = _resolve_role_from_session()
                 if role is None:
