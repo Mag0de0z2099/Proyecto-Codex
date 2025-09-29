@@ -271,12 +271,9 @@ def create_app(config_name: str | None = None) -> Flask:
     except Exception:
         pass
 
-    try:
-        from app.blueprints.checklists import bp as cl_bp
+    from app.blueprints.checklists.routes import bp as checklists_bp
 
-        app.register_blueprint(cl_bp)
-    except Exception:
-        pass
+    app.register_blueprint(checklists_bp)
 
     from app.blueprints.partes.routes import bp as partes_bp
 

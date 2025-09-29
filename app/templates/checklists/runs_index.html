@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Ejecuciones de checklist</h1>
+<form method="get" class="mb-3" action="{{ url_for('checklists_bp.runs_index') }}">
+  <label>Desde</label><input type="date" name="desde" value="{{ (desde or '') }}">
+  <label>Hasta</label><input type="date" name="hasta" value="{{ (hasta or '') }}">
+  <button type="submit">Filtrar</button>
+  <a href="{{ url_for('checklists_bp.resumen', desde=desde, hasta=hasta) }}">Resumen</a>
+</form>
+<table class="table">
+  <thead><tr><th>Fecha</th><th>Plantilla</th><th>Norma</th><th>% OK</th><th></th></tr></thead>
+  <tbody>
+    {% for r in rows %}
+      <tr>
+        <td>{{ r.fecha }}</td>
+        <td>{{ r.template.nombre }}</td>
+        <td>{{ r.template.norma }}</td>
+        <td>{{ '%.1f'|format(r.pct_ok) }}%</td>
+        <td>
+          <a href="{{ url_for('checklists_bp.run_view', id=r.id) }}">Ver</a>
+          <a href="{{ url_for('checklists_bp.run_pdf', id=r.id) }}" target="_blank">PDF</a>
+        </td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% if pagination.pages > 1 %}
+<nav>
+  {% if pagination.has_prev %}<a href="{{ url_for('checklists_bp.runs_index', page=pagination.prev_num, desde=desde, hasta=hasta) }}">&laquo; Anterior</a>{% endif %}
+  <span>Página {{ pagination.page }} de {{ pagination.pages }}</span>
+  {% if pagination.has_next %}<a href="{{ url_for('checklists_bp.runs_index', page=pagination.next_num, desde=desde, hasta=hasta) }}">Siguiente &raquo;</a>{% endif %}
+</nav>
+{% endif %}
+{% endblock %}

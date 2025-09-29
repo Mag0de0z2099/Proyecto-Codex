@@ -1,88 +1,71 @@
-from __future__ import annotations
-
-from datetime import datetime
-from enum import Enum
-
-from sqlalchemy.dialects.postgresql import ENUM as PGEnum
-
-from app.db import db
-
-
-class AnswerEnum(str, Enum):
-    OK = "OK"
-    FAIL = "FAIL"
-    NA = "NA"
+from app.extensions import db
 
 
 class ChecklistTemplate(db.Model):
-    __tablename__ = "cl_templates"
+    __tablename__ = "checklist_templates"
 
     id = db.Column(db.Integer, primary_key=True)
-    code = db.Column(db.String(64), unique=True, nullable=False)
-    name = db.Column(db.String(128), nullable=False)
-    applies_to = db.Column(db.String(128), nullable=False)
-    description = db.Column(db.String(255))
-
+    nombre = db.Column(db.String(160), nullable=False)
+    norma = db.Column(db.String(40))
     items = db.relationship(
-        "ChecklistItem", backref="template", cascade="all,delete-orphan"
+        "ChecklistItem",
+        backref="template",
+        cascade="all, delete-orphan",
+        lazy="dynamic",
     )
 
 
 class ChecklistItem(db.Model):
-    __tablename__ = "cl_items"
+    __tablename__ = "checklist_items"
 
     id = db.Column(db.Integer, primary_key=True)
-    template_id = db.Column(db.Integer, db.ForeignKey("cl_templates.id"), nullable=False)
-    section = db.Column(db.String(64), nullable=False)
-    text = db.Column(db.String(255), nullable=False)
-    critical = db.Column(db.Boolean, default=False)
-    order = db.Column(db.Integer, default=0)
+    template_id = db.Column(
+        db.Integer,
+        db.ForeignKey("checklist_templates.id"),
+        nullable=False,
+    )
+    texto = db.Column(db.String(400), nullable=False)
+    tipo = db.Column(db.String(10), nullable=False, default="bool")
+    orden = db.Column(db.Integer, default=0)
 
 
-class Checklist(db.Model):
-    __tablename__ = "checklists"
+class ChecklistRun(db.Model):
+    __tablename__ = "checklist_runs"
 
     id = db.Column(db.Integer, primary_key=True)
-    template_id = db.Column(db.Integer, db.ForeignKey("cl_templates.id"), nullable=False)
-    equipment_id = db.Column(db.Integer, db.ForeignKey("equipos.id"), nullable=False)
-    operator_id = db.Column(db.Integer, db.ForeignKey("operadores.id"))
-    date = db.Column(db.Date, default=datetime.utcnow)
-    shift = db.Column(db.String(16))
-    location = db.Column(db.String(128))
-    weather = db.Column(db.String(64))
-    hours_start = db.Column(db.Float)
-    hours_end = db.Column(db.Float)
-    overall_status = db.Column(db.String(16), default="APTO")
-    notes = db.Column(db.Text)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    fecha = db.Column(db.Date, nullable=False)
+    equipo_id = db.Column(db.Integer)
+    operador_id = db.Column(db.Integer)
+    template_id = db.Column(
+        db.Integer,
+        db.ForeignKey("checklist_templates.id"),
+        nullable=False,
+    )
+    pct_ok = db.Column(db.Float, default=0)
+    notas = db.Column(db.Text)
 
     template = db.relationship("ChecklistTemplate")
-    equipment = db.relationship("Equipo")
-    operator = db.relationship("Operador")
     answers = db.relationship(
-        "ChecklistAnswer", backref="checklist", cascade="all,delete-orphan"
+        "ChecklistAnswer",
+        backref="run",
+        cascade="all, delete-orphan",
+        lazy="dynamic",
     )
 
 
 class ChecklistAnswer(db.Model):
-    __tablename__ = "cl_answers"
+    __tablename__ = "checklist_answers"
 
     id = db.Column(db.Integer, primary_key=True)
-    checklist_id = db.Column(db.Integer, db.ForeignKey("checklists.id"), nullable=False)
-    item_id = db.Column(db.Integer, db.ForeignKey("cl_items.id"), nullable=False)
-    result = db.Column(
-        PGEnum("OK", "FAIL", "NA", name="answerenum", create_type=False),
+    run_id = db.Column(
+        db.Integer,
+        db.ForeignKey("checklist_runs.id"),
         nullable=False,
-        default="OK",
     )
-    note = db.Column(db.String(255))
-    photo_path = db.Column(db.String(255))
-
-
-__all__ = [
-    "ChecklistTemplate",
-    "ChecklistItem",
-    "Checklist",
-    "ChecklistAnswer",
-    "AnswerEnum",
-]
+    item_id = db.Column(
+        db.Integer,
+        db.ForeignKey("checklist_items.id"),
+        nullable=False,
+    )
+    valor_bool = db.Column(db.Boolean)
+    comentario = db.Column(db.Text)

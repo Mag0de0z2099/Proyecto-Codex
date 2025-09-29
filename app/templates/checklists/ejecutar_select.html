@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Ejecutar checklist</h1>
+<form method="get" action="{{ url_for('checklists_bp.ejecutar') }}">
+  <label>Plantilla</label>
+  <select name="template_id" required>
+    {% for t in templates %}
+      <option value="{{ t.id }}">{{ t.nombre }} ({{ t.norma or '-' }})</option>
+    {% endfor %}
+  </select>
+
+  {% if equipos %}
+    <label>Equipo</label>
+    <select name="equipo_id">
+      <option value="">-- opcional --</option>
+      {% for e in equipos %}
+        <option value="{{ e.id }}">{{ getattr(e,'nombre','Equipo') }} #{{ e.id }}</option>
+      {% endfor %}
+    </select>
+  {% endif %}
+
+  {% if operadores %}
+    <label>Operador</label>
+    <select name="operador_id">
+      <option value="">-- opcional --</option>
+      {% for o in operadores %}
+        <option value="{{ o.id }}">{{ getattr(o,'nombre','Operador') }} #{{ o.id }}</option>
+      {% endfor %}
+    </select>
+  {% endif %}
+  <button type="submit">Continuar</button>
+</form>
+{% endblock %}

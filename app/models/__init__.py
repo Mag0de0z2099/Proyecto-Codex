@@ -246,10 +246,9 @@ def load_user(user_id: str) -> User | None:
 
 from app.models.asset import Asset  # noqa: E402,F401
 from app.models.checklist import (  # noqa: E402,F401
-    AnswerEnum,
-    Checklist,
     ChecklistAnswer,
     ChecklistItem,
+    ChecklistRun,
     ChecklistTemplate,
 )
 from app.models.equipo import Equipo  # noqa: E402,F401
@@ -269,9 +268,8 @@ __all__ = [
     "MetricDaily",
     "ChecklistTemplate",
     "ChecklistItem",
-    "Checklist",
+    "ChecklistRun",
     "ChecklistAnswer",
-    "AnswerEnum",
     "Todo",
     "Equipo",
     "Operador",
