@@ -2,13 +2,12 @@
 {% block content %}
 <h1>{{ op.nombre }}</h1>
 <ul>
-  <li>Identificación: {{ op.identificacion or '-' }}</li>
-  <li>Licencia: {{ op.licencia or '-' }}</li>
-  <li>Puesto: {{ op.puesto or '-' }}</li>
-  <li>Teléfono: {{ op.telefono or '-' }}</li>
-  <li>Status: {{ op.status }}</li>
+  <li>Documento: {{ op.doc_id or '-' }}</li>
+  <li>Licencia vence: {{ op.licencia_vence or '-' }}</li>
+  <li>Estatus: {{ op.estatus or '-' }}</li>
+  <li>Notas: {{ op.notas or '-' }}</li>
 </ul>
 {% if DEV_MODE %}
-<a href="{{ url_for('operadores.editar', op_id=op.id) }}">Editar</a>
+<a href="{{ url_for('operadores_bp.edit', operador_id=op.id) }}">Editar</a>
 {% endif %}
 {% endblock %}

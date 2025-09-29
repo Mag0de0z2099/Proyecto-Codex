@@ -167,19 +167,21 @@ def register_cli(app):
         data = [
             {
                 "nombre": "Juan Pérez",
-                "identificacion": "OP-001",
-                "puesto": "operador",
-                "licencia": "A",
+                "doc_id": "LIC-001",
+                "licencia_vence": date.today(),
+                "notas": "Operador principal de excavadora.",
+                "estatus": "activo",
             },
             {
                 "nombre": "María López",
-                "identificacion": "OP-002",
-                "puesto": "ayudante",
-                "licencia": "-",
+                "doc_id": "LIC-002",
+                "licencia_vence": date.today(),
+                "notas": "Respaldo turno nocturno.",
+                "estatus": "activo",
             },
         ]
         for payload in data:
-            if not Operador.query.filter_by(identificacion=payload.get("identificacion")).first():
+            if not Operador.query.filter_by(doc_id=payload.get("doc_id")).first():
                 db.session.add(Operador(**payload))
         db.session.commit()
         click.echo("Operadores seed: OK")

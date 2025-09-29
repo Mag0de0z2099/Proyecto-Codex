@@ -1,97 +1,173 @@
 from __future__ import annotations
 
-from flask import flash, redirect, render_template, request, url_for
-from flask_login import login_required
+from datetime import datetime, date, timedelta
+import csv
+import os
 
-from app.db import db
-from app.models import Operador
-from app.utils.pagination import paginate
+from flask import (
+    current_app,
+    flash,
+    redirect,
+    render_template,
+    request,
+    send_file,
+    url_for,
+)
+from sqlalchemy import or_
+
+from app.extensions import db
+from app.models.operador import Operador
 
 from . import bp
 
 
+@bp.before_request
+def _guard():  # type: ignore[func-returns-value]
+    if current_app.config.get("SECURITY_DISABLED") or current_app.config.get(
+        "LOGIN_DISABLED"
+    ):
+        return None
+    return None
+
+
+def _parse_date(raw: str | None) -> date | None:
+    if not raw:
+        return None
+    try:
+        return datetime.strptime(raw, "%Y-%m-%d").date()
+    except Exception:
+        return None
+
+
 @bp.get("/")
-@login_required
 def index():
-    q = (request.args.get("q", "") or "").strip()
+    q = (request.args.get("q") or "").strip()
+    vence_en = request.args.get("vence_en", type=int)
+    page = request.args.get("page", 1, type=int)
+    per_page = 10
+
     query = Operador.query
     if q:
         like = f"%{q}%"
         query = query.filter(
-            db.or_(
+            or_(
                 Operador.nombre.ilike(like),
-                Operador.identificacion.ilike(like),
-                Operador.puesto.ilike(like),
+                Operador.doc_id.ilike(like),
+                Operador.notas.ilike(like),
             )
         )
-    query = query.order_by(Operador.nombre.asc())
-    page = request.args.get("page", type=int) or 1
-    per_page = min(max(request.args.get("per_page", type=int) or 20, 1), 100)
-    operadores, pagination = paginate(query, page=page, per_page=per_page)
+    if vence_en:
+        limite = date.today() + timedelta(days=vence_en)
+        query = query.filter(
+            Operador.licencia_vence.isnot(None),
+            Operador.licencia_vence <= limite,
+        )
+
+    pagination = query.order_by(Operador.id.desc()).paginate(
+        page=page, per_page=per_page, error_out=False
+    )
     return render_template(
         "operadores/index.html",
-        operadores=operadores,
-        q=q,
         pagination=pagination,
+        rows=pagination.items,
+        q=q,
+        vence_en=vence_en,
     )
 
 
-@bp.get("/nuevo")
-@login_required
-def nuevo():
-    return render_template("operadores/form.html", op=None)
+@bp.route("/new", methods=["GET", "POST"])
+def create():
+    if request.method == "POST":
+        operador = Operador(
+            nombre=(request.form.get("nombre") or "").strip(),
+            doc_id=(request.form.get("doc_id") or "").strip(),
+            licencia_vence=_parse_date(request.form.get("licencia_vence")),
+            notas=(request.form.get("notas") or "").strip(),
+            estatus=(request.form.get("estatus") or "activo").strip(),
+        )
+        db.session.add(operador)
+        db.session.commit()
+        flash("Operador creado", "success")
+        return redirect(url_for("operadores_bp.index"))
+    return render_template("operadores/form.html", item=None)
 
 
-@bp.post("/crear")
-@login_required
-def crear():
-    data = {
-        k: request.form.get(k)
-        for k in ["nombre", "identificacion", "licencia", "puesto", "telefono", "status"]
-    }
-    if not (data.get("nombre") or "").strip():
-        flash("El nombre es obligatorio", "error")
-        return redirect(url_for("operadores.nuevo"))
-    operador = Operador(**data)
-    db.session.add(operador)
-    db.session.commit()
-    flash("Operador creado", "success")
-    return redirect(url_for("operadores.index"))
+@bp.route("/<int:operador_id>/edit", methods=["GET", "POST"])
+def edit(operador_id: int):
+    operador = Operador.query.get_or_404(operador_id)
+    if request.method == "POST":
+        for key in ("nombre", "doc_id", "notas", "estatus"):
+            if key in request.form:
+                setattr(operador, key, (request.form.get(key) or "").strip())
+        operador.licencia_vence = _parse_date(request.form.get("licencia_vence"))
+        db.session.commit()
+        flash("Operador actualizado", "success")
+        return redirect(url_for("operadores_bp.index"))
+    return render_template("operadores/form.html", item=operador)
 
 
-@bp.get("/<int:op_id>/editar")
-@login_required
-def editar(op_id: int):
-    op = Operador.query.get_or_404(op_id)
-    return render_template("operadores/form.html", op=op)
-
-
-@bp.post("/<int:op_id>/actualizar")
-@login_required
-def actualizar(op_id: int):
-    op = Operador.query.get_or_404(op_id)
-    for key in ["nombre", "identificacion", "licencia", "puesto", "telefono", "status"]:
-        value = request.form.get(key)
-        if value is None or value == "":
-            continue
-        setattr(op, key, value)
-    db.session.commit()
-    flash("Operador actualizado", "success")
-    return redirect(url_for("operadores.index"))
-
-
-@bp.post("/<int:op_id>/eliminar")
-@login_required
-def eliminar(op_id: int):
-    op = Operador.query.get_or_404(op_id)
-    db.session.delete(op)
+@bp.post("/<int:operador_id>/delete")
+def delete(operador_id: int):
+    operador = Operador.query.get_or_404(operador_id)
+    db.session.delete(operador)
     db.session.commit()
     flash("Operador eliminado", "success")
-    return redirect(url_for("operadores.index"))
+    return redirect(url_for("operadores_bp.index"))
 
 
-@bp.get("/<int:op_id>")
-@login_required
-def detalle(op_id: int):
-    op = Operador.query.get_or_404(op_id)
-    return render_template("operadores/detalle.html", op=op)
+@bp.get("/export")
+def export_csv():
+    q = (request.args.get("q") or "").strip()
+    vence_en = request.args.get("vence_en", type=int)
+
+    query = Operador.query
+    if q:
+        like = f"%{q}%"
+        query = query.filter(
+            or_(
+                Operador.nombre.ilike(like),
+                Operador.doc_id.ilike(like),
+                Operador.notas.ilike(like),
+            )
+        )
+    if vence_en:
+        limite = date.today() + timedelta(days=vence_en)
+        query = query.filter(
+            Operador.licencia_vence.isnot(None),
+            Operador.licencia_vence <= limite,
+        )
+
+    rows = query.order_by(Operador.id.desc()).all()
+    output_dir = current_app.config.get(
+        "UPLOAD_DIR", "/opt/render/project/data/uploads"
+    )
+    os.makedirs(output_dir, exist_ok=True)
+    output_path = os.path.join(output_dir, "operadores.csv")
+
+    with open(output_path, "w", newline="", encoding="utf-8") as file:
+        writer = csv.writer(file)
+        writer.writerow(
+            [
+                "id",
+                "nombre",
+                "doc_id",
+                "licencia_vence",
+                "estatus",
+                "notas",
+                "dias_para_vencer",
+            ]
+        )
+        for row in rows:
+            writer.writerow(
+                [
+                    row.id,
+                    row.nombre or "",
+                    row.doc_id or "",
+                    row.licencia_vence.isoformat() if row.licencia_vence else "",
+                    row.estatus or "",
+                    (row.notas or "").replace("\n", " ").strip(),
+                    row.dias_para_vencer() if row.dias_para_vencer() is not None else "",
+                ]
+            )
+
+    return send_file(output_path, as_attachment=True, download_name="operadores.csv")

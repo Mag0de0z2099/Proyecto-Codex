@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from flask import flash, redirect, render_template, request, url_for
+import csv
+import os
+
+from flask import current_app, flash, redirect, render_template, request, send_file, url_for
 from flask_login import login_required
 
 from app.db import db
@@ -34,6 +37,31 @@ def index():
         q=q,
         pagination=pagination,
     )
+
+
+@bp.get("/export")
+@login_required
+def export_csv():
+    rows = Equipo.query.order_by(Equipo.id.desc()).all()
+    out_dir = current_app.config.get(
+        "UPLOAD_DIR", "/opt/render/project/data/uploads"
+    )
+    os.makedirs(out_dir, exist_ok=True)
+    out_path = os.path.join(out_dir, "equipos.csv")
+    with open(out_path, "w", newline="", encoding="utf-8") as handle:
+        writer = csv.writer(handle)
+        writer.writerow(["id", "nombre", "serie", "estatus", "descripcion"])
+        for row in rows:
+            writer.writerow(
+                [
+                    row.id,
+                    getattr(row, "nombre", "") or "",
+                    getattr(row, "serie", "") or "",
+                    getattr(row, "status", "") or "",
+                    getattr(row, "descripcion", "") or "",
+                ]
+            )
+    return send_file(out_path, as_attachment=True, download_name="equipos.csv")
 
 
 @bp.get("/nuevo")

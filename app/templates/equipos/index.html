@@ -8,6 +8,7 @@
   {% if DEV_MODE %}
   <a href="{{ url_for('equipos_bp.nuevo') }}">Nuevo</a>
   {% endif %}
+  <a href="{{ url_for('equipos_bp.export_csv') }}">Exportar CSV</a>
 </form>
 <table>
   <thead>
