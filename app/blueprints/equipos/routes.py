@@ -63,15 +63,15 @@ def crear():
             data["horas_uso"] = float(horas_uso_raw)
         except (TypeError, ValueError):
             flash("Horas de uso inválidas", "error")
-            return redirect(url_for("equipos.nuevo"))
+            return redirect(url_for("equipos_bp.nuevo"))
     if not data.get("codigo") or not data.get("tipo"):
         flash("Código y tipo son obligatorios", "error")
-        return redirect(url_for("equipos.nuevo"))
+        return redirect(url_for("equipos_bp.nuevo"))
     equipo = Equipo(**data)
     db.session.add(equipo)
     db.session.commit()
     flash("Equipo creado", "success")
-    return redirect(url_for("equipos.index"))
+    return redirect(url_for("equipos_bp.index"))
 
 
 @bp.get("/<int:equipo_id>/editar")
@@ -104,11 +104,11 @@ def actualizar(equipo_id: int):
                 value = float(value)
             except (TypeError, ValueError):
                 flash("Horas de uso inválidas", "error")
-                return redirect(url_for("equipos.editar", equipo_id=equipo.id))
+                return redirect(url_for("equipos_bp.editar", equipo_id=equipo.id))
         setattr(equipo, key, value)
     db.session.commit()
     flash("Equipo actualizado", "success")
-    return redirect(url_for("equipos.index"))
+    return redirect(url_for("equipos_bp.index"))
 
 
 @bp.post("/<int:equipo_id>/eliminar")
@@ -118,7 +118,7 @@ def eliminar(equipo_id: int):
     db.session.delete(equipo)
     db.session.commit()
     flash("Equipo eliminado", "success")
-    return redirect(url_for("equipos.index"))
+    return redirect(url_for("equipos_bp.index"))
 
 
 @bp.get("/<int:equipo_id>")
