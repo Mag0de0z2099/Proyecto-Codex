@@ -1,12 +1,23 @@
-{% extends "base.html" %}
-{% import "_forms.html" as forms %}
+{% extends "layout.html" %}
 {% block content %}
-<h1>{{ 'Editar' if equipo else 'Nuevo' }} equipo</h1>
-<form method="post" action="{{ url_for('equipos.actualizar', equipo_id=equipo.id) if equipo else url_for('equipos.crear') }}">
-  {{ forms.csrf_field() }}
-  {% for name,label in [('codigo','Código'),('tipo','Tipo'),('marca','Marca'),('modelo','Modelo'),('serie','Serie'),('placas','Placas'),('status','Status'),('ubicacion','Ubicación'),('horas_uso','Horas de uso')] %}
-    <label>{{ label }} <input name="{{ name }}" value="{{ getattr(equipo, name, '') if equipo else '' }}"></label><br>
-  {% endfor %}
-  <button type="submit">Guardar</button>
+<h1 class="mb-3">{{ 'Editar' if item else 'Nuevo' }} equipo</h1>
+
+<form method="post" action="">
+  <label>Nombre</label>
+  <input name="nombre" required value="{{ getattr(item,'nombre','') }}">
+
+  <label>Serie</label>
+  <input name="serie" value="{{ getattr(item,'serie','') }}">
+
+  <label>Estatus</label>
+  <input name="estatus" value="{{ getattr(item,'estatus','') or 'activo' }}">
+
+  <label>Descripción</label>
+  <textarea name="descripcion">{{ getattr(item,'descripcion','') }}</textarea>
+
+  <div class="mt-2">
+    <button type="submit">Guardar</button>
+    <a href="{{ url_for('equipos.index') }}">Cancelar</a>
+  </div>
 </form>
 {% endblock %}

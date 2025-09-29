@@ -270,6 +270,10 @@ def create_app(config_name: str | None = None) -> Flask:
     except Exception:
         pass
 
+    from app.blueprints.equipos.routes import bp as equipos_bp
+
+    app.register_blueprint(equipos_bp)
+
     from app.blueprints.partes import bp as partes_bp
 
     app.register_blueprint(partes_bp)
