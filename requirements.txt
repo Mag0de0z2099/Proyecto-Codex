@@ -33,3 +33,6 @@ pytz>=2024.1
 
 # Metrics
 prometheus-client>=0.20.0
+
+# PDF generation
+reportlab>=4.0.0

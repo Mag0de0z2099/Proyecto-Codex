@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="mb-3">Resumen de partes diarias</h1>
+
+<form method="get" class="mb-3" action="{{ url_for('partes.resumen') }}">
+  <label>Desde</label>
+  <input type="date" name="desde" value="{{ (desde or '') }}">
+  <label>Hasta</label>
+  <input type="date" name="hasta" value="{{ (hasta or '') }}">
+  <label>Equipo</label>
+  <select name="equipo_id">
+    <option value="">-- todos --</option>
+    {% for e in equipos %}
+      <option value="{{ e.id }}" {% if equipo_id and equipo_id==e.id %}selected{% endif %}>
+        {{ getattr(e,'nombre','Equipo') }} #{{ e.id }}
+      </option>
+    {% endfor %}
+  </select>
+  <button type="submit">Filtrar</button>
+  <a href="{{ url_for('partes.resumen_pdf', desde=desde, hasta=hasta, equipo_id=equipo_id) }}">Descargar PDF</a>
+</form>
+
+<div class="cards">
+  <div class="card">Partes: <strong>{{ partes_count }}</strong></div>
+  <div class="card">Total horas: <strong>{{ '%.2f'|format(total_horas) }}</strong></div>
+  <div class="card">Con incidencias: <strong>{{ incidencias_count }}</strong></div>
+</div>
+
+<h3 class="mt-3">Últimos registros</h3>
+<table class="table">
+  <thead><tr><th>Fecha</th><th>Equipo</th><th>Operador</th><th>Horas</th><th>Actividad</th><th>Incidencias</th></tr></thead>
+  <tbody>
+    {% for r in ultimos %}
+      <tr>
+        <td>{{ r.fecha }}</td>
+        <td>{{ r.equipo_id }}</td>
+        <td>{{ r.operador_id }}</td>
+        <td>{{ r.horas_trabajo }}</td>
+        <td>{{ r.actividad }}</td>
+        <td>{{ r.incidencias }}</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<style>
+.cards{display:flex;gap:12px;flex-wrap:wrap}
+.card{padding:10px 14px;border:1px solid #333;border-radius:8px}
+</style>
+{% endblock %}
