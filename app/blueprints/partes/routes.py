@@ -11,6 +11,7 @@ from sqlalchemy.orm import joinedload
 
 from app.db import db
 from app.models import ActividadDiaria, Equipo, ParteDiaria
+from app.utils.pagination import paginate
 
 try:
     from app.models import Operador
@@ -66,11 +67,10 @@ def index():
             or_(Equipo.codigo.ilike(like), Equipo.tipo.ilike(like))
         )
 
-    rows = (
-        query.order_by(ParteDiaria.fecha.desc(), ParteDiaria.id.desc())
-        .limit(300)
-        .all()
-    )
+    query = query.order_by(ParteDiaria.fecha.desc(), ParteDiaria.id.desc())
+    page = request.args.get("page", type=int) or 1
+    per_page = min(max(request.args.get("per_page", type=int) or 20, 1), 100)
+    rows, pagination = paginate(query, page=page, per_page=per_page)
 
     total_horas = sum((r.horas_trabajadas or 0.0) for r in rows)
     total_comb = sum((r.combustible_l or 0.0) for r in rows)
@@ -83,6 +83,7 @@ def index():
         d2=d2_raw,
         total_horas=total_horas,
         total_comb=total_comb,
+        pagination=pagination,
     )
 
 

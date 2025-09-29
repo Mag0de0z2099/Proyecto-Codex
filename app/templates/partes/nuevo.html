@@ -1,8 +1,9 @@
 {% extends "base.html" %}
+{% import "_forms.html" as forms %}
 {% block content %}
 <h1>Nuevo parte diario</h1>
 <form method="post" action="{{ url_for('partes.crear') }}" class="form-grid">
-  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {{ forms.csrf_field() }}
   <label>Fecha: <input type="date" name="fecha" value="{{ pre.fecha if pre else hoy }}"></label>
   <label>Equipo:
     <select name="equipo_id" required>

@@ -1,8 +1,9 @@
 {% extends "base.html" %}
+{% import "_forms.html" as forms %}
 {% block content %}
 <h1>{{ 'Editar' if op else 'Nuevo' }} operador</h1>
 <form method="post" action="{{ url_for('operadores.actualizar', op_id=op.id) if op else url_for('operadores.crear') }}">
-  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {{ forms.csrf_field() }}
   {% for name,label in [('nombre','Nombre'),('identificacion','Identificación'),('licencia','Licencia'),('puesto','Puesto'),('telefono','Teléfono'),('status','Status')] %}
     <label>{{ label }} <input name="{{ name }}" value="{{ getattr(op, name, '') if op else '' }}"></label><br>
   {% endfor %}

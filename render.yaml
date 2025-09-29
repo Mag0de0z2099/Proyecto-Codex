@@ -16,10 +16,9 @@ services:
                   "ALTER COLUMN version_num TYPE VARCHAR(128)"
               )
           )
-          print("OK: alembic_version.version_num = VARCHAR(128)")
+      print("OK: alembic_version.version_num ensure 128")
       PY
       && alembic -c migrations/alembic.ini upgrade head
-      && FLASK_APP=app:create_app flask seed-admin --email admin@admin.com --password admin123
     startCommand: gunicorn -w 2 -k gthread -t 120 -b 0.0.0.0:$PORT 'app:create_app()'
     healthCheckPath: /healthz
     envVars:

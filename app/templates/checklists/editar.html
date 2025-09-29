@@ -1,8 +1,9 @@
 {% extends "base.html" %}
+{% import "_forms.html" as forms %}
 {% block content %}
 <h1>Checklist — {{ cl.template.name }} / {{ cl.overall_status }}</h1>
 <form method="post" action="{{ url_for('checklists.guardar', cl_id=cl.id) }}" enctype="multipart/form-data">
-  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {{ forms.csrf_field() }}
   {% for section, items in items_by_section.items() %}
     <h2>{{ "Pre-operativo" if section == "PRE" else ("Operación" if section == "OP" else "Post-operativo") }}</h2>
     <table>

@@ -1,0 +1,8 @@
+{% macro csrf_field() -%}
+  {% if csrf_token is defined %}
+    {% set token = csrf_token() %}
+    {% if token %}
+      <input type="hidden" name="csrf_token" value="{{ token }}">
+    {% endif %}
+  {% endif %}
+{%- endmacro %}

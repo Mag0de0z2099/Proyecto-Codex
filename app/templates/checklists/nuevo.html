@@ -1,8 +1,9 @@
 {% extends "base.html" %}
+{% import "_forms.html" as forms %}
 {% block content %}
 <h1>Nuevo checklist</h1>
 <form method="post" action="{{ url_for('checklists.crear') }}">
-  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {{ forms.csrf_field() }}
   <label>Equipo:
     <select name="equipment_id" required>
       {% for e in equipos %}
