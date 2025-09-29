@@ -1,76 +1,71 @@
-from __future__ import annotations
-
-from datetime import date, timedelta
-
-from flask import render_template
+from flask import Blueprint, current_app, render_template
 from sqlalchemy import func
 
-from app import db
-from app.models import ChecklistRun, Equipo, ParteDiaria
+from app.extensions import db
 
-try:
-    from app.models import Operador
-except Exception:  # pragma: no cover - apps sin operadores
-    Operador = None
+bp = Blueprint(
+    "dashboard_bp",
+    __name__,
+    url_prefix="/dashboard",
+    template_folder="../../templates/dashboard",
+)
 
-from . import bp
+
+@bp.before_request
+def _guard():
+    if current_app.config.get("SECURITY_DISABLED") or current_app.config.get("LOGIN_DISABLED"):
+        return
 
 
 @bp.get("/")
-def home():
-    hoy = date.today()
-    # KPIs
-    total_equipos = db.session.scalar(db.select(func.count()).select_from(Equipo))
-    total_operadores = (
-        db.session.scalar(db.select(func.count()).select_from(Operador)) if Operador else 0
-    )
+def index():
+    counts: dict[str, int | str] = {}
 
-    # Partes de hoy
-    q_partes_hoy = db.select(
-        func.count(ParteDiaria.id),
-        func.coalesce(func.sum(ParteDiaria.horas_trabajo), 0.0),
-    ).where(ParteDiaria.fecha == hoy)
-    partes_count, horas_hoy = db.session.execute(q_partes_hoy).one()
+    def safe_count(model, label: str) -> None:
+        try:
+            counts[label] = db.session.query(func.count(model.id)).scalar() or 0
+        except Exception:  # pragma: no cover - conteo defensivo
+            counts[label] = "-"
 
-    # Checklists de hoy
-    q_chk = db.select(
-        func.count(ChecklistRun.id),
-        func.coalesce(func.avg(ChecklistRun.pct_ok), 0.0),
-    ).where(ChecklistRun.fecha == hoy)
-    chk_count, chk_avg = db.session.execute(q_chk).one()
+    try:
+        from app.models.equipo import Equipo
+    except Exception:  # pragma: no cover - fallback para apps sin módulo
+        from app.models import Equipo
 
-    # Alertas: últimos runs con %OK < 100 (últimos 3 días)
-    desde = hoy - timedelta(days=3)
-    noaptos = (
-        db.session.query(ChecklistRun)
-        .filter(ChecklistRun.fecha >= desde, ChecklistRun.pct_ok < 100)
-        .order_by(ChecklistRun.fecha.desc(), ChecklistRun.id.desc())
-        .limit(10)
-        .all()
-    )
+    try:
+        from app.models.operador import Operador
+    except Exception:  # pragma: no cover - fallback para apps sin módulo
+        from app.models import Operador
 
-    # Partes de hoy con datos faltantes
-    partes_incompletos = (
-        db.session.query(ParteDiaria)
-        .filter(ParteDiaria.fecha == hoy)
-        .filter(
-            (func.coalesce(ParteDiaria.horas_trabajo, 0) <= 0)
-            | (ParteDiaria.actividad.is_(None))
-            | (func.length(func.trim(ParteDiaria.actividad)) == 0)
-        )
-        .order_by(ParteDiaria.id.desc())
-        .all()
-    )
+    try:
+        from app.models.parte_diaria import ParteDiaria
+    except Exception:  # pragma: no cover - proyectos sin partes
+        ParteDiaria = None
 
-    return render_template(
-        "dashboard/index.html",
-        total_equipos=total_equipos,
-        total_operadores=total_operadores,
-        partes_count=partes_count,
-        horas_hoy=horas_hoy,
-        chk_count=chk_count,
-        chk_avg=chk_avg,
-        noaptos=noaptos,
-        partes_incompletos=partes_incompletos,
-        hoy=hoy,
-    )
+    try:
+        from app.models.checklist import ChecklistRun, ChecklistTemplate
+    except Exception:  # pragma: no cover - proyectos sin checklists
+        ChecklistTemplate = ChecklistRun = None
+
+    try:
+        from app.models.parte_diaria import ArchivoAdjunto
+    except Exception:  # pragma: no cover - apps con modelo alterno
+        try:
+            from app.models.archivo import ArchivoAdjunto
+        except Exception:  # pragma: no cover - sin archivos
+            ArchivoAdjunto = None
+
+    for model, label in [
+        (Equipo, "equipos"),
+        (Operador, "operadores"),
+        (ParteDiaria, "partes"),
+        (ChecklistTemplate, "plantillas"),
+        (ChecklistRun, "checklist_runs"),
+        (ArchivoAdjunto, "archivos"),
+    ]:
+        if model is not None:
+            safe_count(model, label)
+        else:
+            counts[label] = "-"
+
+    return render_template("dashboard/index.html", counts=counts)

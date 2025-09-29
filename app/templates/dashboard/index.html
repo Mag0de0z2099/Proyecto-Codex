@@ -1,74 +1,22 @@
-{% extends "base.html" %}
+{% extends "layout.html" %}
 {% block content %}
-<h1>Dashboard</h1>
+<h1>Dashboard (DEV)</h1>
 
-<!-- Atajos -->
-{% if DEV_MODE %}
-<p>
-  <a href="{{ url_for('checklists_bp.ejecutar') }}">➕ Ejecutar Checklist</a> |
-  <a href="{{ url_for('partes.create') }}">➕ Nuevo Parte</a> |
-  <a href="{{ url_for('equipos_bp.nuevo') }}">➕ Nuevo Equipo</a>
-  {% if total_operadores is not none %}| <a href="{{ url_for('operadores_bp.create') }}">➕ Nuevo Operador</a>{% endif %}
-</p>
-{% endif %}
+<p style="color:#888">Modo DEV: {{ 'ON' if DEV_MODE else 'OFF' }}</p>
 
-<!-- KPIs -->
-<div style="display:flex; gap:16px; flex-wrap:wrap;">
-  <div style="border:1px solid #ddd; padding:12px; border-radius:8px; min-width:180px;">
-    <div>Total Equipos</div>
-    <h2>{{ total_equipos }}</h2>
-  </div>
-  <div style="border:1px solid #ddd; padding:12px; border-radius:8px; min-width:180px;">
-    <div>Total Operadores</div>
-    <h2>{{ total_operadores }}</h2>
-  </div>
-  <div style="border:1px solid #ddd; padding:12px; border-radius:8px; min-width:220px;">
-    <div>Partes de hoy ({{ hoy }})</div>
-    <h2>{{ partes_count }}</h2>
-    <small>Horas trabajadas: {{ '%.2f'|format(horas_hoy) }}</small>
-  </div>
-  <div style="border:1px solid #ddd; padding:12px; border-radius:8px; min-width:220px;">
-    <div>Checklists de hoy ({{ hoy }})</div>
-    <h2>{{ chk_count }}</h2>
-    <small>Promedio OK: {{ '%.1f'|format(chk_avg) }}%</small>
-  </div>
+<div class="cards">
+  <a class="card" href="{{ url_for('equipos_bp.index') }}">Equipos <b>{{ counts.get('equipos') }}</b></a>
+  <a class="card" href="{{ url_for('operadores_bp.index') }}">Operadores <b>{{ counts.get('operadores') }}</b></a>
+  <a class="card" href="{{ url_for('partes.index') }}">Partes <b>{{ counts.get('partes') }}</b></a>
+  <a class="card" href="{{ url_for('partes.resumen') }}">Resumen Partes</a>
+  <a class="card" href="{{ url_for('checklists_bp.templates_index') }}">Plantillas <b>{{ counts.get('plantillas') }}</b></a>
+  <a class="card" href="{{ url_for('checklists_bp.runs_index') }}">Ejecuciones <b>{{ counts.get('checklist_runs') }}</b></a>
+  <a class="card" href="{{ url_for('checklists_bp.resumen') }}">Resumen Checklists</a>
 </div>
 
-<!-- Alertas -->
-<h2 style="margin-top:24px;">Alertas</h2>
-<div style="display:flex; gap:16px; flex-wrap:wrap;">
-  <div style="border:1px solid #f2c; padding:12px; border-radius:8px; min-width:300px;">
-    <h3 style="margin:0 0 8px 0;">Atención (últimos 3 días)</h3>
-    {% if noaptos %}
-    <ul>
-      {% for c in noaptos %}
-        <li>
-          {{ c.fecha }} — {{ c.template.nombre }} — <b>{{ '%.1f'|format(c.pct_ok) }}%</b>
-          <a href="{{ url_for('checklists_bp.run_view', id=c.id) }}">ver</a>
-        </li>
-      {% endfor %}
-    </ul>
-    {% else %}
-    <p>Sin NO_APTO recientes 🎉</p>
-    {% endif %}
-  </div>
-
-  <div style="border:1px solid #fc6; padding:12px; border-radius:8px; min-width:300px;">
-    <h3 style="margin:0 0 8px 0;">Partes de hoy incompletos</h3>
-    {% if partes_incompletos %}
-    <ul>
-      {% for p in partes_incompletos %}
-        <li>
-          Parte #{{ p.id }} — Equipo {{ p.equipo.codigo if p.equipo else p.equipo_id or 'N/D' }}
-          {% if (p.horas_trabajo or 0) <= 0 %} • falta <b>horas</b>{% endif %}
-          {% if not p.actividad %} • falta <b>actividad</b>{% endif %}
-          {% if DEV_MODE %}<a href="{{ url_for('partes.edit', id=p.id) }}">editar</a>{% endif %}
-        </li>
-      {% endfor %}
-    </ul>
-    {% else %}
-    <p>Todos los partes de hoy están completos ✅</p>
-    {% endif %}
-  </div>
-</div>
+<style>
+.cards{display:flex;gap:12px;flex-wrap:wrap}
+.card{border:1px solid #333;border-radius:8px;padding:12px 16px;text-decoration:none;color:#111}
+.card b{display:block;font-size:20px;margin-top:6px}
+</style>
 {% endblock %}
