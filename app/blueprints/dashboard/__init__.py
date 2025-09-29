@@ -1,7 +1,3 @@
-from __future__ import annotations
+from .routes import bp
 
-from flask import Blueprint
-
-bp = Blueprint("dashboard", __name__, url_prefix="")
-
-from . import routes  # noqa: E402,F401
+__all__ = ["bp"]

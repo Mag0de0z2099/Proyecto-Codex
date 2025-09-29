@@ -279,7 +279,7 @@ def create_app(config_name: str | None = None) -> Flask:
 
     app.register_blueprint(partes_bp)
 
-    from app.blueprints.dashboard import bp as dashboard_bp
+    from app.blueprints.dashboard.routes import bp as dashboard_bp
 
     app.register_blueprint(dashboard_bp)
 

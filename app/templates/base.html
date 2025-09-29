@@ -35,6 +35,9 @@
     </div>
     <nav class="nav-right">
       {% if current_user.is_authenticated %}
+        {% if DEV_MODE %}
+        <a href="{{ url_for('dashboard_bp.index') }}">Dashboard</a>
+        {% endif %}
         <a href="{{ url_for('equipos_bp.index') }}">Equipos</a>
         <a href="{{ url_for('partes.index') }}">Partes</a>
         <a href="{{ url_for('checklists_bp.templates_index') }}">Checklists</a>
@@ -60,7 +63,7 @@
   <main class="container">
     {% if current_user.is_authenticated %}
       <nav>
-        <a href="{{ url_for('dashboard.home') }}">Inicio</a> |
+        <a href="{{ url_for('dashboard_bp.index') }}">Dashboard</a> |
         <a href="{{ url_for('equipos_bp.index') }}">Equipos</a> |
         <a href="{{ url_for('operadores_bp.index') }}">Operadores</a> |
         <a href="{{ url_for('checklists_bp.templates_index') }}">Checklists</a>
