@@ -1,52 +1,58 @@
 {% extends "base.html" %}
 {% import "_forms.html" as forms %}
 {% block content %}
-<h1>Operadores</h1>
-<form method="get" class="mb-3">
-  <input name="q" value="{{ q }}" placeholder="Buscar por nombre / ID / puesto">
-  <button type="submit">Buscar</button>
-  {% if DEV_MODE %}
-  <a href="{{ url_for('operadores.nuevo') }}">Nuevo</a>
-  {% endif %}
+<h1 class="mb-3">Operadores</h1>
+
+<form method="get" class="mb-3" action="{{ url_for('operadores_bp.index') }}">
+  <input type="text" name="q" value="{{ q or '' }}" placeholder="Buscar nombre, doc o notas">
+  <select name="vence_en">
+    <option value="">Vencen en...</option>
+    {% for d in [7, 15, 30, 60, 90] %}
+      <option value="{{ d }}" {% if vence_en == d %}selected{% endif %}>{{ d }} días</option>
+    {% endfor %}
+  </select>
+  <button type="submit">Filtrar</button>
+  <a href="{{ url_for('operadores_bp.export_csv', q=q, vence_en=vence_en) }}">Exportar CSV</a>
+  {% if DEV_MODE %}<a href="{{ url_for('operadores_bp.create') }}">+ Nuevo</a>{% endif %}
 </form>
-<table>
+
+<table class="table">
   <thead>
-    <tr>
-      <th>Nombre</th><th>ID</th><th>Puesto</th><th>Status</th>
-      {% if DEV_MODE %}<th></th>{% endif %}
-    </tr>
+    <tr><th>ID</th><th>Nombre</th><th>Doc</th><th>Licencia vence</th><th>Días</th><th>Estatus</th>{% if DEV_MODE %}<th>Acciones</th>{% endif %}</tr>
   </thead>
   <tbody>
-  {% for op in operadores %}
-    <tr>
-      <td><a href="{{ url_for('operadores.detalle', op_id=op.id) }}">{{ op.nombre }}</a></td>
-      <td>{{ op.identificacion or '-' }}</td>
-      <td>{{ op.puesto or '-' }}</td>
-      <td>{{ op.status }}</td>
+    {% for r in rows %}
+    {% set d = r.dias_para_vencer() %}
+    <tr {% if d is not none and d <= 15 %}style="background:#fff3cd"{% endif %}>
+      <td>{{ r.id }}</td>
+      <td>{{ r.nombre }}</td>
+      <td>{{ r.doc_id }}</td>
+      <td>{{ r.licencia_vence or '' }}</td>
+      <td>{{ d if d is not none else '' }}</td>
+      <td>{{ r.estatus }}</td>
       {% if DEV_MODE %}
       <td>
-        <a href="{{ url_for('operadores.editar', op_id=op.id) }}">Editar</a>
-        <form action="{{ url_for('operadores.eliminar', op_id=op.id) }}" method="post" style="display:inline">
+        <a href="{{ url_for('operadores_bp.edit', operador_id=r.id) }}">Editar</a>
+        <form method="post" action="{{ url_for('operadores_bp.delete', operador_id=r.id) }}" style="display:inline" onsubmit="return confirm('¿Eliminar operador?');">
           {{ forms.csrf_field() }}
-          <button type="submit" onclick="return confirm('¿Eliminar?')">Eliminar</button>
+          <button type="submit">Eliminar</button>
         </form>
       </td>
       {% endif %}
     </tr>
-  {% else %}
-    <tr><td colspan="{{ 5 if DEV_MODE else 4 }}">No hay operadores registrados.</td></tr>
-  {% endfor %}
+    {% else %}
+    <tr>
+      <td colspan="{{ 7 if DEV_MODE else 6 }}">No hay operadores registrados.</td>
+    </tr>
+    {% endfor %}
   </tbody>
 </table>
+
 {% if pagination.pages > 1 %}
-<nav class="pagination">
-  {% if pagination.has_prev %}
-  <a href="{{ url_for('operadores.index', page=pagination.prev_num, q=q, per_page=pagination.per_page) }}">« Anterior</a>
-  {% endif %}
+<nav>
+  {% if pagination.has_prev %}<a href="{{ url_for('operadores_bp.index', page=pagination.prev_num, q=q, vence_en=vence_en) }}">&laquo; Anterior</a>{% endif %}
   <span>Página {{ pagination.page }} de {{ pagination.pages }}</span>
-  {% if pagination.has_next %}
-  <a href="{{ url_for('operadores.index', page=pagination.next_num, q=q, per_page=pagination.per_page) }}">Siguiente »</a>
-  {% endif %}
+  {% if pagination.has_next %}<a href="{{ url_for('operadores_bp.index', page=pagination.next_num, q=q, vence_en=vence_en) }}">Siguiente &raquo;</a>{% endif %}
 </nav>
 {% endif %}
 {% endblock %}

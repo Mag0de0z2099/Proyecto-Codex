@@ -43,7 +43,7 @@
         <a href="{{ url_for('checklists_bp.runs_index') }}">Ejecuciones</a>
         <a href="{{ url_for('partes.resumen') }}">Resumen Partes</a>
         {% endif %}
-        <a href="{{ url_for('operadores.index') }}">Operadores</a>
+        <a href="{{ url_for('operadores_bp.index') }}">Operadores</a>
         <form method="post" action="{{ url_for('auth.logout') }}" class="inline">
           {{ forms.csrf_field() }}
           <button class="btn" type="submit">Logout</button>
@@ -62,7 +62,7 @@
       <nav>
         <a href="{{ url_for('dashboard.home') }}">Inicio</a> |
         <a href="{{ url_for('equipos_bp.index') }}">Equipos</a> |
-        <a href="{{ url_for('operadores.index') }}">Operadores</a> |
+        <a href="{{ url_for('operadores_bp.index') }}">Operadores</a> |
         <a href="{{ url_for('checklists_bp.templates_index') }}">Checklists</a>
         {% if DEV_MODE %}|
         <a href="{{ url_for('checklists_bp.ejecutar') }}">Ejecutar</a> |

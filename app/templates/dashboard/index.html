@@ -8,7 +8,7 @@
   <a href="{{ url_for('checklists_bp.ejecutar') }}">➕ Ejecutar Checklist</a> |
   <a href="{{ url_for('partes.create') }}">➕ Nuevo Parte</a> |
   <a href="{{ url_for('equipos_bp.nuevo') }}">➕ Nuevo Equipo</a>
-  {% if total_operadores is not none %}| <a href="{{ url_for('operadores.nuevo') }}">➕ Nuevo Operador</a>{% endif %}
+  {% if total_operadores is not none %}| <a href="{{ url_for('operadores_bp.create') }}">➕ Nuevo Operador</a>{% endif %}
 </p>
 {% endif %}
 

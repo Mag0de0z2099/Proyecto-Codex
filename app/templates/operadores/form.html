@@ -1,12 +1,28 @@
 {% extends "base.html" %}
 {% import "_forms.html" as forms %}
 {% block content %}
-<h1>{{ 'Editar' if op else 'Nuevo' }} operador</h1>
-<form method="post" action="{{ url_for('operadores.actualizar', op_id=op.id) if op else url_for('operadores.crear') }}">
+<h1 class="mb-3">{{ 'Editar' if item else 'Nuevo' }} operador</h1>
+
+<form method="post">
   {{ forms.csrf_field() }}
-  {% for name,label in [('nombre','Nombre'),('identificacion','Identificación'),('licencia','Licencia'),('puesto','Puesto'),('telefono','Teléfono'),('status','Status')] %}
-    <label>{{ label }} <input name="{{ name }}" value="{{ getattr(op, name, '') if op else '' }}"></label><br>
-  {% endfor %}
-  <button type="submit">Guardar</button>
+  <label>Nombre</label>
+  <input name="nombre" required value="{{ getattr(item,'nombre','') }}">
+
+  <label>Documento / Licencia</label>
+  <input name="doc_id" value="{{ getattr(item,'doc_id','') }}">
+
+  <label>Licencia vence</label>
+  <input type="date" name="licencia_vence" value="{{ (item.licencia_vence if item else none) or '' }}">
+
+  <label>Estatus</label>
+  <input name="estatus" value="{{ getattr(item,'estatus','') or 'activo' }}">
+
+  <label>Notas</label>
+  <textarea name="notas">{{ getattr(item,'notas','') }}</textarea>
+
+  <div class="mt-2">
+    <button type="submit">Guardar</button>
+    <a href="{{ url_for('operadores_bp.index') }}">Cancelar</a>
+  </div>
 </form>
 {% endblock %}
