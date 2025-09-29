@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Checklist ejecutado</h1>
+<p>Fecha: <strong>{{ r.fecha }}</strong> | Plantilla: <strong>{{ r.template.nombre }}</strong> ({{ r.template.norma or '-' }}) | %OK: <strong>{{ '%.1f'|format(r.pct_ok) }}%</strong></p>
+{% if r.notas %}<p>Notas: {{ r.notas }}</p>{% endif %}
+<table class="table">
+  <thead><tr><th>Ítem</th><th>Respuesta</th></tr></thead>
+  <tbody>
+    {% for it in items %}
+      {% set a = answers.get(it.id) %}
+      <tr>
+        <td>{{ it.texto }}</td>
+        <td>
+          {% if it.tipo == 'bool' %}
+            {% if a and a.valor_bool %}✓{% else %}✗{% endif %}
+            {% if a and a.comentario %} — {{ a.comentario }}{% endif %}
+          {% else %}
+            {{ a.comentario if a else '' }}
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<p><a href="{{ url_for('checklists_bp.run_pdf', id=r.id) }}" target="_blank">Descargar PDF</a></p>
+{% endblock %}

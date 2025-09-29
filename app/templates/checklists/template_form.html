@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ 'Editar' if item else 'Nueva' }} plantilla</h1>
+<form method="post">
+  <label>Nombre</label>
+  <input name="nombre" required value="{{ getattr(item,'nombre','') }}">
+  <label>Norma</label>
+  <input name="norma" value="{{ getattr(item,'norma','') }}">
+  <button type="submit">Guardar</button>
+  <a href="{{ url_for('checklists_bp.templates_index') }}">Volver</a>
+</form>
+
+{% if item %}
+<hr>
+<h3>Ítems</h3>
+<form method="post" action="{{ url_for('checklists_bp.template_item_add', id=item.id) }}">
+  <input name="texto" placeholder="Descripción del ítem" required>
+  <select name="tipo">
+    <option value="bool">✓ / ✗</option>
+    <option value="text">Texto</option>
+  </select>
+  <input name="orden" type="number" value="0" style="width:90px">
+  <button type="submit">Agregar</button>
+</form>
+
+<table class="table">
+  <thead><tr><th>Orden</th><th>Ítem</th><th>Tipo</th><th></th></tr></thead>
+  <tbody>
+    {% for it in items %}
+    <tr>
+      <td>{{ it.orden }}</td>
+      <td>{{ it.texto }}</td>
+      <td>{{ it.tipo }}</td>
+      <td>
+        <form method="post" action="{{ url_for('checklists_bp.template_item_delete', template_id=item.id, item_id=it.id) }}" onsubmit="return confirm('¿Eliminar ítem?');">
+          <button type="submit">Eliminar</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Plantillas de checklist</h1>
+<p><a href="{{ url_for('checklists_bp.template_new') }}">+ Nueva plantilla</a>
+   | <a href="{{ url_for('checklists_bp.ejecutar') }}">Ejecutar checklist</a>
+   | <a href="{{ url_for('checklists_bp.runs_index') }}">Ejecuciones</a></p>
+<table class="table">
+  <thead><tr><th>ID</th><th>Nombre</th><th>Norma</th><th>Ítems</th><th></th></tr></thead>
+  <tbody>
+    {% for t in rows %}
+    <tr>
+      <td>{{ t.id }}</td>
+      <td>{{ t.nombre }}</td>
+      <td>{{ t.norma }}</td>
+      <td>{{ t.items.count() }}</td>
+      <td>
+        <a href="{{ url_for('checklists_bp.template_edit', id=t.id) }}">Editar</a>
+        <form method="post" action="{{ url_for('checklists_bp.template_delete', id=t.id) }}" style="display:inline" onsubmit="return confirm('¿Eliminar plantilla?');">
+          <button type="submit">Eliminar</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

@@ -1,238 +1,397 @@
-from __future__ import annotations
-
-import os
-import uuid
+from datetime import datetime, date
+from io import BytesIO
 
 from flask import (
-    current_app,
-    flash,
-    redirect,
+    Blueprint,
     render_template,
     request,
-    send_from_directory,
+    redirect,
     url_for,
+    flash,
+    current_app,
+    send_file,
 )
-from flask_login import login_required
-from sqlalchemy import or_
-from werkzeug.utils import secure_filename
+from sqlalchemy import func
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import LETTER
+from reportlab.lib.units import cm
 
-from app.db import db
-from app.models import (
-    AnswerEnum,
-    Checklist,
-    ChecklistAnswer,
-    ChecklistItem,
+from app.extensions import db
+from app.models.checklist import (
     ChecklistTemplate,
-    Equipo,
-    ParteDiaria,
+    ChecklistItem,
+    ChecklistRun,
+    ChecklistAnswer,
 )
 
-try:  # pragma: no cover - módulo opcional
-    from app.models import Operador
-except Exception:  # pragma: no cover - fallback si no existe
-    Operador = None  # type: ignore[assignment]
+try:
+    from app.models.equipo import Equipo
+except Exception:  # pragma: no cover - módulo opcional
+    Equipo = None
+try:
+    from app.models.operador import Operador
+except Exception:  # pragma: no cover - módulo opcional
+    Operador = None
 
-from . import bp
-from app.utils.pagination import paginate
+bp = Blueprint(
+    "checklists_bp",
+    __name__,
+    url_prefix="/checklists",
+    template_folder="../../templates/checklists",
+)
 
 
-def pick_template_for_equipment(equipo: Equipo) -> ChecklistTemplate | None:
-    tipo = (equipo.tipo or "").lower()
-    for template in ChecklistTemplate.query.order_by(ChecklistTemplate.name).all():
-        tokens = [token.strip() for token in template.applies_to.lower().split("|")]
-        if any(token and token in tipo for token in tokens):
-            return template
-    return ChecklistTemplate.query.order_by(ChecklistTemplate.name).first()
+@bp.before_request
+def _guard():
+    if current_app.config.get("SECURITY_DISABLED") or current_app.config.get("LOGIN_DISABLED"):
+        return
+
+
+def _parse_date(s, default=None):
+    if not s:
+        return default
+    try:
+        return datetime.strptime(s, "%Y-%m-%d").date()
+    except Exception:  # pragma: no cover - validaciones
+        return default
+
+
+def _pdf_header_footer(c, title):
+    w, h = LETTER
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(2 * cm, h - 2 * cm, title)
+    c.setFont("Helvetica", 8)
+    c.drawRightString(
+        w - 2 * cm,
+        1.5 * cm,
+        datetime.utcnow().strftime("Generado %Y-%m-%d %H:%M UTC"),
+    )
+    c.line(2 * cm, h - 2.2 * cm, w - 2 * cm, h - 2.2 * cm)
+
+
+@bp.get("/templates")
+def templates_index():
+    rows = ChecklistTemplate.query.order_by(ChecklistTemplate.id.desc()).all()
+    return render_template("checklists/templates_index.html", rows=rows)
 
 
 @bp.get("/")
-@login_required
-def index():
-    q = (request.args.get("q") or "").strip()
-    query = Checklist.query
-    if q:
-        like = f"%{q}%"
-        query = query.join(Equipo).filter(
-            or_(Equipo.codigo.ilike(like), Equipo.tipo.ilike(like))
+def root_redirect():
+    return redirect(url_for("checklists_bp.templates_index"))
+
+
+@bp.route("/templates/new", methods=["GET", "POST"])
+def template_new():
+    if request.method == "POST":
+        t = ChecklistTemplate(
+            nombre=(request.form.get("nombre") or "").strip(),
+            norma=(request.form.get("norma") or "").strip(),
         )
-    query = query.order_by(Checklist.created_at.desc())
-    page = request.args.get("page", type=int) or 1
-    per_page = min(max(request.args.get("per_page", type=int) or 20, 1), 100)
-    rows, pagination = paginate(query, page=page, per_page=per_page)
-    return render_template(
-        "checklists/index.html",
-        rows=rows,
-        q=q,
-        pagination=pagination,
+        db.session.add(t)
+        db.session.commit()
+        flash("Plantilla creada", "success")
+        return redirect(url_for("checklists_bp.templates_index"))
+    return render_template("checklists/template_form.html", item=None)
+
+
+@bp.route("/templates/<int:id>/edit", methods=["GET", "POST"])
+def template_edit(id):
+    t = ChecklistTemplate.query.get_or_404(id)
+    if request.method == "POST":
+        t.nombre = (request.form.get("nombre") or "").strip()
+        t.norma = (request.form.get("norma") or "").strip()
+        db.session.commit()
+        flash("Plantilla actualizada", "success")
+        return redirect(url_for("checklists_bp.templates_index"))
+    items = t.items.order_by(ChecklistItem.orden.asc(), ChecklistItem.id.asc()).all()
+    return render_template("checklists/template_form.html", item=t, items=items)
+
+
+@bp.post("/templates/<int:id>/delete")
+def template_delete(id):
+    t = ChecklistTemplate.query.get_or_404(id)
+    db.session.delete(t)
+    db.session.commit()
+    flash("Plantilla eliminada", "success")
+    return redirect(url_for("checklists_bp.templates_index"))
+
+
+@bp.post("/templates/<int:id>/items/add")
+def template_item_add(id):
+    t = ChecklistTemplate.query.get_or_404(id)
+    texto = (request.form.get("texto") or "").strip()
+    tipo = request.form.get("tipo") or "bool"
+    orden = request.form.get("orden", type=int) or 0
+    if not texto:
+        flash("Texto requerido", "warning")
+        return redirect(url_for("checklists_bp.template_edit", id=id))
+    db.session.add(
+        ChecklistItem(template_id=t.id, texto=texto, tipo=tipo, orden=orden)
     )
+    db.session.commit()
+    flash("Ítem agregado", "success")
+    return redirect(url_for("checklists_bp.template_edit", id=id))
 
 
-def _parte_existente_para_checklist(cl_id: int) -> ParteDiaria | None:
-    return ParteDiaria.query.filter_by(checklist_id=cl_id).first()
+@bp.post("/templates/<int:template_id>/items/<int:item_id>/delete")
+def template_item_delete(template_id, item_id):
+    it = ChecklistItem.query.get_or_404(item_id)
+    db.session.delete(it)
+    db.session.commit()
+    flash("Ítem eliminado", "success")
+    return redirect(url_for("checklists_bp.template_edit", id=template_id))
 
 
-@bp.get("/nuevo")
-@login_required
-def nuevo():
-    equipos = Equipo.query.order_by(Equipo.codigo).all()
-    operadores = Operador.query.order_by(Operador.nombre).all() if Operador else []
-    templates = ChecklistTemplate.query.order_by(ChecklistTemplate.name).all()
-    return render_template(
-        "checklists/nuevo.html",
-        equipos=equipos,
-        operadores=operadores,
-        templates=templates,
+@bp.route("/ejecutar", methods=["GET", "POST"])
+def ejecutar():
+    if request.method == "GET" and not request.args.get("template_id"):
+        templates = ChecklistTemplate.query.order_by(ChecklistTemplate.nombre.asc()).all()
+        equipos = Equipo.query.all() if Equipo else []
+        operadores = Operador.query.all() if Operador else []
+        return render_template(
+            "checklists/ejecutar_select.html",
+            templates=templates,
+            equipos=equipos,
+            operadores=operadores,
+        )
+
+    template_id = request.values.get("template_id", type=int)
+    t = ChecklistTemplate.query.get_or_404(template_id)
+    if request.method == "GET":
+        items = t.items.order_by(ChecklistItem.orden.asc(), ChecklistItem.id.asc()).all()
+        equipos = Equipo.query.all() if Equipo else []
+        operadores = Operador.query.all() if Operador else []
+        return render_template(
+            "checklists/ejecutar_form.html",
+            t=t,
+            items=items,
+            equipos=equipos,
+            operadores=operadores,
+        )
+
+    fecha = _parse_date(request.form.get("fecha"), default=date.today())
+    equipo_id = request.form.get("equipo_id", type=int)
+    operador_id = request.form.get("operador_id", type=int)
+    notas = (request.form.get("notas") or "").strip()
+
+    run = ChecklistRun(
+        template_id=template_id,
+        fecha=fecha,
+        equipo_id=equipo_id,
+        operador_id=operador_id,
+        notas=notas,
     )
-
-
-@bp.post("/crear")
-@login_required
-def crear():
-    equipment_id = int(request.form["equipment_id"])
-    template_id = int(request.form.get("template_id") or 0)
-    equipo = Equipo.query.get_or_404(equipment_id)
-    template = (
-        ChecklistTemplate.query.get(template_id)
-        if template_id
-        else pick_template_for_equipment(equipo)
-    )
-    if not template:
-        flash("No hay plantillas disponibles", "warning")
-        return redirect(url_for("checklists.nuevo"))
-
-    cl = Checklist(
-        template_id=template.id,
-        equipment_id=equipo.id,
-        operator_id=(
-            int(request.form["operator_id"])
-            if request.form.get("operator_id")
-            else None
-        ),
-        shift=request.form.get("shift") or "matutino",
-        location=request.form.get("location"),
-        weather=request.form.get("weather"),
-        hours_start=
-            float(request.form["hours_start"]) if request.form.get("hours_start") else None,
-        hours_end=
-            float(request.form["hours_end"]) if request.form.get("hours_end") else None,
-        notes=request.form.get("notes"),
-    )
-    db.session.add(cl)
+    db.session.add(run)
     db.session.flush()
 
-    for item in template.items:
-        db.session.add(
-            ChecklistAnswer(checklist_id=cl.id, item_id=item.id, result=AnswerEnum.OK)
+    items = ChecklistItem.query.filter_by(template_id=template_id).all()
+    oks = 0
+    total_bool = 0
+    for it in items:
+        if it.tipo == "bool":
+            total_bool += 1
+            val = request.form.get(f"item_{it.id}") == "on"
+            if val:
+                oks += 1
+            db.session.add(
+                ChecklistAnswer(
+                    run_id=run.id,
+                    item_id=it.id,
+                    valor_bool=val,
+                    comentario=(request.form.get(f"c_{it.id}") or "").strip(),
+                )
+            )
+        else:
+            txt = (request.form.get(f"item_{it.id}") or "").strip()
+            db.session.add(
+                ChecklistAnswer(
+                    run_id=run.id,
+                    item_id=it.id,
+                    valor_bool=None,
+                    comentario=txt,
+                )
+            )
+    run.pct_ok = (oks / total_bool * 100.0) if total_bool else 0.0
+    db.session.commit()
+    flash("Checklist ejecutado", "success")
+    return redirect(url_for("checklists_bp.run_view", id=run.id))
+
+
+@bp.get("/runs")
+def runs_index():
+    desde = _parse_date(request.args.get("desde"))
+    hasta = _parse_date(request.args.get("hasta"))
+    q = ChecklistRun.query
+    if desde:
+        q = q.filter(ChecklistRun.fecha >= desde)
+    if hasta:
+        q = q.filter(ChecklistRun.fecha <= hasta)
+    pag = q.order_by(ChecklistRun.fecha.desc(), ChecklistRun.id.desc()).paginate(
+        page=request.args.get("page", 1, type=int),
+        per_page=10,
+        error_out=False,
+    )
+    return render_template(
+        "checklists/runs_index.html",
+        pagination=pag,
+        rows=pag.items,
+        desde=desde,
+        hasta=hasta,
+    )
+
+
+@bp.get("/run/<int:id>")
+def run_view(id):
+    r = ChecklistRun.query.get_or_404(id)
+    items = (
+        ChecklistItem.query.filter_by(template_id=r.template_id)
+        .order_by(ChecklistItem.orden.asc(), ChecklistItem.id.asc())
+        .all()
+    )
+    answers = {a.item_id: a for a in r.answers.all()}
+    return render_template(
+        "checklists/run_view.html",
+        r=r,
+        items=items,
+        answers=answers,
+    )
+
+
+@bp.get("/run/<int:id>/pdf")
+def run_pdf(id):
+    r = ChecklistRun.query.get_or_404(id)
+    items = (
+        ChecklistItem.query.filter_by(template_id=r.template_id)
+        .order_by(ChecklistItem.orden.asc(), ChecklistItem.id.asc())
+        .all()
+    )
+    answers = {a.item_id: a for a in r.answers.all()}
+
+    buf = BytesIO()
+    c = canvas.Canvas(buf, pagesize=LETTER)
+    _pdf_header_footer(c, f"Checklist — {r.template.nombre}")
+
+    w, h = LETTER
+    x, y = 2 * cm, h - 3.2 * cm
+    c.setFont("Helvetica", 10)
+    header = [
+        ("Fecha", r.fecha.isoformat()),
+        ("Plantilla", r.template.nombre),
+        ("Norma", r.template.norma or "-"),
+        ("Equipo", r.equipo_id or "-"),
+        ("Operador", r.operador_id or "-"),
+        ("% OK", f"{r.pct_ok:.1f}%"),
+    ]
+    for k, v in header:
+        c.setFont("Helvetica-Bold", 10)
+        c.drawString(x, y, k + ":")
+        c.setFont("Helvetica", 10)
+        c.drawString(x + 4 * cm, y, str(v))
+        y -= 0.8 * cm
+
+    y -= 0.2 * cm
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(x, y, "Resultados")
+    y -= 0.7 * cm
+    c.setFont("Helvetica", 9)
+    for it in items:
+        ans = answers.get(it.id)
+        if it.tipo == "bool":
+            txt = "✓" if (ans and ans.valor_bool) else "✗"
+            if ans and ans.comentario:
+                txt += f" — {ans.comentario}"
+        else:
+            txt = ans.comentario if ans else ""
+        c.drawString(x, y, f"- {it.texto[:80]}: {txt[:80]}")
+        y -= 0.55 * cm
+        if y < 2.5 * cm:
+            c.showPage()
+            _pdf_header_footer(c, f"Checklist — {r.template.nombre}")
+            y = h - 3 * cm
+
+    c.showPage()
+    c.save()
+    buf.seek(0)
+    return send_file(
+        buf,
+        as_attachment=True,
+        download_name=f"checklist_{r.id}.pdf",
+        mimetype="application/pdf",
+    )
+
+
+@bp.get("/resumen")
+def resumen():
+    desde = _parse_date(request.args.get("desde"))
+    hasta = _parse_date(request.args.get("hasta"))
+    q = ChecklistRun.query
+    if desde:
+        q = q.filter(ChecklistRun.fecha >= desde)
+    if hasta:
+        q = q.filter(ChecklistRun.fecha <= hasta)
+    total = q.count()
+    avg_ok = db.session.query(func.coalesce(func.avg(ChecklistRun.pct_ok), 0)).scalar() or 0
+    ultimos = (
+        q.order_by(ChecklistRun.fecha.desc(), ChecklistRun.id.desc())
+        .limit(20)
+        .all()
+    )
+    return render_template(
+        "checklists/resumen.html",
+        total=total,
+        avg_ok=avg_ok,
+        ultimos=ultimos,
+        desde=desde,
+        hasta=hasta,
+    )
+
+
+@bp.get("/resumen.pdf")
+def resumen_pdf():
+    desde = _parse_date(request.args.get("desde"))
+    hasta = _parse_date(request.args.get("hasta"))
+    q = ChecklistRun.query
+    if desde:
+        q = q.filter(ChecklistRun.fecha >= desde)
+    if hasta:
+        q = q.filter(ChecklistRun.fecha <= hasta)
+    rows = q.order_by(ChecklistRun.fecha.desc(), ChecklistRun.id.desc()).all()
+    total = len(rows)
+    avg_ok = sum(r.pct_ok for r in rows) / total if total else 0
+
+    buf = BytesIO()
+    c = canvas.Canvas(buf, pagesize=LETTER)
+    _pdf_header_footer(c, "Resumen de checklists")
+
+    w, h = LETTER
+    y = h - 3.2 * cm
+    c.setFont("Helvetica", 10)
+    c.drawString(
+        2 * cm,
+        y,
+        f"Desde: {desde or '-'}  Hasta: {hasta or '-'}  Ejecutados: {total}  Promedio OK: {avg_ok:.1f}%",
+    )
+    y -= 1.2 * cm
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(2 * cm, y, "Últimos")
+    y -= 0.7 * cm
+    c.setFont("Helvetica", 9)
+    for r in rows[:30]:
+        line = (
+            f"{r.fecha} | T:{r.template.nombre[:20]} | Eq:{r.equipo_id or '-'} | %OK:{r.pct_ok:.1f}"
         )
-
-    db.session.commit()
-    return redirect(url_for("checklists.editar", cl_id=cl.id))
-
-
-@bp.get("/<int:cl_id>/editar")
-@login_required
-def editar(cl_id: int):
-    cl = Checklist.query.get_or_404(cl_id)
-    items: dict[str, list[ChecklistItem]] = {}
-    for item in cl.template.items:
-        items.setdefault(item.section, []).append(item)
-    for section_items in items.values():
-        section_items.sort(key=lambda x: x.order)
-    answers = {answer.item_id: answer for answer in cl.answers}
-    return render_template(
-        "checklists/editar.html",
-        cl=cl,
-        items_by_section=items,
-        answers=answers,
-        AnswerEnum=AnswerEnum,
-    )
-
-
-@bp.post("/<int:cl_id>/guardar")
-@login_required
-def guardar(cl_id: int):
-    cl = Checklist.query.get_or_404(cl_id)
-    critical_fail = False
-    for item in cl.template.items:
-        value = request.form.get(f"item_{item.id}") or AnswerEnum.OK.value
-        note = request.form.get(f"note_{item.id}") or None
-        answer = next((a for a in cl.answers if a.item_id == item.id), None)
-        if not answer:
-            answer = ChecklistAnswer(checklist_id=cl.id, item_id=item.id)
-            db.session.add(answer)
-        answer.result = AnswerEnum(value)
-        answer.note = note
-
-        file = request.files.get(f"photo_{item.id}")
-        if file and file.filename:
-            filename = f"{uuid.uuid4().hex}_{secure_filename(file.filename)}"
-            filepath = os.path.join(current_app.config["UPLOAD_CHECKLISTS_DIR"], filename)
-            file.save(filepath)
-            answer.photo_path = filename
-        if item.critical and answer.result == AnswerEnum.FAIL:
-            critical_fail = True
-
-    cl.overall_status = "NO_APTO" if critical_fail else "APTO"
-    db.session.commit()
-    flash("Checklist guardado", "success")
-    return redirect(url_for("checklists.detalle", cl_id=cl.id))
-
-
-@bp.post("/<int:cl_id>/generar_parte")
-@login_required
-def generar_parte(cl_id: int):
-    cl = Checklist.query.get_or_404(cl_id)
-    existente = _parte_existente_para_checklist(cl.id)
-    if existente:
-        flash("Este checklist ya tiene un parte generado.", "info")
-        return redirect(url_for("partes.edit", id=existente.id))
-
-    horas_trabajo = 0
-    if (
-        cl.hours_start is not None
-        and cl.hours_end is not None
-        and cl.hours_end >= cl.hours_start
-    ):
-        horas_trabajo = cl.hours_end - cl.hours_start
-
-    parte = ParteDiaria(
-        fecha=cl.date,
-        equipo_id=cl.equipment_id,
-        operador_id=cl.operator_id,
-        horas_trabajo=horas_trabajo or 0,
-        actividad=cl.notes or f"Checklist {cl.template.name}",
-        incidencias="",
-        notas=cl.notes or "",
-        checklist_id=cl.id,
-    )
-    db.session.add(parte)
-    db.session.commit()
-    flash("Parte diario generado desde el checklist.", "success")
-    return redirect(url_for("partes.edit", id=parte.id))
-
-
-@bp.get("/<int:cl_id>")
-@login_required
-def detalle(cl_id: int):
-    cl = Checklist.query.get_or_404(cl_id)
-    items: dict[str, list[ChecklistItem]] = {}
-    for item in cl.template.items:
-        items.setdefault(item.section, []).append(item)
-    for section_items in items.values():
-        section_items.sort(key=lambda x: x.order)
-    answers = {answer.item_id: answer for answer in cl.answers}
-    return render_template(
-        "checklists/detalle.html",
-        cl=cl,
-        items_by_section=items,
-        answers=answers,
-        parte=_parte_existente_para_checklist(cl.id),
-    )
-
-
-@bp.get("/photo/<path:fname>")
-@login_required
-def photo(fname: str):
-    return send_from_directory(
-        current_app.config["UPLOAD_CHECKLISTS_DIR"], fname, as_attachment=False
+        c.drawString(2 * cm, y, line)
+        y -= 0.55 * cm
+        if y < 2.5 * cm:
+            c.showPage()
+            _pdf_header_footer(c, "Resumen de checklists")
+            y = h - 3 * cm
+    c.showPage()
+    c.save()
+    buf.seek(0)
+    return send_file(
+        buf,
+        as_attachment=True,
+        download_name="resumen_checklists.pdf",
+        mimetype="application/pdf",
     )

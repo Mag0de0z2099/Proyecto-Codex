@@ -6,7 +6,7 @@ from flask import render_template
 from sqlalchemy import func
 
 from app import db
-from app.models import Checklist, Equipo, ParteDiaria
+from app.models import ChecklistRun, Equipo, ParteDiaria
 
 try:
     from app.models import Operador
@@ -33,21 +33,18 @@ def home():
     partes_count, horas_hoy = db.session.execute(q_partes_hoy).one()
 
     # Checklists de hoy
-    q_chk_apto = db.select(func.count(Checklist.id)).where(
-        Checklist.date == hoy, Checklist.overall_status == "APTO"
-    )
-    q_chk_no = db.select(func.count(Checklist.id)).where(
-        Checklist.date == hoy, Checklist.overall_status == "NO_APTO"
-    )
-    chk_apto = db.session.scalar(q_chk_apto)
-    chk_noapto = db.session.scalar(q_chk_no)
+    q_chk = db.select(
+        func.count(ChecklistRun.id),
+        func.coalesce(func.avg(ChecklistRun.pct_ok), 0.0),
+    ).where(ChecklistRun.fecha == hoy)
+    chk_count, chk_avg = db.session.execute(q_chk).one()
 
-    # Alertas: NO_APTO últimos 3 días
+    # Alertas: últimos runs con %OK < 100 (últimos 3 días)
     desde = hoy - timedelta(days=3)
     noaptos = (
-        db.session.query(Checklist)
-        .filter(Checklist.date >= desde, Checklist.overall_status == "NO_APTO")
-        .order_by(Checklist.date.desc())
+        db.session.query(ChecklistRun)
+        .filter(ChecklistRun.fecha >= desde, ChecklistRun.pct_ok < 100)
+        .order_by(ChecklistRun.fecha.desc(), ChecklistRun.id.desc())
         .limit(10)
         .all()
     )
@@ -71,8 +68,8 @@ def home():
         total_operadores=total_operadores,
         partes_count=partes_count,
         horas_hoy=horas_hoy,
-        chk_apto=chk_apto,
-        chk_noapto=chk_noapto,
+        chk_count=chk_count,
+        chk_avg=chk_avg,
         noaptos=noaptos,
         partes_incompletos=partes_incompletos,
         hoy=hoy,

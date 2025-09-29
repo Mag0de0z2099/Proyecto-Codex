@@ -5,7 +5,7 @@
 <!-- Atajos -->
 {% if DEV_MODE %}
 <p>
-  <a href="{{ url_for('checklists.nuevo') }}">➕ Nuevo Checklist</a> |
+  <a href="{{ url_for('checklists_bp.ejecutar') }}">➕ Ejecutar Checklist</a> |
   <a href="{{ url_for('partes.create') }}">➕ Nuevo Parte</a> |
   <a href="{{ url_for('equipos_bp.nuevo') }}">➕ Nuevo Equipo</a>
   {% if total_operadores is not none %}| <a href="{{ url_for('operadores.nuevo') }}">➕ Nuevo Operador</a>{% endif %}
@@ -29,7 +29,8 @@
   </div>
   <div style="border:1px solid #ddd; padding:12px; border-radius:8px; min-width:220px;">
     <div>Checklists de hoy ({{ hoy }})</div>
-    <h2>APTO {{ chk_apto }} / NO_APTO {{ chk_noapto }}</h2>
+    <h2>{{ chk_count }}</h2>
+    <small>Promedio OK: {{ '%.1f'|format(chk_avg) }}%</small>
   </div>
 </div>
 
@@ -37,13 +38,13 @@
 <h2 style="margin-top:24px;">Alertas</h2>
 <div style="display:flex; gap:16px; flex-wrap:wrap;">
   <div style="border:1px solid #f2c; padding:12px; border-radius:8px; min-width:300px;">
-    <h3 style="margin:0 0 8px 0;">NO_APTO (últimos 3 días)</h3>
+    <h3 style="margin:0 0 8px 0;">Atención (últimos 3 días)</h3>
     {% if noaptos %}
     <ul>
       {% for c in noaptos %}
         <li>
-          {{ c.date }} — {{ c.template.name }} — <b>{{ c.overall_status }}</b>
-          <a href="{{ url_for('checklists.detalle', cl_id=c.id) }}">ver</a>
+          {{ c.fecha }} — {{ c.template.nombre }} — <b>{{ '%.1f'|format(c.pct_ok) }}%</b>
+          <a href="{{ url_for('checklists_bp.run_view', id=c.id) }}">ver</a>
         </li>
       {% endfor %}
     </ul>

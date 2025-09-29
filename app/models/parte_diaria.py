@@ -13,7 +13,11 @@ class ParteDiaria(db.Model):
 
     equipo_id = db.Column(db.Integer, db.ForeignKey("equipos.id"), nullable=True)
     operador_id = db.Column(db.Integer, db.ForeignKey("operadores.id"), nullable=True)
-    checklist_id = db.Column(db.Integer, db.ForeignKey("checklists.id"), nullable=True)
+    checklist_id = db.Column(
+        db.Integer,
+        db.ForeignKey("checklist_runs.id"),
+        nullable=True,
+    )
 
     horas_trabajo = db.Column(db.Float, nullable=False, default=0)
     actividad = db.Column(db.Text)

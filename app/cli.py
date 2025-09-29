@@ -209,108 +209,52 @@ def register_cli(app):
     def seed_checklist_templates():
         """Cargar plantillas base de checklists por tipo de equipo."""
 
-        def ensure_template(code: str, name: str, applies_to: str, items: list[tuple[str, str, bool]]):
-            template = ChecklistTemplate.query.filter_by(code=code).first()
+        samples = [
+            {
+                "nombre": "Excavadora — Diario",
+                "norma": "NOM-017-STPS",
+                "items": [
+                    "Revisión visual general",
+                    "Niveles del motor e hidráulicos",
+                    "Luces y alarma de reversa",
+                    "Extintor y botiquín en sitio",
+                    "Registro de horas",
+                ],
+            },
+            {
+                "nombre": "Draga — Inicio de jornada",
+                "norma": "NOM-002-STPS",
+                "items": [
+                    "Spuds operativos",
+                    "Bomba sin fugas",
+                    "Presión de descarga",
+                    "Kit anticontaminación",
+                    "Bitácora actualizada",
+                ],
+            },
+        ]
+
+        for tpl in samples:
+            template = ChecklistTemplate.query.filter_by(nombre=tpl["nombre"]).first()
             if not template:
-                template = ChecklistTemplate(code=code, name=name, applies_to=applies_to)
+                template = ChecklistTemplate(nombre=tpl["nombre"], norma=tpl.get("norma"))
                 db.session.add(template)
                 db.session.flush()
             else:
-                template.name = name
-                template.applies_to = applies_to
+                template.norma = tpl.get("norma")
                 db.session.flush()
 
             ChecklistItem.query.filter_by(template_id=template.id).delete()
-            for order, (section, text, critical) in enumerate(items, start=1):
+            for order, texto in enumerate(tpl["items"], start=1):
                 db.session.add(
                     ChecklistItem(
                         template_id=template.id,
-                        section=section,
-                        text=text,
-                        critical=critical,
-                        order=order,
+                        texto=texto,
+                        tipo="bool",
+                        orden=order,
                     )
                 )
-            db.session.commit()
-
-        exc_items = [
-            ("PRE", "Revisión visual general (fugas, daños, pernos)", True),
-            ("PRE", "Niveles: motor, hidráulico, refrigerante, combustible", True),
-            ("PRE", "Mangueras y racores hidráulicos sin fugas", True),
-            ("PRE", "Orugas/llantas: tensión/estado", True),
-            ("PRE", "Implemento (cuchara/bucket) y pasadores", True),
-            ("PRE", "Alarma de reversa y claxon", True),
-            ("PRE", "Luces de trabajo y baliza", False),
-            ("PRE", "Limpiaparabrisas, espejo, cámara", False),
-            ("PRE", "Extintor vigente y botiquín", True),
-            ("PRE", "Cinturón, asiento, E-stop", True),
-            ("OP", "Arranque sin ruidos anómalos", True),
-            ("OP", "Presión hidráulica/temperatura en rango", True),
-            ("OP", "Rotación torre sin vibración excesiva", False),
-            ("OP", "Freno/retención y bloqueo implemento", True),
-            ("OP", "Instrumentos y panel sin alertas", True),
-            ("OP", "Radio/comunicación operativa", False),
-            ("POST", "Limpieza cabina/implemento, retiro residuos", False),
-            ("POST", "Registro de horas y combustible", False),
-            ("POST", "Reporte de fallas y fotos adjuntas si aplica", True),
-            ("POST", "Estacionamiento seguro, pluma apoyada", True),
-        ]
-        ensure_template(
-            "CL-EXC",
-            "Excavadora — Diario",
-            "excavadora|excavadora hidráulica",
-            exc_items,
-        )
-
-        drg_items = [
-            ("PRE", "Inspección casco/pontones y estanqueidad", True),
-            ("PRE", "Sistema de espigas (spuds) y gatos", True),
-            ("PRE", "Winches de swing y cables/guayas", True),
-            ("PRE", "Bomba de dragado: sello, acople, carcasa", True),
-            ("PRE", "Cabezales (cutter/suction) integridad", True),
-            ("PRE", "Tubería de descarga y juntas/liners", True),
-            ("PRE", "Motor principal y auxiliares (niveles/ correas)", True),
-            ("PRE", "Sistema eléctrico y tableros; E-stop", True),
-            ("PRE", "Navegación/luminarias, bocina, radio", True),
-            ("PRE", "Kit anticontaminación (barreras/absorbentes)", True),
-            ("OP", "Presión/caudal bomba dentro de rango", True),
-            ("OP", "Temperaturas motor/caja reductora normales", True),
-            ("OP", "Vibración anormal en cutter o bomba", True),
-            ("OP", "Anclajes y spuds operando correctamente", True),
-            ("OP", "Monitoreo de presión en línea de descarga", True),
-            ("POST", "Purgado/limpieza bomba y línea", True),
-            ("POST", "Bitácora de horas, producción y consumo", False),
-            ("POST", "Reporte de fugas/incidencias con fotos", True),
-            ("POST", "Asegurar equipos, cortar energía, verificar flotabilidad", True),
-        ]
-        ensure_template(
-            "CL-DRG",
-            "Draga — Diario",
-            "draga|cortador|draga succión",
-            drg_items,
-        )
-
-        vol_items = [
-            ("PRE", "Llantas (presión/desgaste) y tuercas", True),
-            ("PRE", "Frenos y nivel de aire", True),
-            ("PRE", "Dirección y suspensión (fugas/bujes)", True),
-            ("PRE", "Luces, direccionales, baliza y claxon", True),
-            ("PRE", "Volteo: cilindro, mangueras, pasadores", True),
-            ("PRE", "Extintor/triángulos/botiquín", True),
-            ("OP", "Tablero sin testigos críticos", True),
-            ("OP", "Freno de servicio/estacionamiento", True),
-            ("OP", "Subida/bajada de caja sin golpes", True),
-            ("POST", "Lavado de chasis, retiro de material", False),
-            ("POST", "Registro de km/horas y consumo", False),
-            ("POST", "Reporte de daños/incidentes con fotos", True),
-        ]
-        ensure_template(
-            "CL-VOL",
-            "Camión de Volteo — Diario",
-            "volteo|camión|camion",
-            vol_items,
-        )
-
+        db.session.commit()
         click.echo("Plantillas de checklist: OK")
 
     return app
