@@ -11,6 +11,6 @@
   <li>Horas de uso: {{ equipo.horas_uso }}</li>
 </ul>
 {% if DEV_MODE %}
-<a href="{{ url_for('equipos.editar', equipo_id=equipo.id) }}">Editar</a>
+<a href="{{ url_for('equipos_bp.editar', equipo_id=equipo.id) }}">Editar</a>
 {% endif %}
 {% endblock %}

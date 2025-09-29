@@ -7,7 +7,7 @@
 <p>
   <a href="{{ url_for('checklists.nuevo') }}">➕ Nuevo Checklist</a> |
   <a href="{{ url_for('partes.nuevo') }}">➕ Nuevo Parte</a> |
-  <a href="{{ url_for('equipos.nuevo') }}">➕ Nuevo Equipo</a>
+  <a href="{{ url_for('equipos_bp.nuevo') }}">➕ Nuevo Equipo</a>
   {% if total_operadores is not none %}| <a href="{{ url_for('operadores.nuevo') }}">➕ Nuevo Operador</a>{% endif %}
 </p>
 {% endif %}

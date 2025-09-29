@@ -4,7 +4,7 @@ from flask import Blueprint
 
 from app.security import require_login
 
-bp = Blueprint("equipos", __name__, url_prefix="/equipos")
+bp = Blueprint("equipos_bp", __name__, url_prefix="/equipos")
 
 require_login(bp, exclude=("index",))
 
