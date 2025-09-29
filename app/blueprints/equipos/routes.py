@@ -1,128 +1,84 @@
-from __future__ import annotations
+from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
+from sqlalchemy import or_
+from app.extensions import db
 
-from flask import flash, redirect, render_template, request, url_for
-from flask_login import login_required
+# Importa tu modelo
+try:
+    from app.models.equipo import Equipo  # si lo tienes separado
+except Exception:
+    from app.models import Equipo          # o todo en models/__init__.py
 
-from app.db import db
-from app.models import Equipo
-from app.utils.pagination import paginate
+bp = Blueprint("equipos", __name__, url_prefix="/equipos", template_folder="../../templates/equipos")
 
-from . import bp
+# --- Bypass de guard si en algún momento había before_request ---
+@bp.before_request
+def _guard():
+    if current_app.config.get("SECURITY_DISABLED") or current_app.config.get("LOGIN_DISABLED"):
+        return
 
-
+# --- Lista + búsqueda + paginación ---
 @bp.get("/")
-@login_required
 def index():
-    q = (request.args.get("q", "") or "").strip()
+    q = (request.args.get("q") or "").strip()
+    page = int(request.args.get("page") or 1)
+    per_page = 10
+
     query = Equipo.query
     if q:
-        like = f"%{q}%"
-        query = query.filter(
-            db.or_(
-                Equipo.codigo.ilike(like),
-                Equipo.tipo.ilike(like),
-                Equipo.marca.ilike(like),
-            )
-        )
-    query = query.order_by(Equipo.codigo.asc())
-    page = request.args.get("page", type=int) or 1
-    per_page = min(max(request.args.get("per_page", type=int) or 20, 1), 100)
-    equipos, pagination = paginate(query, page=page, per_page=per_page)
-    return render_template(
-        "equipos/index.html",
-        equipos=equipos,
-        q=q,
-        pagination=pagination,
-    )
+        # Ajusta los campos si tu modelo usa otros (p.ej. nombre, descripcion, serie)
+        filters = []
+        for field in ("nombre", "descripcion", "serie"):
+            if hasattr(Equipo, field):
+                filters.append(getattr(Equipo, field).ilike(f"%{q}%"))
+        if filters:
+            query = query.filter(or_(*filters))
 
+    pagination = query.order_by(Equipo.id.desc()).paginate(page=page, per_page=per_page, error_out=False)
+    return render_template("equipos/index.html", pagination=pagination, rows=pagination.items, q=q)
 
-@bp.get("/nuevo")
-@login_required
-def nuevo():
-    return render_template("equipos/form.html", equipo=None)
+# --- Crear ---
+@bp.route("/new", methods=["GET", "POST"])
+def create():
+    if request.method == "POST":
+        # Ajusta nombres de campos según tu modelo
+        data = {
+            "nombre": request.form.get("nombre", "").strip(),
+            "descripcion": request.form.get("descripcion", "").strip(),
+            "serie": request.form.get("serie", "").strip(),
+            "estatus": request.form.get("estatus", "").strip() or "activo",
+        }
+        # filtra claves que realmente existen en tu modelo
+        payload = {}
+        for k, v in data.items():
+            if hasattr(Equipo, k) and v is not None:
+                payload[k] = v
 
+        e = Equipo(**payload)
+        db.session.add(e)
+        db.session.commit()
+        flash("Equipo creado", "success")
+        return redirect(url_for("equipos.index"))
 
-@bp.post("/crear")
-@login_required
-def crear():
-    data = {
-        k: request.form.get(k) for k in [
-            "codigo",
-            "tipo",
-            "marca",
-            "modelo",
-            "serie",
-            "placas",
-            "status",
-            "ubicacion",
-        ]
-    }
-    horas_uso_raw = request.form.get("horas_uso")
-    if horas_uso_raw:
-        try:
-            data["horas_uso"] = float(horas_uso_raw)
-        except (TypeError, ValueError):
-            flash("Horas de uso inválidas", "error")
-            return redirect(url_for("equipos.nuevo"))
-    if not data.get("codigo") or not data.get("tipo"):
-        flash("Código y tipo son obligatorios", "error")
-        return redirect(url_for("equipos.nuevo"))
-    equipo = Equipo(**data)
-    db.session.add(equipo)
-    db.session.commit()
-    flash("Equipo creado", "success")
-    return redirect(url_for("equipos.index"))
+    return render_template("equipos/form.html", item=None)
 
+# --- Editar ---
+@bp.route("/<int:id>/edit", methods=["GET", "POST"])
+def edit(id):
+    item = Equipo.query.get_or_404(id)
+    if request.method == "POST":
+        for k in ("nombre", "descripcion", "serie", "estatus"):
+            if hasattr(item, k) and k in request.form:
+                setattr(item, k, (request.form.get(k) or "").strip())
+        db.session.commit()
+        flash("Equipo actualizado", "success")
+        return redirect(url_for("equipos.index"))
+    return render_template("equipos/form.html", item=item)
 
-@bp.get("/<int:equipo_id>/editar")
-@login_required
-def editar(equipo_id: int):
-    equipo = Equipo.query.get_or_404(equipo_id)
-    return render_template("equipos/form.html", equipo=equipo)
-
-
-@bp.post("/<int:equipo_id>/actualizar")
-@login_required
-def actualizar(equipo_id: int):
-    equipo = Equipo.query.get_or_404(equipo_id)
-    for key in [
-        "codigo",
-        "tipo",
-        "marca",
-        "modelo",
-        "serie",
-        "placas",
-        "status",
-        "ubicacion",
-        "horas_uso",
-    ]:
-        value = request.form.get(key)
-        if value is None or value == "":
-            continue
-        if key == "horas_uso":
-            try:
-                value = float(value)
-            except (TypeError, ValueError):
-                flash("Horas de uso inválidas", "error")
-                return redirect(url_for("equipos.editar", equipo_id=equipo.id))
-        setattr(equipo, key, value)
-    db.session.commit()
-    flash("Equipo actualizado", "success")
-    return redirect(url_for("equipos.index"))
-
-
-@bp.post("/<int:equipo_id>/eliminar")
-@login_required
-def eliminar(equipo_id: int):
-    equipo = Equipo.query.get_or_404(equipo_id)
-    db.session.delete(equipo)
+# --- Borrar ---
+@bp.post("/<int:id>/delete")
+def delete(id):
+    item = Equipo.query.get_or_404(id)
+    db.session.delete(item)
     db.session.commit()
     flash("Equipo eliminado", "success")
     return redirect(url_for("equipos.index"))
-
-
-@bp.get("/<int:equipo_id>")
-@login_required
-def detalle(equipo_id: int):
-    equipo = Equipo.query.get_or_404(equipo_id)
-    return render_template("equipos/detalle.html", equipo=equipo)

@@ -1,50 +1,57 @@
-{% extends "base.html" %}
-{% import "_forms.html" as forms %}
+{% extends "layout.html" %}
 {% block content %}
-<h1>Equipos</h1>
-<form method="get" class="mb-3">
-  <input name="q" value="{{ q }}" placeholder="Buscar por código / tipo / marca">
+<h1 class="mb-3">Equipos</h1>
+
+<form method="get" class="mb-3" action="{{ url_for('equipos.index') }}">
+  <input type="text" name="q" value="{{ q }}" placeholder="Buscar por nombre, descripción o serie">
   <button type="submit">Buscar</button>
   {% if DEV_MODE %}
-  <a href="{{ url_for('equipos.nuevo') }}">Nuevo</a>
+    <a href="{{ url_for('equipos.create') }}">+ Nuevo</a>
   {% endif %}
 </form>
-<table>
+
+<table class="table">
   <thead>
     <tr>
-      <th>Código</th><th>Tipo</th><th>Marca</th><th>Status</th>
-      {% if DEV_MODE %}<th></th>{% endif %}
+      <th>ID</th>
+      <th>Nombre</th>
+      <th>Serie</th>
+      <th>Estatus</th>
+      <th>Descripción</th>
+      {% if DEV_MODE %}<th>Acciones</th>{% endif %}
     </tr>
   </thead>
   <tbody>
-  {% for equipo in equipos %}
+    {% for r in rows %}
     <tr>
-      <td><a href="{{ url_for('equipos.detalle', equipo_id=equipo.id) }}">{{ equipo.codigo }}</a></td>
-      <td>{{ equipo.tipo }}</td><td>{{ equipo.marca or '-' }}</td><td>{{ equipo.status }}</td>
+      <td>{{ r.id }}</td>
+      <td>{{ getattr(r, 'nombre', '') }}</td>
+      <td>{{ getattr(r, 'serie', '') }}</td>
+      <td>{{ getattr(r, 'estatus', '') }}</td>
+      <td>{{ getattr(r, 'descripcion', '') }}</td>
       {% if DEV_MODE %}
       <td>
-        <a href="{{ url_for('equipos.editar', equipo_id=equipo.id) }}">Editar</a>
-        <form action="{{ url_for('equipos.eliminar', equipo_id=equipo.id) }}" method="post" style="display:inline">
-          {{ forms.csrf_field() }}
-          <button type="submit" onclick="return confirm('¿Eliminar?')">Eliminar</button>
+        <a href="{{ url_for('equipos.edit', id=r.id) }}">Editar</a>
+        <form method="post" action="{{ url_for('equipos.delete', id=r.id) }}" style="display:inline" onsubmit="return confirm('¿Eliminar?');">
+          <button type="submit">Eliminar</button>
         </form>
       </td>
       {% endif %}
     </tr>
-  {% else %}
-    <tr><td colspan="{{ 5 if DEV_MODE else 4 }}">No hay equipos registrados.</td></tr>
-  {% endfor %}
+    {% endfor %}
   </tbody>
 </table>
+
 {% if pagination.pages > 1 %}
-<nav class="pagination">
+<nav>
   {% if pagination.has_prev %}
-  <a href="{{ url_for('equipos.index', page=pagination.prev_num, q=q, per_page=pagination.per_page) }}">« Anterior</a>
+    <a href="{{ url_for('equipos.index', page=pagination.prev_num, q=q) }}">&laquo; Anterior</a>
   {% endif %}
   <span>Página {{ pagination.page }} de {{ pagination.pages }}</span>
   {% if pagination.has_next %}
-  <a href="{{ url_for('equipos.index', page=pagination.next_num, q=q, per_page=pagination.per_page) }}">Siguiente »</a>
+    <a href="{{ url_for('equipos.index', page=pagination.next_num, q=q) }}">Siguiente &raquo;</a>
   {% endif %}
 </nav>
 {% endif %}
+
 {% endblock %}
