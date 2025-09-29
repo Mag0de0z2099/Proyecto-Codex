@@ -72,14 +72,15 @@ def create_app(config_name: str | None = None) -> Flask:
     app.config.from_object(load_config(config_name))
     app.config.setdefault("LOG_LEVEL", "INFO")
 
-    # ======= DEV MODE: seguridad apagada por bandera =======
+    # ===== DEV MODE (apagado de seguridad por bandera) =====
     if os.getenv("DISABLE_SECURITY") == "1":
         app.config["SECURITY_DISABLED"] = True
-        app.config["LOGIN_DISABLED"] = True
-        app.config["WTF_CSRF_ENABLED"] = False
-        app.config["RATELIMIT_ENABLED"] = False
+        app.config["LOGIN_DISABLED"] = True        # @login_required no-op
+        app.config["WTF_CSRF_ENABLED"] = False     # sin CSRF
+        app.config["RATELIMIT_ENABLED"] = False    # sin rate limit
         app.config["JWT_COOKIE_CSRF_PROTECT"] = False
 
+        # Usuario "siempre autenticado" para que plantillas/guards no fallen
         class DevUser(AnonymousUserMixin):
             id = 0
             email = "dev@local"
@@ -99,6 +100,7 @@ def create_app(config_name: str | None = None) -> Flask:
             def is_anonymous(self):
                 return False
 
+        # Establecer usuario anónimo como DevUser (si existe login_manager)
         try:
             from app.extensions import login_manager
 
@@ -106,13 +108,23 @@ def create_app(config_name: str | None = None) -> Flask:
         except Exception:
             pass
 
+        # CORS abierto (si está instalado flask-cors)
         try:
             from flask_cors import CORS
 
             CORS(app, supports_credentials=True)
         except Exception:
             pass
-    # ======= FIN DEV MODE =======
+
+        # Carpeta de uploads (opcional)
+        app.config.setdefault("UPLOAD_DIR", "/opt/render/project/data/uploads")
+        try:
+            import os as _os
+
+            _os.makedirs(app.config["UPLOAD_DIR"], exist_ok=True)
+        except Exception:
+            pass
+    # ===== FIN DEV MODE =====
 
     # Inicializa extensiones aquí (después de setear flags):
     try:
@@ -123,11 +135,15 @@ def create_app(config_name: str | None = None) -> Flask:
         pass
 
     try:
-        csrf.init_app(app)
+        from app.extensions import csrf
+
+        csrf.init_app(app)  # respetará WTF_CSRF_ENABLED=False en dev
     except Exception:
         pass
 
     try:
+        from app.extensions import limiter
+
         limiter.init_app(app)
         if app.config.get("RATELIMIT_ENABLED") is False:
             setattr(limiter, "enabled", False)
@@ -219,12 +235,10 @@ def create_app(config_name: str | None = None) -> Flask:
 
     @app.context_processor
     def inject_dev_mode_flag():
-        from flask import current_app
-
         return {
             "DEV_MODE": bool(
-                current_app.config.get("SECURITY_DISABLED")
-                or current_app.config.get("LOGIN_DISABLED")
+                app.config.get("SECURITY_DISABLED")
+                or app.config.get("LOGIN_DISABLED")
             )
         }
 
