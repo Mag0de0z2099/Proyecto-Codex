@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "_forms.html" as forms %}
 {% block content %}
 <h1>{{ cl.template.name }} — {{ cl.date }} — <strong>{{ cl.overall_status }}</strong></h1>
 <p>
@@ -8,7 +9,7 @@
   {% else %}
     {% if DEV_MODE %}
     <form method="post" action="{{ url_for('checklists.generar_parte', cl_id=cl.id) }}" style="display:inline">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {{ forms.csrf_field() }}
       <button type="submit">Generar Parte Diario</button>
     </form>
     {% endif %}

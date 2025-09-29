@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="es">
 {% import "_icons.html" as i %}
+{% import "_forms.html" as forms %}
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -39,12 +40,14 @@
         <a href="{{ url_for('checklists.index') }}">Checklists</a>
         <a href="{{ url_for('operadores.index') }}">Operadores</a>
         <form method="post" action="{{ url_for('auth.logout') }}" class="inline">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          {{ forms.csrf_field() }}
           <button class="btn" type="submit">Logout</button>
         </form>
       {% else %}
         <a href="{{ url_for('public.home') }}">Inicio</a>
+        {% if not DEV_MODE %}
         <a href="{{ url_for('auth.login') }}" class="btn">Login</a>
+        {% endif %}
       {% endif %}
     </nav>
   </header>

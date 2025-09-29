@@ -5,6 +5,7 @@ from flask_login import login_required
 
 from app.db import db
 from app.models import Operador
+from app.utils.pagination import paginate
 
 from . import bp
 
@@ -23,8 +24,16 @@ def index():
                 Operador.puesto.ilike(like),
             )
         )
-    operadores = query.order_by(Operador.nombre.asc()).all()
-    return render_template("operadores/index.html", operadores=operadores, q=q)
+    query = query.order_by(Operador.nombre.asc())
+    page = request.args.get("page", type=int) or 1
+    per_page = min(max(request.args.get("per_page", type=int) or 20, 1), 100)
+    operadores, pagination = paginate(query, page=page, per_page=per_page)
+    return render_template(
+        "operadores/index.html",
+        operadores=operadores,
+        q=q,
+        pagination=pagination,
+    )
 
 
 @bp.get("/nuevo")

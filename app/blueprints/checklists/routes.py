@@ -33,6 +33,7 @@ except Exception:  # pragma: no cover - fallback si no existe
     Operador = None  # type: ignore[assignment]
 
 from . import bp
+from app.utils.pagination import paginate
 
 
 def pick_template_for_equipment(equipo: Equipo) -> ChecklistTemplate | None:
@@ -54,8 +55,16 @@ def index():
         query = query.join(Equipo).filter(
             or_(Equipo.codigo.ilike(like), Equipo.tipo.ilike(like))
         )
-    rows = query.order_by(Checklist.created_at.desc()).limit(200).all()
-    return render_template("checklists/index.html", rows=rows, q=q)
+    query = query.order_by(Checklist.created_at.desc())
+    page = request.args.get("page", type=int) or 1
+    per_page = min(max(request.args.get("per_page", type=int) or 20, 1), 100)
+    rows, pagination = paginate(query, page=page, per_page=per_page)
+    return render_template(
+        "checklists/index.html",
+        rows=rows,
+        q=q,
+        pagination=pagination,
+    )
 
 
 def _parte_existente_para_checklist(cl_id: int) -> ParteDiaria | None:
