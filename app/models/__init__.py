@@ -256,7 +256,7 @@ from app.models.equipo import Equipo  # noqa: E402,F401
 from app.models.folder import Folder  # noqa: E402,F401
 from app.models.invite import Invite  # noqa: E402,F401
 from app.models.operador import Operador  # noqa: E402,F401
-from app.models.parte_diaria import ActividadDiaria, ParteDiaria  # noqa: E402,F401
+from app.models.parte_diaria import ArchivoAdjunto, ParteDiaria  # noqa: E402,F401
 from app.models.refresh_token import RefreshToken  # noqa: E402,F401
 
 
@@ -276,7 +276,7 @@ __all__ = [
     "Equipo",
     "Operador",
     "ParteDiaria",
-    "ActividadDiaria",
+    "ArchivoAdjunto",
     "Invite",
     "RefreshToken",
     "User",

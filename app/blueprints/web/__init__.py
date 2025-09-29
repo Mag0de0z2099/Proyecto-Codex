@@ -24,7 +24,6 @@ def index():
         "operadores": 0,
         "partes_hoy": 0,
         "horas_hoy": 0.0,
-        "combustible_hoy": 0.0,
     }
 
     try:
@@ -41,13 +40,7 @@ def index():
         partes_query = db.session.query(ParteDiaria).filter(ParteDiaria.fecha == today)
         stats["partes_hoy"] = partes_query.count()
         stats["horas_hoy"] = (
-            db.session.query(func.coalesce(func.sum(ParteDiaria.horas_trabajadas), 0))
-            .filter(ParteDiaria.fecha == today)
-            .scalar()
-            or 0.0
-        )
-        stats["combustible_hoy"] = (
-            db.session.query(func.coalesce(func.sum(ParteDiaria.combustible_l), 0))
+            db.session.query(func.coalesce(func.sum(ParteDiaria.horas_trabajo), 0))
             .filter(ParteDiaria.fecha == today)
             .scalar()
             or 0.0

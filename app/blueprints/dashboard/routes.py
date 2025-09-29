@@ -28,10 +28,9 @@ def home():
     # Partes de hoy
     q_partes_hoy = db.select(
         func.count(ParteDiaria.id),
-        func.coalesce(func.sum(ParteDiaria.horas_trabajadas), 0.0),
-        func.coalesce(func.sum(ParteDiaria.combustible_l), 0.0),
+        func.coalesce(func.sum(ParteDiaria.horas_trabajo), 0.0),
     ).where(ParteDiaria.fecha == hoy)
-    partes_count, horas_hoy, comb_hoy = db.session.execute(q_partes_hoy).one()
+    partes_count, horas_hoy = db.session.execute(q_partes_hoy).one()
 
     # Checklists de hoy
     q_chk_apto = db.select(func.count(Checklist.id)).where(
@@ -57,7 +56,11 @@ def home():
     partes_incompletos = (
         db.session.query(ParteDiaria)
         .filter(ParteDiaria.fecha == hoy)
-        .filter((ParteDiaria.horas_trabajadas.is_(None)) | (ParteDiaria.combustible_l.is_(None)))
+        .filter(
+            (func.coalesce(ParteDiaria.horas_trabajo, 0) <= 0)
+            | (ParteDiaria.actividad.is_(None))
+            | (func.length(func.trim(ParteDiaria.actividad)) == 0)
+        )
         .order_by(ParteDiaria.id.desc())
         .all()
     )
@@ -68,7 +71,6 @@ def home():
         total_operadores=total_operadores,
         partes_count=partes_count,
         horas_hoy=horas_hoy,
-        comb_hoy=comb_hoy,
         chk_apto=chk_apto,
         chk_noapto=chk_noapto,
         noaptos=noaptos,

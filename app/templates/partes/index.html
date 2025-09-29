@@ -1,66 +1,70 @@
 {% extends "base.html" %}
-{% import "_forms.html" as forms %}
 {% block content %}
-<h1>Partes diarios</h1>
-<form method="get" class="mb-3 filters">
-  <label>Del <input type="date" name="d1" value="{{ d1 or '' }}"></label>
-  <label>al <input type="date" name="d2" value="{{ d2 or '' }}"></label>
-  <input name="q" value="{{ q }}" placeholder="Buscar por código o tipo de equipo...">
+<h1 class="mb-3">Partes diarias</h1>
+
+<form method="get" class="mb-3" action="{{ url_for('partes.index') }}">
+  <label>Desde</label>
+  <input type="date" name="desde" value="{{ desde.isoformat() if desde else '' }}">
+  <label>Hasta</label>
+  <input type="date" name="hasta" value="{{ hasta.isoformat() if hasta else '' }}">
+  <label>Equipo</label>
+  <select name="equipo_id">
+    <option value="">-- todos --</option>
+    {% for e in equipos %}
+      <option value="{{ e.id }}" {% if equipo_id and equipo_id == e.id %}selected{% endif %}>
+        {{ e.codigo }} #{{ e.id }}
+      </option>
+    {% endfor %}
+  </select>
   <button type="submit">Filtrar</button>
+  <a href="{{ url_for('partes.export_csv', desde=desde.isoformat() if desde else None, hasta=hasta.isoformat() if hasta else None, equipo_id=equipo_id) }}">Exportar CSV</a>
   {% if DEV_MODE %}
-  <a class="btn" href="{{ url_for('partes.nuevo') }}">Nuevo</a>
+    <a href="{{ url_for('partes.create') }}">+ Nuevo</a>
   {% endif %}
-  <a class="btn" href="{{ url_for('partes.export_csv', d1=d1, d2=d2, q=q) }}">Exportar CSV</a>
 </form>
-<p>
-  <strong>Total horas:</strong> {{ '%.2f'|format(total_horas) }} —
-  <strong>Combustible (L):</strong> {{ '%.2f'|format(total_comb) }}
-</p>
+
 <table class="table">
   <thead>
     <tr>
       <th>Fecha</th>
       <th>Equipo</th>
       <th>Operador</th>
-      <th>Turno</th>
       <th>Horas</th>
-      <th>Comb (L)</th>
-      <th>Acciones</th>
+      <th>Actividad</th>
+      <th>Incidencias</th>
+      {% if DEV_MODE %}<th>Acciones</th>{% endif %}
     </tr>
   </thead>
   <tbody>
-  {% for r in rows %}
+    {% for r in rows %}
     <tr>
       <td>{{ r.fecha }}</td>
       <td>{{ r.equipo.codigo if r.equipo else r.equipo_id }}</td>
-      <td>{{ r.operador.nombre if r.operador else '-' }}</td>
-      <td>{{ r.turno }}</td>
-      <td>{{ '%.2f'|format(r.horas_trabajadas) if r.horas_trabajadas is not none else '-' }}</td>
-      <td>{{ '%.2f'|format(r.combustible_l) if r.combustible_l is not none else '-' }}</td>
+      <td>{{ r.operador.nombre if r.operador else r.operador_id }}</td>
+      <td>{{ '%.2f'|format(r.horas_trabajo or 0) }}</td>
+      <td>{{ r.actividad }}</td>
+      <td>{{ r.incidencias }}</td>
+      {% if DEV_MODE %}
       <td>
-        <a href="{{ url_for('partes.detalle', parte_id=r.id) }}">Ver</a>
-        {% if DEV_MODE %}
-          <a href="{{ url_for('partes.editar', parte_id=r.id) }}">Editar</a>
-          <form action="{{ url_for('partes.eliminar', parte_id=r.id) }}" method="post" style="display:inline">
-            {{ forms.csrf_field() }}
-            <button type="submit" onclick="return confirm('¿Eliminar parte?')">Eliminar</button>
-          </form>
-        {% endif %}
+        <a href="{{ url_for('partes.edit', id=r.id) }}">Editar</a>
+        <form method="post" action="{{ url_for('partes.delete', id=r.id) }}" style="display:inline" onsubmit="return confirm('¿Eliminar parte?');">
+          <button type="submit">Eliminar</button>
+        </form>
       </td>
+      {% endif %}
     </tr>
-  {% else %}
-    <tr><td colspan="7">No hay partes registrados.</td></tr>
-  {% endfor %}
+    {% endfor %}
   </tbody>
 </table>
+
 {% if pagination.pages > 1 %}
-<nav class="pagination">
+<nav>
   {% if pagination.has_prev %}
-  <a href="{{ url_for('partes.index', page=pagination.prev_num, q=q, d1=d1, d2=d2, per_page=pagination.per_page) }}">« Anterior</a>
+    <a href="{{ url_for('partes.index', page=pagination.prev_num, desde=desde.isoformat() if desde else None, hasta=hasta.isoformat() if hasta else None, equipo_id=equipo_id) }}">&laquo; Anterior</a>
   {% endif %}
   <span>Página {{ pagination.page }} de {{ pagination.pages }}</span>
   {% if pagination.has_next %}
-  <a href="{{ url_for('partes.index', page=pagination.next_num, q=q, d1=d1, d2=d2, per_page=pagination.per_page) }}">Siguiente »</a>
+    <a href="{{ url_for('partes.index', page=pagination.next_num, desde=desde.isoformat() if desde else None, hasta=hasta.isoformat() if hasta else None, equipo_id=equipo_id) }}">Siguiente &raquo;</a>
   {% endif %}
 </nav>
 {% endif %}

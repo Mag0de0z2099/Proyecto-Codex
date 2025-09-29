@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="mb-3">{{ 'Editar' if item else 'Nuevo' }} parte diaria</h1>
+
+<form method="post" enctype="multipart/form-data">
+  <label>Fecha</label>
+  <input type="date" name="fecha" value="{{ item.fecha.isoformat() if item and item.fecha else '' }}">
+
+  <label>Equipo</label>
+  <select name="equipo_id">
+    <option value="">-- seleccionar --</option>
+    {% for e in equipos %}
+      <option value="{{ e.id }}" {% if item and item.equipo_id == e.id %}selected{% endif %}>
+        {{ e.codigo }} #{{ e.id }}
+      </option>
+    {% endfor %}
+  </select>
+
+  <label>Operador</label>
+  <select name="operador_id">
+    <option value="">-- seleccionar --</option>
+    {% for o in operadores %}
+      <option value="{{ o.id }}" {% if item and item.operador_id == o.id %}selected{% endif %}>
+        {{ o.nombre if o.nombre is defined else 'Operador' }} #{{ o.id }}
+      </option>
+    {% endfor %}
+  </select>
+
+  <label>Horas de trabajo</label>
+  <input type="number" step="0.1" name="horas_trabajo" value="{{ (item.horas_trabajo if item else 0) }}">
+
+  <label>Actividad</label>
+  <textarea name="actividad">{{ (item.actividad if item else '') }}</textarea>
+
+  <label>Incidencias</label>
+  <textarea name="incidencias">{{ (item.incidencias if item else '') }}</textarea>
+
+  <label>Notas</label>
+  <textarea name="notas">{{ (item.notas if item else '') }}</textarea>
+
+  <label>Adjuntos</label>
+  <input type="file" name="adjuntos" multiple>
+
+  {% if adjuntos %}
+    <p>Adjuntos existentes:</p>
+    <ul>
+      {% for a in adjuntos %}
+        <li>{{ a.filename }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+  <div class="mt-2">
+    <button type="submit">Guardar</button>
+    <a href="{{ url_for('partes.index') }}">Cancelar</a>
+  </div>
+</form>
+{% endblock %}

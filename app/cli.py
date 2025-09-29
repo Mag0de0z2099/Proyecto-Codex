@@ -11,15 +11,7 @@ from flask.cli import with_appcontext
 from werkzeug.security import generate_password_hash
 
 from app.db import db
-from app.models import (
-    ActividadDiaria,
-    ChecklistItem,
-    ChecklistTemplate,
-    Equipo,
-    Operador,
-    ParteDiaria,
-    User,
-)
+from app.models import ChecklistItem, ChecklistTemplate, Equipo, Operador, ParteDiaria, User
 from app.services.auth_service import ensure_admin_user
 from app.services.maintenance_service import cleanup_expired_refresh_tokens
 from app.utils.strings import normalize_email
@@ -204,26 +196,12 @@ def register_cli(app):
         parte = ParteDiaria(
             fecha=date.today(),
             equipo_id=equipo.id,
-            turno="matutino",
-            ubicacion="Frente A",
-            horas_inicio=1200,
-            horas_fin=1208,
-            combustible_l=45,
-            observaciones="Sin novedades",
+            horas_trabajo=6.5,
+            actividad="Movimiento de material",
+            incidencias="",
+            notas="Sin novedades",
         )
-        parte.actualizar_horas_trabajadas()
         db.session.add(parte)
-        db.session.flush()
-        db.session.add(
-            ActividadDiaria(
-                parte_id=parte.id,
-                descripcion="Movimiento de material",
-                cantidad=180,
-                unidad="m3",
-                horas=6.5,
-                notas="Zona 1",
-            )
-        )
         db.session.commit()
         click.echo("Parte demo: OK")
 
