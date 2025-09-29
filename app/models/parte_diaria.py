@@ -1,81 +1,38 @@
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date
 
-from app.db import db
+from app.extensions import db
 
 
 class ParteDiaria(db.Model):
     __tablename__ = "partes_diarias"
 
     id = db.Column(db.Integer, primary_key=True)
-    fecha = db.Column(db.Date, nullable=False, default=date.today, index=True)
-    equipo_id = db.Column(db.Integer, db.ForeignKey("equipos.id"), nullable=False, index=True)
-    operador_id = db.Column(
-        db.Integer,
-        db.ForeignKey("operadores.id"),
-        nullable=True,
-        index=True,
-    )
-    checklist_id = db.Column(
-        db.Integer,
-        db.ForeignKey("checklists.id"),
-        nullable=True,
-        index=True,
-    )
-    turno = db.Column(db.String(16), nullable=False, default="matutino")
-    ubicacion = db.Column(db.String(128))
-    clima = db.Column(db.String(64))
-    horas_inicio = db.Column(db.Float)
-    horas_fin = db.Column(db.Float)
-    horas_trabajadas = db.Column(db.Float)
-    combustible_l = db.Column(db.Float)
-    observaciones = db.Column(db.Text)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    fecha = db.Column(db.Date, nullable=False, default=date.today)
 
-    actividades = db.relationship(
-        "ActividadDiaria",
-        back_populates="parte",
-        cascade="all, delete-orphan",
-    )
+    equipo_id = db.Column(db.Integer, db.ForeignKey("equipos.id"), nullable=True)
+    operador_id = db.Column(db.Integer, db.ForeignKey("operadores.id"), nullable=True)
+    checklist_id = db.Column(db.Integer, db.ForeignKey("checklists.id"), nullable=True)
+
+    horas_trabajo = db.Column(db.Float, nullable=False, default=0)
+    actividad = db.Column(db.Text)
+    incidencias = db.Column(db.Text)
+    notas = db.Column(db.Text)
+
     equipo = db.relationship("Equipo", back_populates="partes")
     operador = db.relationship("Operador", back_populates="partes")
-    checklist = db.relationship("Checklist", foreign_keys=[checklist_id])
 
-    def calcular_horas_trabajadas(self) -> float | None:
-        """Devuelve las horas trabajadas si hay horómetros válidos."""
-
-        if self.horas_inicio is None or self.horas_fin is None:
-            return None
-        if self.horas_fin < self.horas_inicio:
-            return None
-        return self.horas_fin - self.horas_inicio
-
-    def actualizar_horas_trabajadas(self) -> None:
-        self.horas_trabajadas = self.calcular_horas_trabajadas()
-
-    def __repr__(self) -> str:  # pragma: no cover - ayuda de depuración
-        return f"<ParteDiaria {self.id} equipo={self.equipo_id} fecha={self.fecha}>"
+    def __repr__(self) -> str:  # pragma: no cover - ayuda para depuración
+        return f"<ParteDiaria id={self.id} fecha={self.fecha}>"
 
 
-class ActividadDiaria(db.Model):
-    __tablename__ = "actividades_diarias"
+class ArchivoAdjunto(db.Model):
+    __tablename__ = "archivos"
 
     id = db.Column(db.Integer, primary_key=True)
-    parte_id = db.Column(
-        db.Integer,
-        db.ForeignKey("partes_diarias.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
-    )
-    descripcion = db.Column(db.String(255), nullable=False)
-    cantidad = db.Column(db.Float)
-    unidad = db.Column(db.String(32))
-    horas = db.Column(db.Float)
-    notas = db.Column(db.String(255))
-
-    parte = db.relationship("ParteDiaria", back_populates="actividades")
-
-    def __repr__(self) -> str:  # pragma: no cover - ayuda de depuración
-        return f"<ActividadDiaria {self.id} parte={self.parte_id}>"
+    tabla = db.Column(db.String(64), nullable=False)
+    registro_id = db.Column(db.Integer, nullable=False)
+    filename = db.Column(db.String(255), nullable=False)
+    path = db.Column(db.String(500), nullable=False)
+    subido_en = db.Column(db.DateTime, server_default=db.func.now())

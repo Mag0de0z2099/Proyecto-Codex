@@ -185,33 +185,30 @@ def generar_parte(cl_id: int):
     existente = _parte_existente_para_checklist(cl.id)
     if existente:
         flash("Este checklist ya tiene un parte generado.", "info")
-        return redirect(url_for("partes.editar", parte_id=existente.id))
+        return redirect(url_for("partes.edit", id=existente.id))
 
-    horas_trabajadas = None
+    horas_trabajo = 0
     if (
         cl.hours_start is not None
         and cl.hours_end is not None
         and cl.hours_end >= cl.hours_start
     ):
-        horas_trabajadas = cl.hours_end - cl.hours_start
+        horas_trabajo = cl.hours_end - cl.hours_start
 
     parte = ParteDiaria(
         fecha=cl.date,
         equipo_id=cl.equipment_id,
         operador_id=cl.operator_id,
-        turno=cl.shift or "matutino",
-        ubicacion=cl.location,
-        clima=cl.weather,
-        horas_inicio=cl.hours_start,
-        horas_fin=cl.hours_end,
-        horas_trabajadas=horas_trabajadas,
-        observaciones=cl.notes or "",
+        horas_trabajo=horas_trabajo or 0,
+        actividad=cl.notes or f"Checklist {cl.template.name}",
+        incidencias="",
+        notas=cl.notes or "",
         checklist_id=cl.id,
     )
     db.session.add(parte)
     db.session.commit()
     flash("Parte diario generado desde el checklist.", "success")
-    return redirect(url_for("partes.editar", parte_id=parte.id))
+    return redirect(url_for("partes.edit", id=parte.id))
 
 
 @bp.get("/<int:cl_id>")

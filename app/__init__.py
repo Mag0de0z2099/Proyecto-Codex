@@ -206,6 +206,14 @@ def create_app(config_name: str | None = None) -> Flask:
     init_migrations(app, db)
     init_auth_extensions(app)
 
+    # Crear tablas nuevas automáticamente en DEV (sin molestar a Alembic)
+    try:
+        if app.config.get("SECURITY_DISABLED"):
+            with app.app_context():
+                db.create_all()
+    except Exception:
+        pass
+
     set_security_headers(app)
 
     register_error_handlers(app)
@@ -270,7 +278,7 @@ def create_app(config_name: str | None = None) -> Flask:
     except Exception:
         pass
 
-    from app.blueprints.partes import bp as partes_bp
+    from app.blueprints.partes.routes import bp as partes_bp
 
     app.register_blueprint(partes_bp)
 

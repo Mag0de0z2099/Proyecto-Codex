@@ -6,7 +6,7 @@
 {% if DEV_MODE %}
 <p>
   <a href="{{ url_for('checklists.nuevo') }}">➕ Nuevo Checklist</a> |
-  <a href="{{ url_for('partes.nuevo') }}">➕ Nuevo Parte</a> |
+  <a href="{{ url_for('partes.create') }}">➕ Nuevo Parte</a> |
   <a href="{{ url_for('equipos_bp.nuevo') }}">➕ Nuevo Equipo</a>
   {% if total_operadores is not none %}| <a href="{{ url_for('operadores.nuevo') }}">➕ Nuevo Operador</a>{% endif %}
 </p>
@@ -25,7 +25,7 @@
   <div style="border:1px solid #ddd; padding:12px; border-radius:8px; min-width:220px;">
     <div>Partes de hoy ({{ hoy }})</div>
     <h2>{{ partes_count }}</h2>
-    <small>Horas: {{ '%.2f'|format(horas_hoy) }} &nbsp;•&nbsp; Comb: {{ '%.2f'|format(comb_hoy) }} L</small>
+    <small>Horas trabajadas: {{ '%.2f'|format(horas_hoy) }}</small>
   </div>
   <div style="border:1px solid #ddd; padding:12px; border-radius:8px; min-width:220px;">
     <div>Checklists de hoy ({{ hoy }})</div>
@@ -58,10 +58,10 @@
     <ul>
       {% for p in partes_incompletos %}
         <li>
-          Parte #{{ p.id }} — Equipo {{ p.equipo_id }}
-          {% if p.horas_trabajadas is none %} • falta <b>horas</b>{% endif %}
-          {% if p.combustible_l is none %} • falta <b>combustible</b>{% endif %}
-          {% if DEV_MODE %}<a href="{{ url_for('partes.editar', parte_id=p.id) }}">editar</a>{% endif %}
+          Parte #{{ p.id }} — Equipo {{ p.equipo.codigo if p.equipo else p.equipo_id or 'N/D' }}
+          {% if (p.horas_trabajo or 0) <= 0 %} • falta <b>horas</b>{% endif %}
+          {% if not p.actividad %} • falta <b>actividad</b>{% endif %}
+          {% if DEV_MODE %}<a href="{{ url_for('partes.edit', id=p.id) }}">editar</a>{% endif %}
         </li>
       {% endfor %}
     </ul>
