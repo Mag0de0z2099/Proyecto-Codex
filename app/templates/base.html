@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es">
+<html lang="es" data-theme="">
 {% import "_icons.html" as i %}
 {% import "_forms.html" as forms %}
 <head>
@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
 </head>
 <body>
+  <button id="theme-toggle" class="btn theme-toggle" type="button" title="Cambiar tema">🌙</button>
   {% if DEV_MODE %}
   <div class="dev-banner">DEV MODE — security disabled</div>
   <style>
@@ -98,5 +99,27 @@
   <footer class="footer">
     <small>© 2025 SGC — Control de Calidad y Seguridad en Obra de Dragado</small>
   </footer>
+  <script>
+    (function(){
+      const root = document.documentElement;
+      const btn = document.getElementById('theme-toggle');
+
+      function apply(theme){
+        root.dataset.theme = theme;
+        btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+        try { localStorage.setItem('theme', theme); } catch (e) {}
+      }
+
+      let saved = null;
+      try { saved = localStorage.getItem('theme'); } catch (e) {}
+      const prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+      apply(saved || (prefersLight ? 'light' : 'dark'));
+
+      btn.addEventListener('click', function(){
+        const next = root.dataset.theme === 'light' ? 'dark' : 'light';
+        apply(next);
+      });
+    })();
+  </script>
 </body>
 </html>
