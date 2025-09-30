@@ -6,7 +6,7 @@
 <div class="cards">
   <a class="card" href="{{ url_for('equipos_bp.index') }}">Equipos <b>{{ counts.get('equipos') }}</b></a>
   <a class="card" href="{{ url_for('operadores_bp.index') }}">Operadores <b>{{ counts.get('operadores') }}</b></a>
-  <a class="card" href="{{ url_for('partes_bp.index') }}">Partes <b>{{ counts.get('partes') }}</b></a>
+  <a class="card" href="{{ url_for('partes.index') }}">Partes <b>{{ counts.get('partes') }}</b></a>
   <a class="card" href="{{ url_for('checklists_bp.templates_index') }}">Plantillas <b>{{ counts.get('plantillas') }}</b></a>
   <a class="card" href="{{ url_for('checklists_bp.runs_index') }}">Ejecuciones <b>{{ counts.get('checklist_runs') }}</b></a>
   <a class="card" href="{{ url_for('operadores_bp.index', vence_en=30) }}">Licencias por vencer (30d) <b>{{ counts.get('lic_por_vencer_30') }}</b></a>
@@ -20,32 +20,24 @@
       <option value="{{ d }}" {% if days==d %}selected{% endif %}>{{ d }} días</option>
     {% endfor %}
   </select>
-  <a class="btn" href="{{ url_for('dashboard_bp.export_kpis') }}">CSV KPIs</a>
+  <a class="card" style="display:inline-block;padding:6px 10px" href="{{ url_for('dashboard_bp.export_kpis') }}">CSV KPIs</a>
 </form>
 
 <div class="grid">
   <div class="cell">
-    <h3>Horas trabajadas ({{ days }} días)
-      <small><a class="btn" href="{{ url_for('dashboard_bp.export_series', metric='horas', days=days) }}">CSV</a></small>
-    </h3>
+    <h3>Horas trabajadas ({{ days }} días)</h3>
     <div class="canvas-wrap"><canvas id="chartHoras"></canvas></div>
   </div>
   <div class="cell">
-    <h3>% OK Checklists ({{ days }} días)
-      <small><a class="btn" href="{{ url_for('dashboard_bp.export_series', metric='pctok', days=days) }}">CSV</a></small>
-    </h3>
+    <h3>% OK Checklists ({{ days }} días)</h3>
     <div class="canvas-wrap"><canvas id="chartPctOk"></canvas></div>
   </div>
   <div class="cell">
-    <h3>Top 5 equipos por horas ({{ days }} días)
-      <small><a class="btn" href="{{ url_for('dashboard_bp.export_top_equipos', days=days) }}">CSV</a></small>
-    </h3>
+    <h3>Top 5 equipos por horas ({{ days }} días)</h3>
     <div class="canvas-wrap"><canvas id="chartTopEquipos"></canvas></div>
   </div>
   <div class="cell">
-    <h3>Incidencias en partes ({{ days }} días)
-      <small><a class="btn" href="{{ url_for('dashboard_bp.export_incidencias', days=days) }}">CSV</a></small>
-    </h3>
+    <h3>Incidencias en partes ({{ days }} días)</h3>
     <div class="canvas-wrap"><canvas id="chartIncid"></canvas></div>
   </div>
 </div>
@@ -55,22 +47,9 @@
 const labels14={{ labels_14|tojson }}, horas14={{ horas_14|tojson }}, pctok14={{ pctok_14|tojson }};
 const topLabels={{ top_labels|tojson }}, topData={{ top_data|tojson }}, incidPie={{ incid_pie|tojson }};
 
-new Chart(document.getElementById('chartHoras').getContext('2d'),{
-  type:'line', data:{labels:labels14, datasets:[{label:'Horas', data:horas14, tension:.25}]},
-  options:{responsive:true, plugins:{legend:{display:true}}, scales:{y:{beginAtZero:true}}}
-});
-new Chart(document.getElementById('chartPctOk').getContext('2d'),{
-  type:'line', data:{labels:labels14, datasets:[{label:'% OK', data:pctok14, tension:.25}]},
-  options:{responsive:true, plugins:{legend:{display:true}}, scales:{y:{suggestedMin:0, suggestedMax:100}}}
-});
-new Chart(document.getElementById('chartTopEquipos').getContext('2d'),{
-  type:'bar', data:{labels:topLabels, datasets:[{label:'Horas', data:topData}]},
-  options:{responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}}}
-});
-new Chart(document.getElementById('chartIncid').getContext('2d'),{
-  type:'doughnut',
-  data:{labels:['Con incidencias','Sin incidencias'], datasets:[{data:incidPie}]},
-  options:{responsive:true, plugins:{legend:{position:'bottom'}}}
-});
+new Chart(document.getElementById('chartHoras'),{type:'line',data:{labels:labels14,datasets:[{label:'Horas',data:horas14,tension:.25}]},options:{responsive:true,plugins:{legend:{display:true}},scales:{y:{beginAtZero:true}}}});
+new Chart(document.getElementById('chartPctOk'),{type:'line',data:{labels:labels14,datasets:[{label:'% OK',data:pctok14,tension:.25}]},options:{responsive:true,plugins:{legend:{display:true}},scales:{y:{suggestedMin:0,suggestedMax:100}}}});
+new Chart(document.getElementById('chartTopEquipos'),{type:'bar',data:{labels:topLabels,datasets:[{label:'Horas',data:topData}]} ,options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});
+new Chart(document.getElementById('chartIncid'),{type:'doughnut',data:{labels:['Con incidencias','Sin incidencias'],datasets:[{data:incidPie}]} ,options:{responsive:true,plugins:{legend:{position:'bottom'}}}});
 </script>
 {% endblock %}
