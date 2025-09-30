@@ -166,21 +166,31 @@ def index():
     if ParteDiaria:
         start = date.today() - timedelta(days=days - 1)
         if Equipo:
-            rows = (
-                db.session.query(
-                    func.coalesce(
-                        Equipo.nombre,
-                        (literal("Equipo #") + cast(Equipo.id, String)),
-                    ),
-                    func.sum(ParteDiaria.horas_trabajo),
-                )
+            name_col = None
+            group_cols = [Equipo.id]
+            if hasattr(Equipo, "nombre"):
+                name_col = Equipo.nombre
+                group_cols.append(Equipo.nombre)
+            elif hasattr(Equipo, "codigo"):
+                name_col = Equipo.codigo
+                group_cols.append(Equipo.codigo)
+            else:
+                name_col = cast(Equipo.id, String)
+
+            label_expr = func.coalesce(
+                name_col,
+                (literal("Equipo #") + cast(Equipo.id, String)),
+            )
+
+            query = (
+                db.session.query(label_expr, func.sum(ParteDiaria.horas_trabajo))
                 .join(Equipo, Equipo.id == ParteDiaria.equipo_id, isouter=True)
                 .filter(ParteDiaria.fecha >= start, ParteDiaria.equipo_id != None)
-                .group_by(Equipo.id, Equipo.nombre)
+                .group_by(*group_cols)
                 .order_by(func.sum(ParteDiaria.horas_trabajo).desc())
                 .limit(5)
-                .all()
             )
+            rows = query.all()
         else:
             rows = (
                 db.session.query(ParteDiaria.equipo_id, func.sum(ParteDiaria.horas_trabajo))
@@ -320,21 +330,31 @@ def export_top_equipos():
 
     if ParteDiaria:
         if Equipo:
-            q = (
-                db.session.query(
-                    func.coalesce(
-                        Equipo.nombre,
-                        (literal("Equipo #") + cast(Equipo.id, String)),
-                    ),
-                    func.sum(ParteDiaria.horas_trabajo),
-                )
+            name_col = None
+            group_cols = [Equipo.id]
+            if hasattr(Equipo, "nombre"):
+                name_col = Equipo.nombre
+                group_cols.append(Equipo.nombre)
+            elif hasattr(Equipo, "codigo"):
+                name_col = Equipo.codigo
+                group_cols.append(Equipo.codigo)
+            else:
+                name_col = cast(Equipo.id, String)
+
+            label_expr = func.coalesce(
+                name_col,
+                (literal("Equipo #") + cast(Equipo.id, String)),
+            )
+
+            query = (
+                db.session.query(label_expr, func.sum(ParteDiaria.horas_trabajo))
                 .join(Equipo, Equipo.id == ParteDiaria.equipo_id, isouter=True)
                 .filter(ParteDiaria.fecha >= start, ParteDiaria.equipo_id != None)
-                .group_by(Equipo.id, Equipo.nombre)
+                .group_by(*group_cols)
                 .order_by(func.sum(ParteDiaria.horas_trabajo).desc())
                 .limit(5)
-                .all()
             )
+            q = query.all()
         else:
             q = (
                 db.session.query(ParteDiaria.equipo_id, func.sum(ParteDiaria.horas_trabajo))
