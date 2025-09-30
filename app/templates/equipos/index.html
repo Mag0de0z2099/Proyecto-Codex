@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% import "_forms.html" as forms %}
 {% block content %}
-<h1>Equipos</h1>
+<h1 class="page-title">Equipos</h1>
 <form method="get" class="mb-3">
   <input name="q" value="{{ q }}" placeholder="Buscar por código / tipo / marca">
   <button type="submit">Buscar</button>
@@ -10,7 +10,7 @@
   {% endif %}
   <a href="{{ url_for('equipos_bp.export_csv') }}">Exportar CSV</a>
 </form>
-<table>
+<table class="table">
   <thead>
     <tr>
       <th>Código</th><th>Tipo</th><th>Marca</th><th>Status</th>
