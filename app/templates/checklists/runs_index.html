@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Ejecuciones de checklist</h1>
+<h1 class="page-title">Ejecuciones de checklist</h1>
 <form method="get" class="mb-3" action="{{ url_for('checklists_bp.runs_index') }}">
   <label>Desde</label><input type="date" name="desde" value="{{ (desde or '') }}">
   <label>Hasta</label><input type="date" name="hasta" value="{{ (hasta or '') }}">

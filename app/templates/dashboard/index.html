@@ -1,102 +1,76 @@
 {% extends "layout.html" %}
 {% block content %}
-<h1>Dashboard (DEV)</h1>
-<p style="color:#888">Modo DEV: {{ 'ON' if DEV_MODE else 'OFF' }}</p>
+<h1 class="page-title">Dashboard (DEV)</h1>
+<p class="muted">Modo DEV: {{ 'ON' if DEV_MODE else 'OFF' }}</p>
 
-<!-- KPIs -->
 <div class="cards">
   <a class="card" href="{{ url_for('equipos_bp.index') }}">Equipos <b>{{ counts.get('equipos') }}</b></a>
   <a class="card" href="{{ url_for('operadores_bp.index') }}">Operadores <b>{{ counts.get('operadores') }}</b></a>
   <a class="card" href="{{ url_for('partes_bp.index') }}">Partes <b>{{ counts.get('partes') }}</b></a>
   <a class="card" href="{{ url_for('checklists_bp.templates_index') }}">Plantillas <b>{{ counts.get('plantillas') }}</b></a>
   <a class="card" href="{{ url_for('checklists_bp.runs_index') }}">Ejecuciones <b>{{ counts.get('checklist_runs') }}</b></a>
-  <a class="card" href="{{ url_for('partes_bp.resumen') }}">Resumen Partes</a>
-  <a class="card" href="{{ url_for('checklists_bp.resumen') }}">Resumen Checklists</a>
-  <!-- Accesos rápidos de licencias -->
-  <a class="card" href="{{ url_for('operadores_bp.index', vence_en=30) }}">
-    Licencias por vencer (30d) <b>{{ counts.get('lic_por_vencer_30') }}</b>
-  </a>
-  <a class="card" href="{{ url_for('operadores_bp.index', vencidas=1) }}">
-    Licencias vencidas <b>{{ counts.get('lic_vencidas') }}</b>
-  </a>
+  <a class="card" href="{{ url_for('operadores_bp.index', vence_en=30) }}">Licencias por vencer (30d) <b>{{ counts.get('lic_por_vencer_30') }}</b></a>
+  <a class="card" href="{{ url_for('operadores_bp.index', vencidas=1) }}">Licencias vencidas <b>{{ counts.get('lic_vencidas') }}</b></a>
 </div>
 
-<form method="get" action="{{ url_for('dashboard_bp.index') }}" class="mb-2">
-  <label>Rango: </label>
+<form method="get" action="{{ url_for('dashboard_bp.index') }}" class="section">
+  <label class="muted">Rango:</label>
   <select name="days" onchange="this.form.submit()">
     {% for d in [7,14,30,60,90] %}
       <option value="{{ d }}" {% if days==d %}selected{% endif %}>{{ d }} días</option>
     {% endfor %}
   </select>
-  <a href="{{ url_for('dashboard_bp.export_kpis') }}">CSV KPIs</a>
+  <a class="btn" href="{{ url_for('dashboard_bp.export_kpis') }}">CSV KPIs</a>
 </form>
-
-<hr>
 
 <div class="grid">
   <div class="cell">
     <h3>Horas trabajadas ({{ days }} días)
-      <small><a href="{{ url_for('dashboard_bp.export_series', metric='horas', days=days) }}">CSV</a></small>
+      <small><a class="btn" href="{{ url_for('dashboard_bp.export_series', metric='horas', days=days) }}">CSV</a></small>
     </h3>
-    <canvas id="chartHoras"></canvas>
+    <div class="canvas-wrap"><canvas id="chartHoras"></canvas></div>
   </div>
   <div class="cell">
     <h3>% OK Checklists ({{ days }} días)
-      <small><a href="{{ url_for('dashboard_bp.export_series', metric='pctok', days=days) }}">CSV</a></small>
+      <small><a class="btn" href="{{ url_for('dashboard_bp.export_series', metric='pctok', days=days) }}">CSV</a></small>
     </h3>
-    <canvas id="chartPctOk"></canvas>
+    <div class="canvas-wrap"><canvas id="chartPctOk"></canvas></div>
   </div>
   <div class="cell">
     <h3>Top 5 equipos por horas ({{ days }} días)
-      <small><a href="{{ url_for('dashboard_bp.export_top_equipos', days=days) }}">CSV</a></small>
+      <small><a class="btn" href="{{ url_for('dashboard_bp.export_top_equipos', days=days) }}">CSV</a></small>
     </h3>
-    <canvas id="chartTopEquipos"></canvas>
+    <div class="canvas-wrap"><canvas id="chartTopEquipos"></canvas></div>
   </div>
   <div class="cell">
     <h3>Incidencias en partes ({{ days }} días)
-      <small><a href="{{ url_for('dashboard_bp.export_incidencias', days=days) }}">CSV</a></small>
+      <small><a class="btn" href="{{ url_for('dashboard_bp.export_incidencias', days=days) }}">CSV</a></small>
     </h3>
-    <canvas id="chartIncid"></canvas>
+    <div class="canvas-wrap"><canvas id="chartIncid"></canvas></div>
   </div>
 </div>
 
-<style>
-.cards{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px}
-.card{border:1px solid #333;border-radius:8px;padding:12px 16px;text-decoration:none;color:#111}
-.card b{display:block;font-size:20px;margin-top:6px}
-.grid{display:grid;grid-template-columns:repeat(2,minmax(280px,1fr));gap:20px}
-.cell{background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:12px}
-@media (max-width:900px){.grid{grid-template-columns:1fr}}
-</style>
-
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-const labels14 = {{ labels_14|tojson }};
-const horas14  = {{ horas_14|tojson }};
-const pctok14  = {{ pctok_14|tojson }};
-const topLabels = {{ top_labels|tojson }};
-const topData   = {{ top_data|tojson }};
-const incidPie  = {{ incid_pie|tojson }};
+const labels14={{ labels_14|tojson }}, horas14={{ horas_14|tojson }}, pctok14={{ pctok_14|tojson }};
+const topLabels={{ top_labels|tojson }}, topData={{ top_data|tojson }}, incidPie={{ incid_pie|tojson }};
 
-new Chart(document.getElementById('chartHoras').getContext('2d'), {
-  type: 'line',
-  data: { labels: labels14, datasets: [{ label: 'Horas', data: horas14, tension: 0.25 }] },
-  options: { responsive:true, plugins:{ legend:{ display:true } }, scales:{ y:{ beginAtZero:true } } }
+new Chart(document.getElementById('chartHoras').getContext('2d'),{
+  type:'line', data:{labels:labels14, datasets:[{label:'Horas', data:horas14, tension:.25}]},
+  options:{responsive:true, plugins:{legend:{display:true}}, scales:{y:{beginAtZero:true}}}
 });
-new Chart(document.getElementById('chartPctOk').getContext('2d'), {
-  type: 'line',
-  data: { labels: labels14, datasets: [{ label: '% OK', data: pctok14, tension: 0.25 }] },
-  options: { responsive:true, plugins:{ legend:{ display:true } }, scales:{ y:{ suggestedMin:0, suggestedMax:100 } } }
+new Chart(document.getElementById('chartPctOk').getContext('2d'),{
+  type:'line', data:{labels:labels14, datasets:[{label:'% OK', data:pctok14, tension:.25}]},
+  options:{responsive:true, plugins:{legend:{display:true}}, scales:{y:{suggestedMin:0, suggestedMax:100}}}
 });
-new Chart(document.getElementById('chartTopEquipos').getContext('2d'), {
-  type: 'bar',
-  data: { labels: topLabels, datasets: [{ label: 'Horas', data: topData }] },
-  options: { responsive:true, plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true } } }
+new Chart(document.getElementById('chartTopEquipos').getContext('2d'),{
+  type:'bar', data:{labels:topLabels, datasets:[{label:'Horas', data:topData}]},
+  options:{responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}}}
 });
-new Chart(document.getElementById('chartIncid').getContext('2d'), {
-  type: 'doughnut',
-  data: { labels: ['Con incidencias', 'Sin incidencias'], datasets: [{ data: incidPie }] },
-  options: { responsive:true, plugins:{ legend:{ position:'bottom' } } }
+new Chart(document.getElementById('chartIncid').getContext('2d'),{
+  type:'doughnut',
+  data:{labels:['Con incidencias','Sin incidencias'], datasets:[{data:incidPie}]},
+  options:{responsive:true, plugins:{legend:{position:'bottom'}}}
 });
 </script>
 {% endblock %}

@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% import "_forms.html" as forms %}
 {% block content %}
-<h1 class="mb-3">Operadores</h1>
+<h1 class="page-title">Operadores</h1>
 
 <form method="get" class="mb-3" action="{{ url_for('operadores_bp.index') }}">
   <input type="text" name="q" value="{{ q or '' }}" placeholder="Buscar nombre, doc o notas">
