@@ -17,6 +17,7 @@ from .extensions import csrf, db, init_auth_extensions, limiter
 from .metrics import cleanup_multiprocess_directory
 from .utils.scan_lock import get_scan_lock
 from .cli import register_cli
+from app.cli.seed_demo import register_cli as register_demo_seed
 from .migrate_ext import init_migrations
 from .security_headers import set_security_headers
 from .storage import ensure_dirs
@@ -297,6 +298,7 @@ def create_app(config_name: str | None = None) -> Flask:
         limiter.exempt(ping_bp)
 
     register_cli(app)
+    register_demo_seed(app)
     register_sync_cli(app)
 
     if os.getenv("SCHEDULER_ENABLED", "0") == "1":
