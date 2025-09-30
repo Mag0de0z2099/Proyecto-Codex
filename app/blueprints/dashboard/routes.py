@@ -5,7 +5,7 @@ from io import StringIO, BytesIO
 import csv
 
 from flask import Blueprint, render_template, current_app, request, send_file
-from sqlalchemy import func, case
+from sqlalchemy import func, case, cast, String, literal
 
 from app.extensions import db
 
@@ -168,7 +168,10 @@ def index():
         if Equipo:
             rows = (
                 db.session.query(
-                    func.coalesce(Equipo.nombre, func.concat("Equipo #", Equipo.id)),
+                    func.coalesce(
+                        Equipo.nombre,
+                        (literal("Equipo #") + cast(Equipo.id, String)),
+                    ),
                     func.sum(ParteDiaria.horas_trabajo),
                 )
                 .join(Equipo, Equipo.id == ParteDiaria.equipo_id, isouter=True)
@@ -319,7 +322,10 @@ def export_top_equipos():
         if Equipo:
             q = (
                 db.session.query(
-                    func.coalesce(Equipo.nombre, func.concat("Equipo #", Equipo.id)),
+                    func.coalesce(
+                        Equipo.nombre,
+                        (literal("Equipo #") + cast(Equipo.id, String)),
+                    ),
                     func.sum(ParteDiaria.horas_trabajo),
                 )
                 .join(Equipo, Equipo.id == ParteDiaria.equipo_id, isouter=True)
