@@ -29,8 +29,8 @@
   <header class="nav">
     <div class="nav-left">
       <span class="brand">
-        <img class="logo" src="{{ url_for('static', filename='img/siglo21.png') }}" alt="Siglo 21">
-        <span>SGC-Obra</span>
+        <span class="logo-text" aria-hidden="true">S21</span>
+        <span class="brand-name">SGC-Obra</span>
       </span>
       <nav class="nav-links">
         {% if current_user.is_authenticated %}

@@ -15,7 +15,7 @@ from app.db import db
 from app.models import Equipo, Operador, ParteDiaria
 
 
-@bp_web.get("/dashboard")
+@bp_web.get("/landing")
 def index():
     today = date.today()
 

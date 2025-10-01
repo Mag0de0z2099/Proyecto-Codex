@@ -80,6 +80,7 @@ def _valid_days(raw) -> int:
 # -------- Vista principal --------
 
 @bp.get("/")
+@bp.get("")
 def index():
     Equipo, Operador, ParteDiaria, ChecklistTemplate, ChecklistRun, ArchivoAdjunto = _safe_imports()
     days = _valid_days(request.args.get("days", 14))
