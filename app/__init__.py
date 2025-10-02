@@ -72,6 +72,21 @@ def create_app(config_name: str | None = None) -> Flask:
     app.config.from_object(load_config(config_name))
     app.config.setdefault("LOG_LEVEL", "INFO")
 
+    login_disabled_env = os.getenv("LOGIN_DISABLED")
+    if login_disabled_env is not None:
+        app.config["LOGIN_DISABLED"] = login_disabled_env.strip().lower() in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        }
+    elif app.config.get("TESTING"):
+        app.config.setdefault("LOGIN_DISABLED", True)
+    else:
+        env_name = (os.getenv("APP_ENV") or os.getenv("FLASK_ENV") or "").lower()
+        if env_name in {"dev", "development"}:
+            app.config.setdefault("LOGIN_DISABLED", True)
+
     # ===== DEV MODE (apagado de seguridad por bandera) =====
     if os.getenv("DISABLE_SECURITY") == "1":
         app.config["SECURITY_DISABLED"] = True
@@ -282,6 +297,13 @@ def create_app(config_name: str | None = None) -> Flask:
     from app.blueprints.dashboard.routes import bp as dashboard_bp
 
     app.register_blueprint(dashboard_bp)
+
+    try:
+        from app.blueprints.archivos.routes import bp as archivos_bp
+
+        app.register_blueprint(archivos_bp)
+    except Exception:
+        pass
 
     # Exentamos la API pública JSON del CSRF global
     api_v1_bp = blueprints.get("api_v1")

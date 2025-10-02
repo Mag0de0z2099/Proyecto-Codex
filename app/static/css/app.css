@@ -52,7 +52,20 @@ header.nav{
 
 header.nav .nav-left{display:flex; align-items:center; gap:20px;}
 header.nav .brand{display:inline-flex; align-items:center; gap:10px; font-weight:600; letter-spacing:.3px;}
-header.nav .brand .logo{height:24px; width:auto; display:block; border-radius:4px; box-shadow:0 0 0 1px rgba(255,255,255,.06);}
+header.nav .brand .logo-text{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  height:32px;
+  width:32px;
+  border-radius:50%;
+  background:var(--accent);
+  color:#001726;
+  font-weight:700;
+  font-size:.9rem;
+  letter-spacing:.4px;
+}
+header.nav .brand .brand-name{font-weight:600;}
 header.nav .nav-links{display:flex; gap:12px; align-items:center; flex-wrap:wrap;}
 header.nav .nav-actions{display:flex; align-items:center; gap:8px;}
 

@@ -10,6 +10,8 @@ from flask import current_app
 from flask.cli import with_appcontext
 from werkzeug.security import generate_password_hash
 
+from .seed_admin import register_cli as register_seed_admin_cli
+
 from app.db import db
 from app.models import ChecklistItem, ChecklistTemplate, Equipo, Operador, ParteDiaria, User
 from app.services.auth_service import ensure_admin_user
@@ -255,8 +257,10 @@ def register_cli(app):
                         tipo="bool",
                         orden=order,
                     )
-                )
+        )
         db.session.commit()
         click.echo("Plantillas de checklist: OK")
+
+    register_seed_admin_cli(app)
 
     return app

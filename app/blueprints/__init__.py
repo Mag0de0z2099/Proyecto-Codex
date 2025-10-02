@@ -12,4 +12,5 @@ __all__ = [
     "equipos",
     "checklists",
     "partes",
+    "archivos",
 ]
