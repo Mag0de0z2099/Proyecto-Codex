@@ -118,6 +118,13 @@ textarea{min-height:var(--btn-h); height:auto;}
 .btn svg{width:18px; height:18px;}
 .btn span{display:inline-flex; align-items:center;}
 
+/* Badge para contadores compactos */
+.badge{
+  display:inline-block; min-width:18px; padding:2px 6px; margin-left:6px;
+  font-size:12px; line-height:1; text-align:center;
+  border-radius:999px; border:1px solid var(--border); background:var(--panel); color:var(--text);
+}
+
 .icon{display:block;}
 
 :focus-visible{outline:2px solid rgba(36,160,255,0.9); outline-offset:2px;}

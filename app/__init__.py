@@ -72,6 +72,10 @@ def create_app(config_name: str | None = None) -> Flask:
     app.config.from_object(load_config(config_name))
     app.config.setdefault("LOG_LEVEL", "INFO")
 
+    from app.blueprints.archivos.helpers import count_evidencias
+
+    app.jinja_env.globals["count_evidencias"] = count_evidencias
+
     login_disabled_env = os.getenv("LOGIN_DISABLED")
     if login_disabled_env is not None:
         app.config["LOGIN_DISABLED"] = login_disabled_env.strip().lower() in {
