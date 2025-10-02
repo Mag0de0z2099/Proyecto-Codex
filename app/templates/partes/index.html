@@ -46,7 +46,9 @@
       <td>{{ r.actividad }}</td>
       <td>{{ r.incidencias }}</td>
       <td style="text-align:right; white-space:nowrap;">
-        <a class="btn" href="{{ url_for('archivos_bp.index', parte_id=r.id)|replace('/?', '?') }}">Evidencias</a>
+        <a class="btn" href="{{ url_for('archivos_bp.index', parte_id=r.id)|replace('/?', '?') }}">
+          Evidencias <span class="badge">{{ count_evidencias(parte_id=r.id) }}</span>
+        </a>
         {% if DEV_MODE %}
         <a href="{{ url_for('partes.pdf_parte', id=r.id) }}" target="_blank">PDF</a>
         <a href="{{ url_for('partes.edit', id=r.id) }}">Editar</a>

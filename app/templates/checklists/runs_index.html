@@ -17,7 +17,9 @@
         <td>{{ r.template.norma }}</td>
         <td>{{ '%.1f'|format(r.pct_ok) }}%</td>
         <td style="text-align:right; white-space:nowrap;">
-          <a class="btn" href="{{ url_for('archivos_bp.index', run_id=r.id)|replace('/?', '?') }}">Evidencias</a>
+          <a class="btn" href="{{ url_for('archivos_bp.index', run_id=r.id)|replace('/?', '?') }}">
+            Evidencias <span class="badge">{{ count_evidencias(run_id=r.id) }}</span>
+          </a>
           <a href="{{ url_for('checklists_bp.run_view', id=r.id) }}">Ver</a>
           <a href="{{ url_for('checklists_bp.run_pdf', id=r.id) }}" target="_blank">PDF</a>
         </td>
