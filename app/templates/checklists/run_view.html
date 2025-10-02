@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 <h1>Checklist ejecutado</h1>
+<p><a class="btn" href="{{ url_for('archivos_bp.index', run_id=r.id)|replace('/?', '?') }}">Evidencias</a></p>
 <p>Fecha: <strong>{{ r.fecha }}</strong> | Plantilla: <strong>{{ r.template.nombre }}</strong> ({{ r.template.norma or '-' }}) | %OK: <strong>{{ '%.1f'|format(r.pct_ok) }}%</strong></p>
 {% if r.notas %}<p>Notas: {{ r.notas }}</p>{% endif %}
 <table class="table">

@@ -33,7 +33,7 @@
       <th>Horas</th>
       <th>Actividad</th>
       <th>Incidencias</th>
-      {% if DEV_MODE %}<th>Acciones</th>{% endif %}
+      <th>Acciones</th>
     </tr>
   </thead>
   <tbody>
@@ -45,15 +45,16 @@
       <td>{{ '%.2f'|format(r.horas_trabajo or 0) }}</td>
       <td>{{ r.actividad }}</td>
       <td>{{ r.incidencias }}</td>
-      {% if DEV_MODE %}
-      <td>
+      <td style="text-align:right; white-space:nowrap;">
+        <a class="btn" href="{{ url_for('archivos_bp.index', parte_id=r.id)|replace('/?', '?') }}">Evidencias</a>
+        {% if DEV_MODE %}
         <a href="{{ url_for('partes.pdf_parte', id=r.id) }}" target="_blank">PDF</a>
         <a href="{{ url_for('partes.edit', id=r.id) }}">Editar</a>
         <form method="post" action="{{ url_for('partes.delete', id=r.id) }}" style="display:inline" onsubmit="return confirm('¿Eliminar parte?');">
           <button type="submit">Eliminar</button>
         </form>
+        {% endif %}
       </td>
-      {% endif %}
     </tr>
     {% endfor %}
   </tbody>
