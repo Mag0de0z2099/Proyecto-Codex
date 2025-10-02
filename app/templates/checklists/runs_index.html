@@ -8,7 +8,7 @@
   <a href="{{ url_for('checklists_bp.resumen', desde=desde, hasta=hasta) }}">Resumen</a>
 </form>
 <table class="table">
-  <thead><tr><th>Fecha</th><th>Plantilla</th><th>Norma</th><th>% OK</th><th></th></tr></thead>
+  <thead><tr><th>Fecha</th><th>Plantilla</th><th>Norma</th><th>% OK</th><th>Acciones</th></tr></thead>
   <tbody>
     {% for r in rows %}
       <tr>
@@ -16,7 +16,8 @@
         <td>{{ r.template.nombre }}</td>
         <td>{{ r.template.norma }}</td>
         <td>{{ '%.1f'|format(r.pct_ok) }}%</td>
-        <td>
+        <td style="text-align:right; white-space:nowrap;">
+          <a class="btn" href="{{ url_for('archivos_bp.index', run_id=r.id)|replace('/?', '?') }}">Evidencias</a>
           <a href="{{ url_for('checklists_bp.run_view', id=r.id) }}">Ver</a>
           <a href="{{ url_for('checklists_bp.run_pdf', id=r.id) }}" target="_blank">PDF</a>
         </td>
