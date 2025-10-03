@@ -20,7 +20,8 @@
           {% set s = evidencias_summary(run_id=r.id) %}
           <a class="btn" href="{{ url_for('archivos_bp.index', run_id=r.id)|replace('/?', '?') }}"
              title="Tamaño total: {{ s.size_h }}">
-            Evidencias <span class="badge">{{ s.total }}</span>
+            Evidencias
+            <span class="badge {{ 'badge--alert' if s.total > 0 else '' }}">{{ s.total }}</span>
             <span class="badge-wrap">
               <span class="badge badge--pdf">PDF {{ s.by_ext.pdf }}</span>
               <span class="badge badge--img">IMG {{ s.by_ext.img }}</span>

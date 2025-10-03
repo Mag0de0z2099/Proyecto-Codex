@@ -124,6 +124,15 @@ textarea{min-height:var(--btn-h); height:auto;}
   font-size:12px; line-height:1; text-align:center;
   border-radius:999px; border:1px solid var(--border); background:var(--panel); color:var(--text);
 }
+/* Resalta el total cuando hay evidencias */
+.badge--alert{
+  border-color:#ef4444;
+  background:rgba(239,68,68,.15);
+}
+/* Ajuste sutil en tema claro */
+[data-theme='light'] .badge--alert{
+  background:rgba(239,68,68,.10);
+}
 .badge--pdf{ border-color:#ef4444 }
 .badge--img{ border-color:#3b82f6 }
 .badge-wrap{ display:inline-flex; align-items:center; gap:4px; margin-left:6px }
