@@ -46,8 +46,14 @@
       <td>{{ r.actividad }}</td>
       <td>{{ r.incidencias }}</td>
       <td style="text-align:right; white-space:nowrap;">
-        <a class="btn" href="{{ url_for('archivos_bp.index', parte_id=r.id)|replace('/?', '?') }}">
-          Evidencias <span class="badge">{{ count_evidencias(parte_id=r.id) }}</span>
+        {% set s = evidencias_summary(parte_id=r.id) %}
+        <a class="btn" href="{{ url_for('archivos_bp.index', parte_id=r.id)|replace('/?', '?') }}"
+           title="Tamaño total: {{ s.size_h }}">
+          Evidencias <span class="badge">{{ s.total }}</span>
+          <span class="badge-wrap">
+            <span class="badge badge--pdf">PDF {{ s.by_ext.pdf }}</span>
+            <span class="badge badge--img">IMG {{ s.by_ext.img }}</span>
+          </span>
         </a>
         {% if DEV_MODE %}
         <a href="{{ url_for('partes.pdf_parte', id=r.id) }}" target="_blank">PDF</a>
