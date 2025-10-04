@@ -70,23 +70,89 @@ def _redirect_for_role(role: str, next_url: str | None = None):
     return redirect(url_for(_endpoint_for_role(role)))
 
 
+def _check_pwd(stored: str | bytes | None, plain: str) -> bool:
+    if not stored:
+        return False
+
+    value = stored
+    if isinstance(value, bytes):
+        try:
+            value = value.decode("utf-8")
+        except Exception:
+            return False
+
+    if not isinstance(value, str):
+        return False
+
+    if value.startswith("pbkdf2:") or value.startswith("scrypt:"):
+        return check_password_hash(value, plain)
+
+    if value.startswith("$2a$") or value.startswith("$2b$") or value.startswith("$2y$"):
+        try:
+            from flask_bcrypt import Bcrypt
+
+            return Bcrypt().check_password_hash(value, plain)
+        except Exception:
+            return False
+
+    try:
+        return check_password_hash(value, plain)
+    except Exception:
+        return False
+
+
+def _is_active_and_approved(user: User) -> bool:
+    if hasattr(user, "is_active") and not getattr(user, "is_active"):
+        return False
+
+    for flag in ("approved", "is_approved", "aprobado"):
+        if hasattr(user, flag) and not getattr(user, flag):
+            return False
+
+    for field in ("status", "estado", "state"):
+        if hasattr(user, field):
+            raw = getattr(user, field)
+            if raw is None:
+                continue
+            value = str(raw).strip().lower()
+            if value in {
+                "rejected",
+                "pendiente",
+                "pendiente_aprobación",
+                "pending",
+                "denied",
+            }:
+                return False
+
+    return True
+
+
 @bp.post("/login")
 def login_post():
-    identifier = (request.form.get("email") or request.form.get("username") or "").strip()
+    email_input = request.form.get("email")
+    username_input = request.form.get("username")
+
+    identifier_source = email_input if email_input not in (None, "") else username_input
+    identifier = (identifier_source or "").strip()
     password = (request.form.get("password") or request.form.get("pass") or "").strip()
 
     if not identifier or not password:
         flash("Faltan credenciales", "error")
         return redirect(url_for("auth.login"))
 
-    email_or_user = identifier.lower()
-    email = normalize_email(identifier)
-    username = identifier
+    email_from_field = (email_input or "").strip().casefold() or None
+    email = email_from_field or (normalize_email(identifier) or None)
+    if email:
+        email = email.casefold()
+
+    username = (username_input or "").strip()
+    email_or_user = identifier.casefold()
 
     if current_app.config.get("AUTH_SIMPLE", True):
         ensure_bootstrap_admin(current_app)
-        user = verify(current_app, username or email_or_user, password)
-        if not user and email and email != username:
+        username_lookup = username or identifier
+        user = verify(current_app, username_lookup or email_or_user, password)
+        if not user and email and email != (username_lookup or "").casefold():
             user = verify(current_app, email, password)
         if user:
             role = _resolve_role(user)
@@ -99,12 +165,19 @@ def login_post():
     query = db.session.query(User)
 
     search_terms: list[str] = []
-    if email_or_user:
-        search_terms.append(email_or_user)
-    if email and email.lower() not in search_terms:
-        search_terms.append(email.lower())
-    if username and username.lower() not in search_terms:
-        search_terms.append(username.lower())
+    seen_terms: set[str] = set()
+
+    def _add_term(term: str | None) -> None:
+        if not term:
+            return
+        normalized = term.casefold()
+        if normalized not in seen_terms:
+            seen_terms.add(normalized)
+            search_terms.append(normalized)
+
+    _add_term(email_or_user)
+    _add_term(email)
+    _add_term(username)
 
     for term in search_terms:
         if hasattr(User, "email"):
@@ -130,15 +203,11 @@ def login_post():
 
     if ok is not True:
         hashval = getattr(candidate, "password_hash", None) or getattr(
-            candidate, "password", ""
+            candidate,
+            "password",
+            "",
         )
-        if isinstance(hashval, str) and hashval:
-            try:
-                ok = check_password_hash(hashval, password)
-            except Exception:
-                ok = False
-        else:
-            ok = False
+        ok = _check_pwd(hashval, password)
 
     if ok is not True:
         current_app.logger.info(
@@ -149,12 +218,11 @@ def login_post():
 
     user = candidate
 
-    if getattr(user, "status", "approved") != "approved":
-        flash("Tu cuenta está pendiente de aprobación.", "warning")
-        return redirect(url_for("auth.login"))
-
-    if not getattr(user, "is_active", True):
-        flash("Tu cuenta está inactiva. Contacta al administrador.", "warning")
+    if not _is_active_and_approved(user):
+        flash(
+            "Tu cuenta está pendiente de aprobación o inactiva. Contacta al administrador.",
+            "warning",
+        )
         return redirect(url_for("auth.login"))
 
     login_user(user, remember=True)
