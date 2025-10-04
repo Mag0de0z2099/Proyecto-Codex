@@ -166,6 +166,16 @@ def create_app(config_name: str | None = None) -> Flask:
     except Exception:
         pass
 
+    if bool(app.config.get("LOGIN_DISABLED")):
+        @app.before_request
+        def _csrf_off_for_auth() -> None:
+            from flask import request
+
+            if request.path.startswith("/auth/"):
+                setattr(request, "csrf_processing_exempt", True)
+
+    app.jinja_env.globals["DEV_MODE"] = bool(app.config.get("LOGIN_DISABLED"))
+
     try:
         from app.extensions import limiter
 
@@ -181,7 +191,9 @@ def create_app(config_name: str | None = None) -> Flask:
     if not app.config.get("SQLALCHEMY_TRACK_MODIFICATIONS"):
         app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     if not app.config.get("SECRET_KEY"):
-        app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "change-me")
+        app.config["SECRET_KEY"] = os.environ.get(
+            "SECRET_KEY", "dev-secret-change-me"
+        )
     app.config.setdefault(
         "ALLOW_SELF_SIGNUP",
         os.getenv("ALLOW_SELF_SIGNUP", "false").lower() in {"1", "true", "yes", "y"},
