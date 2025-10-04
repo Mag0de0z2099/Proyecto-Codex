@@ -20,6 +20,7 @@ from flask_login import (
     logout_user,
 )
 from sqlalchemy import func
+from werkzeug.security import check_password_hash
 
 from app.authz import login_required
 from app.db import db
@@ -69,139 +70,99 @@ def _redirect_for_role(role: str, next_url: str | None = None):
 
 @bp_auth.post("/login")
 def login_post():
-    try:
-        raw_email = request.form.get("email")
-        raw_username = request.form.get("username")
-        email_or_user = (raw_email or raw_username or "").strip().lower()
-        email = normalize_email(raw_email)
-        username = (raw_username or "").strip()
-        password = (request.form.get("password") or "").strip()
+    identifier = (request.form.get("email") or request.form.get("username") or "").strip()
+    password = (request.form.get("password") or request.form.get("pass") or "").strip()
 
-        # === MODO SIMPLE: SIN DB ===
-        if current_app.config.get("AUTH_SIMPLE", True):
-            ensure_bootstrap_admin(current_app)
-            simple_identifier = username or (raw_email or "").strip()
-            user = verify(current_app, simple_identifier, password)
-            if not user and email and email != simple_identifier:
-                user = verify(current_app, email, password)
-            if user:
-                role = _resolve_role(user)
-                session["user"] = {**user, "role": role}
-                return _redirect_for_role(role, request.args.get("next"))
-            flash("Usuario o contraseña inválidos.", "danger")
-            return render_template("auth/login.html"), HTTPStatus.UNAUTHORIZED
+    if not identifier or not password:
+        flash("Faltan credenciales", "error")
+        return redirect(url_for("auth.login"))
 
-        # ===== MODO NORMAL (DB) — dejar comentado por ahora =====
-        # user = User.query.filter_by(username=username).first()
-        # if user and user.check_password(password) and user.is_active:
-        #     session["user"] = {"id": user.id, "username": user.username, "is_admin": user.is_admin}
-        #     return redirect(request.args.get("next") or url_for("admin.index"))
-        # flash("Usuario o contraseña inválidos.", "danger")
-        # return redirect(url_for("auth.login"))
+    email_or_user = identifier.lower()
+    email = normalize_email(identifier)
+    username = identifier
 
-        candidate: User | None = None
-        identifiers: list[str] = []
-        if email_or_user:
-            identifiers.append(email_or_user)
-        if email:
-            identifiers.append(email.lower())
-        if username:
-            identifiers.append(username.lower())
+    if current_app.config.get("AUTH_SIMPLE", True):
+        ensure_bootstrap_admin(current_app)
+        user = verify(current_app, username or email_or_user, password)
+        if not user and email and email != username:
+            user = verify(current_app, email, password)
+        if user:
+            role = _resolve_role(user)
+            session["user"] = {**user, "role": role}
+            return _redirect_for_role(role, request.args.get("next"))
+        flash("Usuario o contraseña inválidos.", "danger")
+        return redirect(url_for("auth.login"))
 
-        seen_identifiers: set[str] = set()
-        for ident in identifiers:
-            if not ident or ident in seen_identifiers:
-                continue
-            seen_identifiers.add(ident)
-            if hasattr(User, "email"):
-                candidate = User.query.filter(func.lower(User.email) == ident).first()
-                if candidate:
-                    break
-            if hasattr(User, "username"):
-                candidate = User.query.filter(func.lower(User.username) == ident).first()
-                if candidate:
-                    break
+    candidate: User | None = None
+    query = db.session.query(User)
 
-        if not candidate and hasattr(User, "email") and hasattr(User, "username"):
-            candidate = User.query.filter(func.lower(User.username) == email_or_user).first()
+    search_terms: list[str] = []
+    if email_or_user:
+        search_terms.append(email_or_user)
+    if email and email.lower() not in search_terms:
+        search_terms.append(email.lower())
+    if username and username.lower() not in search_terms:
+        search_terms.append(username.lower())
 
-        if not candidate:
-            current_app.logger.info("Login fallido para identificador '%s'", email_or_user)
-            flash("Usuario o contraseña inválidos.", "danger")
-            return render_template("auth/login.html"), HTTPStatus.UNAUTHORIZED
+    for term in search_terms:
+        if hasattr(User, "email"):
+            candidate = query.filter(func.lower(User.email) == term).first()
+            if candidate:
+                break
+        if hasattr(User, "username"):
+            candidate = query.filter(func.lower(User.username) == term).first()
+            if candidate:
+                break
 
-        ok: bool | None = None
-        if hasattr(candidate, "check_password"):
+    if not candidate:
+        current_app.logger.info("Login fallido para identificador '%s'", email_or_user)
+        flash("Usuario/contraseña incorrectos", "error")
+        return redirect(url_for("auth.login"))
+
+    ok: bool | None = None
+    if hasattr(candidate, "check_password"):
+        try:
+            ok = bool(candidate.check_password(password))
+        except Exception:
+            ok = None
+
+    if ok is not True:
+        hashval = getattr(candidate, "password_hash", None) or getattr(
+            candidate, "password", ""
+        )
+        if isinstance(hashval, str) and hashval:
             try:
-                ok = bool(candidate.check_password(password))
+                ok = check_password_hash(hashval, password)
             except Exception:
-                ok = None
-
-        if ok is not True:
-            from werkzeug.security import check_password_hash
-
-            hashval = getattr(candidate, "password_hash", None) or getattr(
-                candidate, "password", ""
-            )
-            if isinstance(hashval, str) and hashval:
-                try:
-                    ok = check_password_hash(hashval, password)
-                except Exception:
-                    ok = False
-            else:
                 ok = False
+        else:
+            ok = False
 
-        if ok is not True:
-            import os
+    if ok is not True:
+        current_app.logger.info(
+            "Login fallido por contraseña para identificador '%s'", email_or_user
+        )
+        flash("Usuario/contraseña incorrectos", "error")
+        return redirect(url_for("auth.login"))
 
-            master_email = os.environ.get("ADMIN_MASTER_EMAIL", "").strip().lower()
-            master_password = os.environ.get("ADMIN_MASTER_PASSWORD", "")
-            matches_master = False
-            if master_email:
-                if hasattr(candidate, "email") and getattr(candidate, "email", None):
-                    matches_master = (
-                        str(candidate.email).strip().lower() == master_email
-                    )
-                if (
-                    not matches_master
-                    and hasattr(candidate, "username")
-                    and getattr(candidate, "username", None)
-                ):
-                    matches_master = (
-                        str(candidate.username).strip().lower() == master_email
-                    )
-            if matches_master and password == master_password and master_password:
-                ok = True
+    user = candidate
 
-        if not ok:
-            current_app.logger.info(
-                "Login fallido por contraseña para identificador '%s'", email_or_user
-            )
-            flash("Usuario o contraseña inválidos.", "danger")
-            return render_template("auth/login.html"), HTTPStatus.UNAUTHORIZED
+    if getattr(user, "status", "approved") != "approved":
+        flash("Tu cuenta está pendiente de aprobación.", "warning")
+        return redirect(url_for("auth.login"))
 
-        user = candidate
+    if not getattr(user, "is_active", True):
+        flash("Tu cuenta está inactiva. Contacta al administrador.", "warning")
+        return redirect(url_for("auth.login"))
 
-        if getattr(user, "status", "approved") != "approved":
-            flash("Tu cuenta está pendiente de aprobación.", "warning")
-            return redirect(url_for("auth.login"))
+    login_user(user, remember=True)
+    if getattr(user, "force_change_password", False):
+        flash("Debes actualizar tu contraseña antes de continuar.", "info")
+        return redirect(url_for("auth.change_password"))
 
-        if not getattr(user, "is_active", True):
-            flash("Tu cuenta está inactiva. Contacta al administrador.", "warning")
-            return redirect(url_for("auth.login"))
-
-        login_user(user, remember=True)
-        if getattr(user, "force_change_password", False):
-            flash("Debes actualizar tu contraseña antes de continuar.", "info")
-            return redirect(url_for("auth.change_password"))
-        flash("Bienvenido 👋", "success")
-        role = _resolve_role(user)
-        return _redirect_for_role(role, request.args.get("next"))
-
-    except Exception:
-        current_app.logger.exception("Login error")
-        flash("Error interno. Intenta de nuevo.", "danger")
-        return render_template("auth/login.html"), HTTPStatus.INTERNAL_SERVER_ERROR
+    flash("Bienvenido 👋", "success")
+    role = _resolve_role(user)
+    return _redirect_for_role(role, request.args.get("next"))
 
 
 @bp_auth.before_app_request

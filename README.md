@@ -53,6 +53,20 @@ Para usar otra clave, ejecutar:
 FLASK_APP=app:create_app flask seed-admin --email admin@admin.com --password NUEVA_CLAVE
 ```
 
+## Acceso al Dashboard
+
+**DEV (sin login):**
+- Define `LOGIN_DISABLED=1` y `WTF_CSRF_ENABLED=0` en el entorno.
+- Visita `/dashboard?days=30` para ver métricas sin autenticación.
+
+**Con login:**
+
+```bash
+FLASK_APP=app:create_app flask users:seed-admin --email admin@admin.com --password admin123
+```
+
+Asegúrate de establecer `SECRET_KEY` y usar `LOGIN_DISABLED=0` en producción.
+
 ## Operación
 
 - **Gunicorn:** El Procfile y `render.yaml` inician el proyecto con `gunicorn -w 3 -t 60 wsgi:app`.
