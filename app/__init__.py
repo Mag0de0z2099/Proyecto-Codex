@@ -151,6 +151,10 @@ def create_app(config_name: str | None = None) -> Flask:
             pass
     # ===== FIN DEV MODE =====
 
+    app.jinja_env.globals["DEV_MODE"] = bool(
+        app.config.get("SECURITY_DISABLED") or app.config.get("LOGIN_DISABLED")
+    )
+
     # Inicializa extensiones aquí (después de setear flags):
     try:
         from app.extensions import login_manager

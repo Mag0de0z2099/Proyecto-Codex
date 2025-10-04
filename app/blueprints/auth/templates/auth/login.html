@@ -4,6 +4,12 @@
 <section class="auth-wrap">
   <h1>Iniciar sesión</h1>
   <p class="text-muted">Ingresa tus credenciales. Las cuentas pendientes o rechazadas no pueden acceder.</p>
+  {% if DEV_MODE %}
+  <div class="alert alert--dev">
+    <b>Modo DEV:</b> Autenticación desactivada. Puedes entrar directo al dashboard.
+    <a class="btn" href="{{ url_for('dashboard_bp.index') }}">Ir al Dashboard</a>
+  </div>
+  {% endif %}
   <form method="post" action="{{ url_for('auth.login_post') }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <label class="form-label">
