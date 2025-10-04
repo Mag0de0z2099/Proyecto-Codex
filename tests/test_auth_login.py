@@ -1,6 +1,12 @@
 from __future__ import annotations
 
 
+def test_login_get_exists(client):
+    response = client.get("/auth/login")
+
+    assert response.status_code == 200
+
+
 def test_seed_admin_and_login_success(app, client):
     app.config.update(LOGIN_DISABLED=False, AUTH_SIMPLE=False)
 

@@ -292,6 +292,11 @@ def create_app(config_name: str | None = None) -> Flask:
 
     blueprints = register_blueprints(app)
 
+    if "auth" not in app.blueprints:
+        from app.blueprints.auth.routes import bp as auth_bp
+
+        app.register_blueprint(auth_bp)
+
     # Registro de blueprints existentes
     try:
         from .routes.health import bp as health_bp
