@@ -137,6 +137,7 @@ textarea{min-height:var(--btn-h); height:auto;}
 .badge--img{ border-color:#3b82f6 }
 .badge-wrap{ display:inline-flex; align-items:center; gap:4px; margin-left:6px }
 
+/* Alertas compactas */
 .alert{
   display:flex; align-items:center; gap:8px;
   padding:8px 10px; border-radius:12px; margin:8px 0 12px;
