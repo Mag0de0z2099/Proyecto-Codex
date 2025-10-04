@@ -31,7 +31,9 @@ from app.utils.strings import normalize_email
 from app.utils.validators import is_valid_email
 from app.simple_auth.store import ensure_bootstrap_admin, verify
 
-bp_auth = Blueprint("auth", __name__, url_prefix="/auth", template_folder="templates")
+bp = Blueprint("auth", __name__, url_prefix="/auth", template_folder="templates")
+# ``bp_auth`` se mantiene como alias para compatibilidad retro.
+bp_auth = bp
 
 
 def _resolve_role(entity: Mapping[str, object] | User | None) -> str:
@@ -68,7 +70,7 @@ def _redirect_for_role(role: str, next_url: str | None = None):
     return redirect(url_for(_endpoint_for_role(role)))
 
 
-@bp_auth.post("/login")
+@bp.post("/login")
 def login_post():
     identifier = (request.form.get("email") or request.form.get("username") or "").strip()
     password = (request.form.get("password") or request.form.get("pass") or "").strip()
@@ -165,7 +167,7 @@ def login_post():
     return _redirect_for_role(role, request.args.get("next"))
 
 
-@bp_auth.before_app_request
+@bp.before_app_request
 def _enforce_force_change_password():
     if current_app.config.get("SECURITY_DISABLED") or current_app.config.get(
         "LOGIN_DISABLED"
@@ -181,7 +183,7 @@ def _enforce_force_change_password():
             return redirect(url_for("auth.change_password"))
 
 
-@bp_auth.get("/login")
+@bp.get("/login")
 def login():
     if current_app.config.get("AUTH_SIMPLE", True) and session.get("user"):
         role = _resolve_role(session.get("user"))
@@ -192,7 +194,7 @@ def login():
     return render_template("auth/login.html")
 
 
-@bp_auth.post("/logout")
+@bp.post("/logout")
 @login_required
 def logout():
     logout_user()
@@ -206,7 +208,7 @@ def _email_domain(addr: str) -> str:
     return (addr or "").split("@")[-1].lower()
 
 
-@bp_auth.get("/register", endpoint="register")
+@bp.get("/register", endpoint="register")
 def register_get():
     token = request.args.get("token")
     allow_signup = current_app.config.get("ALLOW_SELF_SIGNUP", False)
@@ -226,7 +228,7 @@ def register_get():
     return render_template("auth/register.html", invite=inv)
 
 
-@bp_auth.post("/register")
+@bp.post("/register")
 def register_post():
     mode = current_app.config.get("SIGNUP_MODE", "invite").lower()
     token = request.form.get("token") or request.args.get("token")
@@ -272,7 +274,7 @@ def register_post():
     flash("Cuenta creada. Queda pendiente de aprobación por un administrador.", "info")
     return redirect(url_for("auth.login"))
 
-@bp_auth.route("/change-password", methods=["GET", "POST"])
+@bp.route("/change-password", methods=["GET", "POST"])
 @flask_login_required
 def change_password():
     force_change = getattr(current_user, "force_change_password", False)
@@ -317,7 +319,7 @@ def change_password():
     return render_template(template)
 
 
-@bp_auth.get("/forgot-password")
+@bp.get("/forgot-password")
 def forgot_password():
     if current_user.is_authenticated:
         role = _resolve_role(current_user)
@@ -325,7 +327,7 @@ def forgot_password():
     return render_template("auth/forgot_password.html")
 
 
-@bp_auth.post("/forgot-password")
+@bp.post("/forgot-password")
 @limiter.limit("5/minute;30/hour")
 def forgot_password_post():
     if current_user.is_authenticated:
@@ -391,7 +393,7 @@ def forgot_password_post():
     )
 
 
-@bp_auth.get("/reset-password/<token>")
+@bp.get("/reset-password/<token>")
 def reset_password(token: str):
     if current_user.is_authenticated:
         role = _resolve_role(current_user)
@@ -403,7 +405,7 @@ def reset_password(token: str):
     return render_template("auth/reset_password.html", token=token)
 
 
-@bp_auth.post("/reset-password/<token>")
+@bp.post("/reset-password/<token>")
 def reset_password_post(token: str):
     if current_user.is_authenticated:
         role = _resolve_role(current_user)
