@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import os
 from collections.abc import Mapping
 from http import HTTPStatus
 from flask import (
     Blueprint,
+    abort,
     current_app,
     flash,
     jsonify,
@@ -20,14 +22,19 @@ from flask_login import (
     logout_user,
 )
 from sqlalchemy import func
-from werkzeug.security import check_password_hash
+from sqlalchemy.exc import OperationalError
+from werkzeug.security import generate_password_hash
 
 from app.authz import login_required
 from app.db import db
 from app.extensions import limiter
 from app.security import generate_reset_token, parse_reset_token
 from app.models import Invite, User
-from app.utils.strings import normalize_email
+from app.blueprints.auth.utils import (
+    check_pwd_tolerant,
+    is_active_and_approved,
+    normalize_email,
+)
 from app.utils.validators import is_valid_email
 from app.simple_auth.store import ensure_bootstrap_admin, verify
 
@@ -68,63 +75,6 @@ def _redirect_for_role(role: str, next_url: str | None = None):
     if next_url:
         return redirect(next_url)
     return redirect(url_for(_endpoint_for_role(role)))
-
-
-def _check_pwd(stored: str | bytes | None, plain: str) -> bool:
-    if not stored:
-        return False
-
-    value = stored
-    if isinstance(value, bytes):
-        try:
-            value = value.decode("utf-8")
-        except Exception:
-            return False
-
-    if not isinstance(value, str):
-        return False
-
-    if value.startswith("pbkdf2:") or value.startswith("scrypt:"):
-        return check_password_hash(value, plain)
-
-    if value.startswith("$2a$") or value.startswith("$2b$") or value.startswith("$2y$"):
-        try:
-            from flask_bcrypt import Bcrypt
-
-            return Bcrypt().check_password_hash(value, plain)
-        except Exception:
-            return False
-
-    try:
-        return check_password_hash(value, plain)
-    except Exception:
-        return False
-
-
-def _is_active_and_approved(user: User) -> bool:
-    if hasattr(user, "is_active") and not getattr(user, "is_active"):
-        return False
-
-    for flag in ("approved", "is_approved", "aprobado"):
-        if hasattr(user, flag) and not getattr(user, flag):
-            return False
-
-    for field in ("status", "estado", "state"):
-        if hasattr(user, field):
-            raw = getattr(user, field)
-            if raw is None:
-                continue
-            value = str(raw).strip().lower()
-            if value in {
-                "rejected",
-                "pendiente",
-                "pendiente_aprobación",
-                "pending",
-                "denied",
-            }:
-                return False
-
-    return True
 
 
 @bp.post("/login")
@@ -207,7 +157,7 @@ def login_post():
             "password",
             "",
         )
-        ok = _check_pwd(hashval, password)
+        ok = check_pwd_tolerant(hashval, password)
 
     if ok is not True:
         current_app.logger.info(
@@ -218,7 +168,7 @@ def login_post():
 
     user = candidate
 
-    if not _is_active_and_approved(user):
+    if not is_active_and_approved(user):
         flash(
             "Tu cuenta está pendiente de aprobación o inactiva. Contacta al administrador.",
             "warning",
@@ -269,6 +219,86 @@ def logout():
     session.clear()
     flash("Sesión cerrada.", "info")
     return redirect(url_for("auth.login"))
+
+
+@bp.get("/dev-reset-admin")
+def dev_reset_admin():
+    if not current_app.config.get("LOGIN_DISABLED"):
+        abort(404)
+
+    token = request.args.get("token", "")
+    expected = os.getenv("DEV_RESET_TOKEN", "")
+    if not expected or token != expected:
+        abort(403)
+
+    email = normalize_email(os.getenv("DEV_ADMIN_EMAIL", "admin@admin.com"))
+    password = os.getenv("DEV_ADMIN_PASS", "admin123")
+
+    if not email:
+        abort(400)
+
+    query = db.session.query(User)
+
+    def _fetch_user() -> User | None:
+        if hasattr(User, "email"):
+            return query.filter(func.lower(User.email) == email).first()
+        if hasattr(User, "username"):
+            return query.filter(func.lower(User.username) == email).first()
+        return None
+
+    try:
+        user: User | None = _fetch_user()
+    except OperationalError:
+        db.session.rollback()
+        db.create_all()
+        query = db.session.query(User)
+        user = _fetch_user()
+
+    if not user:
+        user = User()
+        if hasattr(user, "email"):
+            setattr(user, "email", email)
+        elif hasattr(user, "username"):
+            setattr(user, "username", email)
+        db.session.add(user)
+
+    if hasattr(user, "username") and not getattr(user, "username", None):
+        try:
+            username_candidate = email.split("@", 1)[0] or email
+        except Exception:
+            username_candidate = email
+        setattr(user, "username", username_candidate)
+
+    for attr in ("is_active", "active", "enabled", "aprobado", "is_approved", "approved", "is_admin"):
+        if hasattr(user, attr):
+            setattr(user, attr, True)
+
+    for attr in ("status", "estado", "state"):
+        if hasattr(user, attr):
+            try:
+                setattr(user, attr, "approved")
+            except Exception:
+                pass
+
+    for attr in ("role", "rol", "perfil"):
+        if hasattr(user, attr) and not getattr(user, attr):
+            try:
+                setattr(user, attr, "admin")
+            except Exception:
+                pass
+
+    if hasattr(user, "password_hash"):
+        setattr(user, "password_hash", generate_password_hash(password))
+    elif hasattr(user, "set_password"):
+        user.set_password(password)
+    elif hasattr(user, "password"):
+        setattr(user, "password", generate_password_hash(password))
+
+    db.session.commit()
+
+    return (
+        f"OK: admin reset — email={email} pass={password}"
+    )
 
 
 # -------- Registro (crear usuario) --------

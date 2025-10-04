@@ -67,6 +67,34 @@ FLASK_APP=app:create_app flask users:seed-admin --email admin@admin.com --passwo
 
 Asegúrate de establecer `SECRET_KEY` y usar `LOGIN_DISABLED=0` en producción.
 
+## Reset rápido de admin en DEV
+
+1. En Render (o el entorno que uses) define estas variables:
+
+   ```text
+   LOGIN_DISABLED=1
+   WTF_CSRF_ENABLED=0
+   SECRET_KEY=<cadena_larga_unica>
+   DEV_RESET_TOKEN=<algo_largo>
+   DEV_ADMIN_EMAIL=admin@admin.com
+   DEV_ADMIN_PASS=admin123
+   ```
+
+2. Despliega nuevamente la app y abre en el navegador:
+
+   ```text
+   https://TU-APP.onrender.com/auth/dev-reset-admin?token=<DEV_RESET_TOKEN>
+   ```
+
+   Verás el mensaje `OK: admin reset — email=admin@admin.com pass=admin123`.
+
+3. Si quieres forzar login, cambia `LOGIN_DISABLED=0` y vuelve a desplegar. El acceso será:
+
+   - Usuario: `admin@admin.com`
+   - Contraseña: `admin123`
+
+Puedes mantener `LOGIN_DISABLED=1` durante el desarrollo para entrar directo a `/dashboard?days=30` sin autenticación.
+
 ## Operación
 
 - **Gunicorn:** El Procfile y `render.yaml` inician el proyecto con `gunicorn -w 3 -t 60 wsgi:app`.
