@@ -10,7 +10,6 @@ from app.api.v1.todos import bp as todos_v1_bp
 from app.api.v1.users import bp as users_v1_bp
 from app.blueprints.admin import bp_admin
 from app.blueprints.api.v1 import bp_api_v1
-from app.blueprints.auth import bp_auth
 from app.blueprints.equipos import bp as equipos_bp
 from app.blueprints.operadores import bp as operadores_bp
 from app.blueprints.ping import bp_ping
@@ -26,7 +25,6 @@ def register_blueprints(app: Flask) -> dict[str, Blueprint]:
 
     entries: list[tuple[Blueprint, dict[str, object]]] = [
         (public_bp, {}),
-        (bp_auth, {}),
         (bp_web, {}),
         (equipos_bp, {}),
         (operadores_bp, {}),

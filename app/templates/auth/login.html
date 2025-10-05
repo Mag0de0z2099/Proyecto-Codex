@@ -1,0 +1,16 @@
+<!doctype html>
+<html>
+  <body>
+    <h1>Iniciar sesión</h1>
+    <form method="POST">
+      <label>Email</label><input name="email" type="email" required />
+      <label>Contraseña</label><input name="password" type="password" required />
+      <button type="submit">Entrar</button>
+    </form>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <ul>{% for cat, msg in messages %}<li>{{ msg }}</li>{% endfor %}</ul>
+      {% endif %}
+    {% endwith %}
+  </body>
+</html>
