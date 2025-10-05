@@ -97,6 +97,33 @@ class TestingConfig(Config):
         self.AUTH_SIMPLE = True
 
 
+class BaseConfig:
+    SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret")
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+
+class TestConfig(BaseConfig):
+    TESTING = True
+    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "sqlite:///test.db")
+
+
+class DevConfig(BaseConfig):
+    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "sqlite:///dev.db")
+
+
+class ProdConfig(BaseConfig):
+    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL")
+
+
+def get_config():
+    env = os.getenv("FLASK_ENV", "development").lower()
+    if env in ("test", "testing"):
+        return TestConfig
+    if env.startswith("prod"):
+        return ProdConfig
+    return DevConfig
+
+
 def load_config(env: str | None = None) -> Config:
     env_name = (env or os.getenv("APP_ENV") or os.getenv("FLASK_ENV") or "production").lower()
 
