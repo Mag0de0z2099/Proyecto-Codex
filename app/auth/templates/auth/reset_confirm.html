@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Restablecer contraseña{% endblock %}
+{% block content %}
+<section class="auth-wrap">
+  <h1>Restablecer contraseña</h1>
+  <p class="text-muted">Define una nueva contraseña segura para continuar.</p>
+  <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label class="form-label">
+      Nueva contraseña
+      <input class="form-control" type="password" name="password" required minlength="12" autocomplete="new-password">
+    </label>
+    <button type="submit">Guardar contraseña</button>
+    <p class="mt-4"><a href="{{ url_for('auth.login') }}">← Ir al inicio de sesión</a></p>
+  </form>
+</section>
+{% endblock %}

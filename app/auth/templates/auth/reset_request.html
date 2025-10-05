@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Recuperar contraseña{% endblock %}
+{% block content %}
+<section class="auth-wrap">
+  <h1>Recuperar contraseña</h1>
+  <p class="text-muted">Ingresa el correo asociado a tu cuenta y te enviaremos un enlace para restablecerla.</p>
+  <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label class="form-label">
+      Correo electrónico
+      <input class="form-control" type="email" name="email" required autofocus autocomplete="email">
+    </label>
+    <button type="submit">Enviar enlace</button>
+    <p class="mt-4"><a href="{{ url_for('auth.login') }}">← Volver al inicio de sesión</a></p>
+  </form>
+</section>
+{% endblock %}

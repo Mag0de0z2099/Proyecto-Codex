@@ -347,6 +347,18 @@ def create_app(config_name: str | None = None) -> Flask:
     except Exception:
         pass
 
+    from app.auth.reset import reset_bp
+
+    app.register_blueprint(reset_bp)
+
+    from app.auth.totp import totp_bp
+
+    app.register_blueprint(totp_bp)
+
+    from app.agent.routes import agent_bp
+
+    app.register_blueprint(agent_bp)
+
     env_name = (app.config.get("ENV") or "production").lower()
     if env_name not in {"prod", "production"}:
         try:

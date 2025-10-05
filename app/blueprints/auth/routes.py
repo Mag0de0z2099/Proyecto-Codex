@@ -29,6 +29,7 @@ from app.authz import login_required
 from app.db import db
 from app.extensions import limiter
 from app.security import generate_reset_token, parse_reset_token
+from app.security.policy import is_locked, register_fail, reset_fail_counter
 from app.models import Invite, User
 from app.blueprints.auth.utils import (
     check_pwd_tolerant,
@@ -144,6 +145,13 @@ def login_post():
         flash("Usuario/contraseña incorrectos", "error")
         return redirect(url_for("auth.login"))
 
+    if is_locked(candidate):
+        flash(
+            "Cuenta bloqueada temporalmente. Intenta más tarde.",
+            "warning",
+        )
+        return redirect(url_for("auth.login"))
+
     ok: bool | None = None
     if hasattr(candidate, "check_password"):
         try:
@@ -163,6 +171,10 @@ def login_post():
         current_app.logger.info(
             "Login fallido por contraseña para identificador '%s'", email_or_user
         )
+        try:
+            register_fail(candidate)
+        except Exception:
+            current_app.logger.exception("No se pudo registrar el intento fallido")
         flash("Usuario/contraseña incorrectos", "error")
         return redirect(url_for("auth.login"))
 
@@ -174,6 +186,19 @@ def login_post():
             "warning",
         )
         return redirect(url_for("auth.login"))
+
+    try:
+        reset_fail_counter(user)
+    except Exception:
+        current_app.logger.exception("No se pudo reiniciar el contador de fallos")
+
+    if getattr(user, "totp_secret", None):
+        session["2fa_uid"] = user.id
+        session["2fa_next"] = request.args.get("next")
+        session["2fa_remember"] = True
+        session["2fa_force_change"] = bool(getattr(user, "force_change_password", False))
+        flash("Ingresa tu código de verificación.", "info")
+        return redirect(url_for("totp.totp_verify"))
 
     login_user(user, remember=True)
     if getattr(user, "force_change_password", False):

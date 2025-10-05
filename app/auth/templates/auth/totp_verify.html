@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Verificar código MFA{% endblock %}
+{% block content %}
+<section class="auth-wrap">
+  <h1>Verificar código</h1>
+  <p class="text-muted">Introduce el código de 6 dígitos generado por tu aplicación de autenticación.</p>
+  <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label class="form-label">
+      Código TOTP
+      <input class="form-control" type="text" name="code" required autofocus inputmode="numeric" pattern="\d{6}" autocomplete="one-time-code">
+    </label>
+    <button type="submit">Verificar</button>
+  </form>
+  {% if uri %}
+    <div class="mt-4">
+      <p>Si necesitas volver a configurar tu app, usa este URI:</p>
+      <pre class="bg-light p-3" style="white-space: pre-wrap; word-break: break-all;">{{ uri }}</pre>
+    </div>
+  {% endif %}
+  <p class="mt-4"><a href="{{ url_for('auth.login') }}">← Cambiar de cuenta</a></p>
+</section>
+{% endblock %}

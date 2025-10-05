@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from flask_login import UserMixin
-from sqlalchemy import Boolean, DateTime, Index, String, event
+from sqlalchemy import Boolean, DateTime, Index, Integer, String, event
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import expression
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -49,6 +49,14 @@ class User(db.Model, UserMixin):
     title: Mapped[str | None] = mapped_column(String(80), nullable=True)
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     force_change_password: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    failed_logins: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0,
+        server_default="0",
+    )
+    lock_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=False), nullable=True)
+    totp_secret: Mapped[str | None] = mapped_column(String(64), nullable=True)
     is_active: Mapped[bool] = mapped_column(
         Boolean,
         default=True,
