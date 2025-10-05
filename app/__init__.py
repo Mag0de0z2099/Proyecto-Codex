@@ -10,13 +10,11 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from flask import Flask
 from flask_login import AnonymousUserMixin
 from pytz import timezone
-from .cli_sync import register_sync_cli
-from .config import load_config
+from .config import get_config, load_config
 from .errors import register_error_handlers
-from .extensions import csrf, db, init_auth_extensions, limiter
+from .extensions import csrf, db as extensions_db, init_auth_extensions, limiter
 from .metrics import cleanup_multiprocess_directory
 from .utils.scan_lock import get_scan_lock
-from .cli import register_cli
 from .migrate_ext import init_migrations
 from .security_headers import set_security_headers
 from .storage import ensure_dirs
@@ -69,6 +67,7 @@ def create_app(config_name: str | None = None) -> Flask:
     app = Flask(__name__)
     raw_uri = os.environ.get("DATABASE_URL", "")
 
+    app.config.from_object(get_config())
     app.config.from_object(load_config(config_name))
     app.config.setdefault("LOG_LEVEL", "INFO")
 
@@ -239,15 +238,15 @@ def create_app(config_name: str | None = None) -> Flask:
         cleanup_multiprocess_directory()
 
     # DB y extensiones compartidas
-    db.init_app(app)
-    init_migrations(app, db)
+    extensions_db.init_app(app)
+    init_migrations(app, extensions_db)
     init_auth_extensions(app)
 
     # Crear tablas nuevas automáticamente en DEV (sin molestar a Alembic)
     try:
         if app.config.get("SECURITY_DISABLED"):
             with app.app_context():
-                db.create_all()
+                extensions_db.create_all()
     except Exception:
         pass
 
@@ -345,8 +344,9 @@ def create_app(config_name: str | None = None) -> Flask:
     if ping_bp is not None:
         limiter.exempt(ping_bp)
 
-    register_cli(app)
-    register_sync_cli(app)
+    from .commands import register_commands
+
+    register_commands(app)
 
     if os.getenv("SCHEDULER_ENABLED", "0") == "1":
         from app.services.scanner import scan_all_folders
@@ -398,3 +398,14 @@ def create_app(config_name: str | None = None) -> Flask:
         )
 
     return app
+
+
+def __getattr__(name: str):
+    if name == "db":
+        return extensions_db
+    raise AttributeError(name)
+
+
+import sys as _sys
+
+_sys.modules[__name__].db = extensions_db
