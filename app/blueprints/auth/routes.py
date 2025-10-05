@@ -29,6 +29,7 @@ from app.authz import login_required
 from app.db import db
 from app.extensions import limiter
 from app.security import generate_reset_token, parse_reset_token
+from app.security.policy import is_locked, register_fail, reset_fail_counter
 from app.models import Invite, User
 from app.blueprints.auth.utils import (
     check_pwd_tolerant,
@@ -85,6 +86,7 @@ def login_post():
     identifier_source = email_input if email_input not in (None, "") else username_input
     identifier = (identifier_source or "").strip()
     password = (request.form.get("password") or request.form.get("pass") or "").strip()
+    next_url = request.args.get("next")
 
     if not identifier or not password:
         flash("Faltan credenciales", "error")
@@ -144,6 +146,12 @@ def login_post():
         flash("Usuario/contraseña incorrectos", "error")
         return redirect(url_for("auth.login"))
 
+    user = candidate
+
+    if is_locked(user):
+        flash("Cuenta bloqueada temporalmente. Intenta más tarde", "warning")
+        return redirect(url_for("auth.login"))
+
     ok: bool | None = None
     if hasattr(candidate, "check_password"):
         try:
@@ -160,13 +168,12 @@ def login_post():
         ok = check_pwd_tolerant(hashval, password)
 
     if ok is not True:
+        register_fail(user)
         current_app.logger.info(
             "Login fallido por contraseña para identificador '%s'", email_or_user
         )
         flash("Usuario/contraseña incorrectos", "error")
         return redirect(url_for("auth.login"))
-
-    user = candidate
 
     if not is_active_and_approved(user):
         flash(
@@ -174,6 +181,16 @@ def login_post():
             "warning",
         )
         return redirect(url_for("auth.login"))
+
+    reset_fail_counter(user)
+
+    if getattr(user, "totp_secret", None):
+        session["2fa_uid"] = user.id
+        if next_url:
+            session["2fa_next"] = next_url
+        session["2fa_remember"] = True
+        flash("Ingresa tu código de verificación", "info")
+        return redirect(url_for("totp.totp_verify"))
 
     login_user(user, remember=True)
     if getattr(user, "force_change_password", False):

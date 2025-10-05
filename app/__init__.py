@@ -312,6 +312,14 @@ def create_app(config_name: str | None = None) -> Flask:
 
         app.register_blueprint(auth_bp)
 
+    from app.auth.reset import reset_bp
+
+    app.register_blueprint(reset_bp)
+
+    from app.auth.totp import totp_bp
+
+    app.register_blueprint(totp_bp)
+
     # Registro de blueprints existentes
     try:
         from .routes.health import bp as health_bp
@@ -339,6 +347,10 @@ def create_app(config_name: str | None = None) -> Flask:
     from app.blueprints.dashboard.routes import bp as dashboard_bp
 
     app.register_blueprint(dashboard_bp)
+
+    from app.agent.routes import agent_bp
+
+    app.register_blueprint(agent_bp)
 
     try:
         from app.blueprints.archivos.routes import bp as archivos_bp

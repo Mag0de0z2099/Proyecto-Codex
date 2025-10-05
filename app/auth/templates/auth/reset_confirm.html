@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Nueva contraseña{% endblock %}
+{% block content %}
+<section class="auth-wrap">
+  <h1>Define una nueva contraseña</h1>
+  <p class="text-muted">La contraseña debe tener al menos {{ password_min }} caracteres.</p>
+  <form method="post" action="">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label class="form-label">
+      Nueva contraseña
+      <input class="form-control" type="password" name="password" required autofocus autocomplete="new-password" minlength="{{ password_min }}">
+    </label>
+    <button type="submit">Actualizar contraseña</button>
+  </form>
+  <p class="mt-4"><a href="{{ url_for('auth.login') }}">Volver al inicio de sesión</a></p>
+</section>
+{% endblock %}

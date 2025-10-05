@@ -10,6 +10,7 @@ from flask_login import current_user
 
 from .jwt import encode_jwt, decode_jwt  # noqa: F401
 from .guards import requires_auth, requires_role  # noqa: F401
+from .policy import is_locked, register_fail, reset_fail_counter  # noqa: F401
 
 __all__ = [
     "encode_jwt",
@@ -19,6 +20,9 @@ __all__ = [
     "require_login",
     "generate_reset_token",
     "parse_reset_token",
+    "is_locked",
+    "register_fail",
+    "reset_fail_counter",
 ]
 
 
