@@ -12,7 +12,13 @@ from flask_login import AnonymousUserMixin
 from pytz import timezone
 from .config import get_config, load_config
 from .errors import register_error_handlers
-from .extensions import csrf, db as extensions_db, init_auth_extensions, limiter
+from .extensions import (
+    csrf,
+    db as extensions_db,
+    init_auth_extensions,
+    limiter,
+    login_manager,
+)
 from .metrics import cleanup_multiprocess_directory
 from .utils.scan_lock import get_scan_lock
 from .migrate_ext import init_migrations
@@ -20,6 +26,16 @@ from .security_headers import set_security_headers
 from .storage import ensure_dirs
 from .registry import register_blueprints
 from .telemetry import setup_logging
+
+
+@login_manager.user_loader
+def load_user(user_id: str):
+    from app.models.user import User
+
+    try:
+        return extensions_db.session.get(User, int(user_id))
+    except Exception:
+        return None
 
 
 def _normalize_db_url(raw: str | None) -> str:
@@ -330,6 +346,16 @@ def create_app(config_name: str | None = None) -> Flask:
         app.register_blueprint(archivos_bp)
     except Exception:
         pass
+
+    env_name = (app.config.get("ENV") or "production").lower()
+    if env_name not in {"prod", "production"}:
+        try:
+            from app.auth.dev import dev_bp
+        except Exception:
+            dev_bp = None
+        else:
+            if dev_bp and dev_bp.name not in app.blueprints:
+                app.register_blueprint(dev_bp)
 
     # Exentamos la API pública JSON del CSRF global
     api_v1_bp = blueprints.get("api_v1")

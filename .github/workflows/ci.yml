@@ -1,8 +1,8 @@
 name: CI (basic)
 
 on:
-  pull_request:
   push:
+  pull_request:
 
 jobs:
   test:
