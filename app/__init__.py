@@ -255,6 +255,15 @@ def create_app(config_name: str | None = None) -> Flask:
 
     register_error_handlers(app)
 
+    # CLI y blueprints personalizados
+    from .commands import register_commands
+
+    register_commands(app)
+
+    from app.auth.routes import auth_bp
+
+    app.register_blueprint(auth_bp, url_prefix="/auth")
+
     # Variables globales seguras para Jinja (evita usar `current_app` en plantillas)
     @app.context_processor
     def inject_globals():
@@ -291,11 +300,6 @@ def create_app(config_name: str | None = None) -> Flask:
     from . import models  # noqa: F401
 
     blueprints = register_blueprints(app)
-
-    if "auth" not in app.blueprints:
-        from app.blueprints.auth.routes import bp as auth_bp
-
-        app.register_blueprint(auth_bp)
 
     # Registro de blueprints existentes
     try:

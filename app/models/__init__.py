@@ -154,7 +154,13 @@ class User(db.Model, UserMixin):
     )
 
     def set_password(self, password: str) -> None:
-        self.password_hash = generate_password_hash(password or "")
+        """Genera un hash PBKDF2 estable para la contraseña del usuario."""
+
+        self.password_hash = generate_password_hash(
+            password or "",
+            method="pbkdf2:sha256",
+            salt_length=16,
+        )
 
     def check_password(self, password: str) -> bool:
         stored = self.password_hash or ""
