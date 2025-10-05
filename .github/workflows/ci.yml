@@ -4,14 +4,13 @@ on:
   pull_request:
   push:
 
-env:
-  FLASK_ENV: testing
-  SECRET_KEY: dummy
-  DATABASE_URL: sqlite:///test.db
-
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      FLASK_ENV: testing
+      SECRET_KEY: dummy
+      DATABASE_URL: sqlite:///test.db
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
