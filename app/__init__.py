@@ -307,55 +307,46 @@ def create_app(config_name: str | None = None) -> Flask:
 
     blueprints = register_blueprints(app)
 
-    if "auth" not in app.blueprints:
-        from app.blueprints.auth.routes import bp as auth_bp
+    from app.auth.routes import auth_bp
 
+    if auth_bp.name not in app.blueprints:
         app.register_blueprint(auth_bp)
 
     from app.auth.reset import reset_bp
 
-    app.register_blueprint(reset_bp)
+    if reset_bp.name not in app.blueprints:
+        app.register_blueprint(reset_bp)
 
     from app.auth.totp import totp_bp
 
-    app.register_blueprint(totp_bp)
-
-    # Registro de blueprints existentes
-    try:
-        from .routes.health import bp as health_bp
-
-        app.register_blueprint(health_bp)
-    except Exception:
-        # Evita romper si el import difiere durante refactors
-        pass
-
-    try:
-        from .routes.auth import bp as auth_bp
-
-        app.register_blueprint(auth_bp)
-    except Exception:
-        pass
+    if totp_bp.name not in app.blueprints:
+        app.register_blueprint(totp_bp)
 
     from app.blueprints.checklists.routes import bp as checklists_bp
 
-    app.register_blueprint(checklists_bp)
+    if checklists_bp.name not in app.blueprints:
+        app.register_blueprint(checklists_bp)
 
     from app.blueprints.partes.routes import bp as partes_bp
 
-    app.register_blueprint(partes_bp)
+    if partes_bp.name not in app.blueprints:
+        app.register_blueprint(partes_bp)
 
     from app.blueprints.dashboard.routes import bp as dashboard_bp
 
-    app.register_blueprint(dashboard_bp)
+    if dashboard_bp.name not in app.blueprints:
+        app.register_blueprint(dashboard_bp)
 
     from app.agent.routes import agent_bp
 
-    app.register_blueprint(agent_bp)
+    if agent_bp.name not in app.blueprints:
+        app.register_blueprint(agent_bp)
 
     try:
         from app.blueprints.archivos.routes import bp as archivos_bp
 
-        app.register_blueprint(archivos_bp)
+        if archivos_bp.name not in app.blueprints:
+            app.register_blueprint(archivos_bp)
     except Exception:
         pass
 

@@ -67,7 +67,7 @@ def totp_verify():
             next_url = session.pop("2fa_next", None)
             session.pop("2fa_uid", None)
             login_user(user, remember=remember)
-            from app.blueprints.auth.routes import _redirect_for_role  # lazy import
+            from app.auth.routes import _redirect_for_role  # lazy import
 
             role = _resolve_role_for_user(user)
             if getattr(user, "force_change_password", False):
@@ -81,7 +81,7 @@ def totp_verify():
 
 
 def _resolve_role_for_user(user: User) -> str:
-    from app.blueprints.auth.routes import _resolve_role
+    from app.auth.routes import _resolve_role
 
     return _resolve_role(user)
 

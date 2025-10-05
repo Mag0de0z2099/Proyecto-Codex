@@ -6,7 +6,7 @@ from alembic import op
 import sqlalchemy as sa
 
 
-revision = "20251015_security_layer"
+revision = "a20251015_security_layer"
 down_revision = "20251014_alembic_version_64"
 branch_labels = None
 depends_on = None
