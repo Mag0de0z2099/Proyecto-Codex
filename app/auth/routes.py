@@ -151,7 +151,7 @@ def login():
             return redirect(url_for("auth.login"))
 
         if not user.check_password(password):
-            register_fail(user)
+            register_fail(user, db)
             flash("Usuario/contraseña incorrectos", "danger")
             return redirect(url_for("auth.login"))
 
@@ -162,7 +162,7 @@ def login():
             )
             return redirect(url_for("auth.login"))
 
-        reset_fail_counter(user)
+        reset_fail_counter(user, db)
 
         if getattr(user, "totp_secret", None):
             session["2fa_uid"] = user.id
