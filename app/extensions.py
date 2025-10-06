@@ -3,15 +3,13 @@
 from __future__ import annotations
 
 from flask_bcrypt import Bcrypt
-from flask_login import LoginManager
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import CSRFProtect
 
 bcrypt = Bcrypt()
-login_manager = LoginManager()
-login_manager.login_view = "auth.login"
+login_manager = None
 csrf = CSRFProtect()
 
 # Base de datos
