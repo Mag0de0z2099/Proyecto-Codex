@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from flask import Blueprint
 
-from app.security import require_login
+from app.security import register_login_guard
 
 bp = Blueprint("equipos_bp", __name__, url_prefix="/equipos")
 
-require_login(bp, exclude=("index",))
+register_login_guard(bp, exclude=("index",))
 
 from . import routes  # noqa: E402,F401

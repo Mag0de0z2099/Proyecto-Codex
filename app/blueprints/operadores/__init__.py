@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from flask import Blueprint
 
-from app.security import require_login
+from app.security import register_login_guard
 
 bp = Blueprint(
     "operadores_bp",
@@ -11,6 +11,6 @@ bp = Blueprint(
     template_folder="../../templates/operadores",
 )
 
-require_login(bp, exclude=("index",))
+register_login_guard(bp, exclude=("index",))
 
 from . import routes  # noqa: E402,F401

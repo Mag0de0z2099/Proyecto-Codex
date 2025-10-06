@@ -87,6 +87,17 @@ def create_app(config_name: str | None = None) -> Flask:
     app.config.from_object(load_config(config_name))
     app.config.setdefault("LOG_LEVEL", "INFO")
 
+    auth_disabled_env = os.getenv("AUTH_DISABLED")
+    if auth_disabled_env is not None:
+        app.config["AUTH_DISABLED"] = auth_disabled_env.strip().lower() in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        }
+    else:
+        app.config.setdefault("AUTH_DISABLED", False)
+
     from app.blueprints.archivos.helpers import (
         count_evidencias,
         evidencias_summary,
@@ -105,6 +116,8 @@ def create_app(config_name: str | None = None) -> Flask:
             "yes",
             "on",
         }
+    elif app.config.get("AUTH_DISABLED"):
+        app.config["LOGIN_DISABLED"] = True
     elif app.config.get("TESTING"):
         app.config.setdefault("LOGIN_DISABLED", True)
     else:
@@ -112,10 +125,14 @@ def create_app(config_name: str | None = None) -> Flask:
         if env_name in {"dev", "development"}:
             app.config.setdefault("LOGIN_DISABLED", True)
 
+    if app.config.get("AUTH_DISABLED") and not app.config.get("LOGIN_DISABLED"):
+        app.config["LOGIN_DISABLED"] = True
+
     # ===== DEV MODE (apagado de seguridad por bandera) =====
     if os.getenv("DISABLE_SECURITY") == "1":
         app.config["SECURITY_DISABLED"] = True
         app.config["LOGIN_DISABLED"] = True        # @login_required no-op
+        app.config["AUTH_DISABLED"] = True
         app.config["WTF_CSRF_ENABLED"] = False     # sin CSRF
         app.config["RATELIMIT_ENABLED"] = False    # sin rate limit
         app.config["JWT_COOKIE_CSRF_PROTECT"] = False
@@ -189,7 +206,11 @@ def create_app(config_name: str | None = None) -> Flask:
             if request.path.startswith("/auth/"):
                 setattr(request, "csrf_processing_exempt", True)
 
-    app.jinja_env.globals["DEV_MODE"] = bool(app.config.get("LOGIN_DISABLED"))
+    app.jinja_env.globals["DEV_MODE"] = bool(
+        app.config.get("AUTH_DISABLED")
+        or app.config.get("SECURITY_DISABLED")
+        or app.config.get("LOGIN_DISABLED")
+    )
 
     try:
         from app.extensions import limiter
@@ -289,15 +310,19 @@ def create_app(config_name: str | None = None) -> Flask:
         return {
             "has_web_index": has_web_index,
             "has_web_upload": has_web_upload,
-            "config": app.config,
             "pending_users_count": pending_count,
         }
+
+    @app.context_processor
+    def inject_config():
+        return {"config": app.config}
 
     @app.context_processor
     def inject_dev_mode_flag():
         return {
             "DEV_MODE": bool(
-                app.config.get("SECURITY_DISABLED")
+                app.config.get("AUTH_DISABLED")
+                or app.config.get("SECURITY_DISABLED")
                 or app.config.get("LOGIN_DISABLED")
             )
         }

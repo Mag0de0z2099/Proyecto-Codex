@@ -13,14 +13,14 @@
   <a class="card" href="{{ url_for('operadores_bp.index', vencidas=1) }}">Licencias vencidas <b>{{ counts.get('lic_vencidas') }}</b></a>
 </div>
 
-<form method="get" action="{{ url_for('dashboard_bp.index') }}" class="section">
+<form method="get" action="{{ url_for('dashboard.index') }}" class="section">
   <label class="muted">Rango:</label>
   <select name="days" onchange="this.form.submit()">
     {% for d in [7,14,30,60,90] %}
       <option value="{{ d }}" {% if days==d %}selected{% endif %}>{{ d }} días</option>
     {% endfor %}
   </select>
-  <a class="card" style="display:inline-block;padding:6px 10px" href="{{ url_for('dashboard_bp.export_kpis') }}">CSV KPIs</a>
+  <a class="card" style="display:inline-block;padding:6px 10px" href="{{ url_for('dashboard.export_kpis') }}">CSV KPIs</a>
 </form>
 
 <div class="grid">
