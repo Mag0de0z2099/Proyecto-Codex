@@ -31,13 +31,8 @@ from app.extensions import limiter
 from app.security import generate_reset_token, parse_reset_token
 from app.security.policy import is_locked, register_fail, reset_fail_counter
 from app.models import Invite, User
-from app.blueprints.auth.utils import (
-    check_pwd_tolerant,
-    is_active_and_approved,
-    normalize_email,
-)
+from app.blueprints.auth.utils import is_active_and_approved, normalize_email
 from app.utils.validators import is_valid_email
-from app.simple_auth.store import ensure_bootstrap_admin, verify
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth", template_folder="templates")
 # Compatibilidad retro
@@ -81,163 +76,114 @@ def _redirect_for_role(role: str, next_url: str | None = None):
     return redirect(url_for(_endpoint_for_role(role)))
 
 
-@auth_bp.post("/login")
-def login_post():
-    email_input = request.form.get("email")
-    username_input = request.form.get("username")
-
-    identifier_source = email_input if email_input not in (None, "") else username_input
-    identifier = (identifier_source or "").strip()
-    password = (request.form.get("password") or request.form.get("pass") or "").strip()
-    next_url = request.args.get("next")
-
-    if not identifier or not password:
-        flash("Faltan credenciales", "error")
-        return redirect(url_for("auth.login"))
-
-    email_from_field = (email_input or "").strip().casefold() or None
-    email = email_from_field or (normalize_email(identifier) or None)
-    if email:
-        email = email.casefold()
-
-    username = (username_input or "").strip()
-    email_or_user = identifier.casefold()
-
-    if current_app.config.get("AUTH_SIMPLE", True):
-        ensure_bootstrap_admin(current_app)
-        username_lookup = username or identifier
-        user = verify(current_app, username_lookup or email_or_user, password)
-        if not user and email and email != (username_lookup or "").casefold():
-            user = verify(current_app, email, password)
-        if user:
-            role = _resolve_role(user)
-            session["user"] = {**user, "role": role}
-            return _redirect_for_role(role, request.args.get("next"))
-        flash("Usuario o contraseña inválidos.", "danger")
-        return redirect(url_for("auth.login"))
-
-    candidate: User | None = None
-    query = db.session.query(User)
-
-    search_terms: list[str] = []
-    seen_terms: set[str] = set()
-
-    def _add_term(term: str | None) -> None:
-        if not term:
-            return
-        normalized = term.casefold()
-        if normalized not in seen_terms:
-            seen_terms.add(normalized)
-            search_terms.append(normalized)
-
-    _add_term(email_or_user)
-    _add_term(email)
-    _add_term(username)
-
-    for term in search_terms:
-        if hasattr(User, "email"):
-            candidate = query.filter(func.lower(User.email) == term).first()
-            if candidate:
-                break
-        if hasattr(User, "username"):
-            candidate = query.filter(func.lower(User.username) == term).first()
-            if candidate:
-                break
-
-    if not candidate:
-        current_app.logger.info("Login fallido para identificador '%s'", email_or_user)
-        flash("Usuario/contraseña incorrectos", "error")
-        return redirect(url_for("auth.login"))
-
-    user = candidate
-
-    if is_locked(user):
-        flash("Cuenta bloqueada temporalmente. Intenta más tarde", "warning")
-        return redirect(url_for("auth.login"))
-
-    ok: bool | None = None
-    if hasattr(candidate, "check_password"):
-        try:
-            ok = bool(candidate.check_password(password))
-        except Exception:
-            ok = None
-
-    if ok is not True:
-        hashval = getattr(candidate, "password_hash", None) or getattr(
-            candidate,
-            "password",
-            "",
-        )
-        ok = check_pwd_tolerant(hashval, password)
-
-    if ok is not True:
-        register_fail(user)
-        current_app.logger.info(
-            "Login fallido por contraseña para identificador '%s'", email_or_user
-        )
-        flash("Usuario/contraseña incorrectos", "error")
-        return redirect(url_for("auth.login"))
-
-    if not is_active_and_approved(user):
-        flash(
-            "Tu cuenta está pendiente de aprobación o inactiva. Contacta al administrador.",
-            "warning",
-        )
-        return redirect(url_for("auth.login"))
-
-    reset_fail_counter(user)
-
-    if getattr(user, "totp_secret", None):
-        session["2fa_uid"] = user.id
-        if next_url:
-            session["2fa_next"] = next_url
-        session["2fa_remember"] = True
-        flash("Ingresa tu código de verificación", "info")
-        return redirect(url_for("totp.totp_verify"))
-
-    login_user(user, remember=True)
-    if getattr(user, "force_change_password", False):
-        flash("Debes actualizar tu contraseña antes de continuar.", "info")
-        return redirect(url_for("auth.change_password"))
-
-    flash("Bienvenido 👋", "success")
-    role = _resolve_role(user)
-    return _redirect_for_role(role, request.args.get("next"))
 
 
-@auth_bp.before_app_request
-def _enforce_force_change_password():
-    if (
-        current_app.config.get("AUTH_DISABLED")
-        or current_app.config.get("SECURITY_DISABLED")
-        or current_app.config.get("LOGIN_DISABLED")
-    ):
-        return None
-    allowed = {"auth.logout", "auth.change_password", "static"}
-    if (
-        current_user.is_authenticated
-        and getattr(current_user, "force_change_password", False)
-    ):
-        endpoint = request.endpoint or ""
-        if endpoint not in allowed:
-            return redirect(url_for("auth.change_password"))
-
-
-@auth_bp.get("/login")
+@auth_bp.route("/login", methods=["GET", "POST"])
 def login():
     if current_app.config.get("AUTH_DISABLED", False):
         target = "dashboard.index"
         if target not in current_app.view_functions:
             target = "dashboard_bp.index"
         return redirect(url_for(target))
-    if current_app.config.get("AUTH_SIMPLE", True) and session.get("user"):
-        role = _resolve_role(session.get("user"))
-        return redirect(url_for(_endpoint_for_role(role)))
+
     if current_user.is_authenticated:
         role = _resolve_role(current_user)
         return redirect(url_for(_endpoint_for_role(role)))
-    return render_template("auth/login.html")
 
+    if request.method == "POST":
+        email_input = request.form.get("email")
+        username_input = request.form.get("username")
+        identifier_source = (
+            email_input if email_input not in (None, "") else username_input
+        )
+        identifier = (identifier_source or "").strip()
+        password = (request.form.get("password") or request.form.get("pass") or "").strip()
+        next_url = request.args.get("next")
+
+        if not identifier or not password:
+            flash("Usuario/contraseña incorrectos", "danger")
+            return redirect(url_for("auth.login"))
+
+        email_from_field = (email_input or "").strip().casefold() or None
+        email = email_from_field or (normalize_email(identifier) or None)
+        if email:
+            email = email.casefold()
+
+        username = (username_input or "").strip()
+        email_or_user = identifier.casefold()
+
+        candidate: User | None = None
+        query = db.session.query(User)
+
+        search_terms: list[str] = []
+        seen_terms: set[str] = set()
+
+        def _add_term(term: str | None) -> None:
+            if not term:
+                return
+            normalized = term.casefold()
+            if normalized not in seen_terms:
+                seen_terms.add(normalized)
+                search_terms.append(normalized)
+
+        _add_term(email_or_user)
+        _add_term(email)
+        _add_term(username)
+
+        for term in search_terms:
+            if hasattr(User, "email"):
+                candidate = query.filter(func.lower(User.email) == term).first()
+                if candidate:
+                    break
+            if hasattr(User, "username"):
+                candidate = query.filter(func.lower(User.username) == term).first()
+                if candidate:
+                    break
+
+        if not candidate:
+            flash("Usuario/contraseña incorrectos", "danger")
+            return redirect(url_for("auth.login"))
+
+        user = candidate
+
+        if is_locked(user):
+            flash("Cuenta bloqueada temporalmente. Intenta más tarde", "warning")
+            return redirect(url_for("auth.login"))
+
+        if not user.check_password(password):
+            register_fail(user)
+            flash("Usuario/contraseña incorrectos", "danger")
+            return redirect(url_for("auth.login"))
+
+        if not is_active_and_approved(user):
+            flash(
+                "Tu cuenta está pendiente de aprobación o inactiva. Contacta al administrador.",
+                "warning",
+            )
+            return redirect(url_for("auth.login"))
+
+        reset_fail_counter(user)
+
+        if getattr(user, "totp_secret", None):
+            session["2fa_uid"] = user.id
+            if next_url:
+                session["2fa_next"] = next_url
+            else:
+                session.pop("2fa_next", None)
+            session["2fa_remember"] = True
+            flash("Ingresa tu código de verificación", "info")
+            return redirect(url_for("totp.totp_verify"))
+
+        login_user(user, remember=True)
+        if getattr(user, "force_change_password", False):
+            flash("Debes actualizar tu contraseña antes de continuar.", "info")
+            return redirect(url_for("auth.change_password"))
+
+        if next_url:
+            return redirect(next_url)
+        return redirect(url_for(_endpoint_for_role(_resolve_role(user))))
+
+    return render_template("auth/login.html")
 
 @auth_bp.post("/logout")
 @login_required
