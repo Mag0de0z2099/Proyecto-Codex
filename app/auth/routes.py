@@ -205,8 +205,10 @@ def login_post():
 
 @auth_bp.before_app_request
 def _enforce_force_change_password():
-    if current_app.config.get("SECURITY_DISABLED") or current_app.config.get(
-        "LOGIN_DISABLED"
+    if (
+        current_app.config.get("AUTH_DISABLED")
+        or current_app.config.get("SECURITY_DISABLED")
+        or current_app.config.get("LOGIN_DISABLED")
     ):
         return None
     allowed = {"auth.logout", "auth.change_password", "static"}
@@ -221,6 +223,11 @@ def _enforce_force_change_password():
 
 @auth_bp.get("/login")
 def login():
+    if current_app.config.get("AUTH_DISABLED", False):
+        target = "dashboard.index"
+        if target not in current_app.view_functions:
+            target = "dashboard_bp.index"
+        return redirect(url_for(target))
     if current_app.config.get("AUTH_SIMPLE", True) and session.get("user"):
         role = _resolve_role(session.get("user"))
         return redirect(url_for(_endpoint_for_role(role)))

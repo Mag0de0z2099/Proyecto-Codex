@@ -23,9 +23,9 @@ def dev_login():
 
     login_user(user, remember=True)
 
-    target = "dashboard_bp.index"
+    target = "dashboard.index"
     if target not in current_app.view_functions:
-        target = "dashboard.index"
+        target = "dashboard_bp.index"
     return redirect(url_for(target))
 
 
