@@ -18,7 +18,12 @@ csrf = CSRFProtect()
 db = SQLAlchemy()
 
 # Rate limiting (lazy init, se inicializa en create_app)
-limiter = Limiter(key_func=get_remote_address, headers_enabled=True, default_limits=[])
+limiter = Limiter(
+    key_func=get_remote_address,
+    headers_enabled=True,
+    default_limits=["200 per minute"],
+    storage_uri="memory://",
+)
 
 
 def init_auth_extensions(app):

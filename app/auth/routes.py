@@ -28,6 +28,7 @@ from werkzeug.security import generate_password_hash
 from app.authz import login_required
 from app.db import db
 from app.extensions import limiter
+from app.security.audit import log_event
 from app.security import generate_reset_token, parse_reset_token
 from app.security.policy import is_locked, register_fail, reset_fail_counter
 from app.models import Invite, User
@@ -78,6 +79,8 @@ def _redirect_for_role(role: str, next_url: str | None = None):
 
 
 
+# ⬇️ Rate limit: 10 intentos/min por IP en login POST
+@limiter.limit("10 per minute", methods=["POST"])
 @auth_bp.route("/login", methods=["GET", "POST"])
 def login():
     if current_app.config.get("AUTH_DISABLED", False):
@@ -101,6 +104,7 @@ def login():
         next_url = request.args.get("next")
 
         if not identifier or not password:
+            log_event("login_fail", user_id=None)
             flash("Usuario/contraseña incorrectos", "danger")
             return redirect(url_for("auth.login"))
 
@@ -141,17 +145,20 @@ def login():
                     break
 
         if not candidate:
+            log_event("login_fail", user_id=None)
             flash("Usuario/contraseña incorrectos", "danger")
             return redirect(url_for("auth.login"))
 
         user = candidate
 
         if is_locked(user):
+            log_event("login_lockout", user_id=user.id)
             flash("Cuenta bloqueada temporalmente. Intenta más tarde", "warning")
             return redirect(url_for("auth.login"))
 
         if not user.check_password(password):
             register_fail(user, db)
+            log_event("login_fail", user_id=user.id)
             flash("Usuario/contraseña incorrectos", "danger")
             return redirect(url_for("auth.login"))
 
@@ -164,16 +171,28 @@ def login():
 
         reset_fail_counter(user, db)
 
-        if getattr(user, "totp_secret", None):
+        requires_mfa = user.role in {"admin", "supervisor"} or bool(
+            getattr(user, "totp_secret", None)
+        )
+        if requires_mfa:
             session["2fa_uid"] = user.id
             if next_url:
                 session["2fa_next"] = next_url
             else:
                 session.pop("2fa_next", None)
             session["2fa_remember"] = True
+            if user.role in {"admin", "supervisor"} and not getattr(
+                user, "totp_secret", None
+            ):
+                flash("Configura MFA para continuar", "info")
+                return redirect(url_for("totp.totp_setup"))
             flash("Ingresa tu código de verificación", "info")
             return redirect(url_for("totp.totp_verify"))
 
+        session.pop("2fa_uid", None)
+        session.pop("2fa_next", None)
+        session.pop("2fa_remember", None)
+        log_event("login_success", user_id=user.id)
         login_user(user, remember=True)
         if getattr(user, "force_change_password", False):
             flash("Debes actualizar tu contraseña antes de continuar.", "info")
@@ -188,6 +207,8 @@ def login():
 @auth_bp.post("/logout")
 @login_required
 def logout():
+    if current_user.is_authenticated:
+        log_event("logout", user_id=current_user.id)
     logout_user()
     session.clear()
     flash("Sesión cerrada.", "info")
