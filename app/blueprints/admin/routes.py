@@ -3,7 +3,6 @@ from __future__ import annotations
 import os
 import secrets
 from datetime import date, datetime, timedelta, timezone
-from functools import wraps
 from pathlib import Path
 
 from flask import (
@@ -14,12 +13,9 @@ from flask import (
     redirect,
     render_template,
     request,
-    session,
     url_for,
 )
-from flask_login import login_required, current_user
-
-flask_login_required = login_required
+from flask_login import current_user
 
 from sqlalchemy.exc import IntegrityError
 
@@ -29,6 +25,7 @@ from app.auth.roles import ROLES, admin_required, role_required
 from app.utils.rbac import require_roles, require_approved
 from app.utils.validators import is_valid_email
 from app.security import generate_reset_token
+from app.security.authz import require_login
 from app.services.user_service import list_users as service_list_users
 
 bp_admin = Blueprint("admin", __name__, template_folder="templates", url_prefix="/admin")
@@ -48,24 +45,8 @@ def _admin_template_helpers():
         return endpoint in current_app.view_functions
 
     return {"admin_url": admin_url, "has_admin_endpoint": has_admin_endpoint}
-
-
-def login_required(view):
-    decorated = flask_login_required(view)
-
-    @wraps(view)
-    def wrapped(*args, **kwargs):
-        if current_app.config.get("AUTH_SIMPLE", True):
-            if session.get("user"):
-                return view(*args, **kwargs)
-            return redirect(url_for("auth.login", next=request.path))
-        return decorated(*args, **kwargs)
-
-    return wrapped
-
-
 @bp_admin.get("/")
-@login_required
+@require_login
 def index():
     projects = Project.query.all()
     total_projects = len(projects)
@@ -94,7 +75,7 @@ bp_admin.add_url_rule("/", view_func=index, endpoint="dashboard")
 
 
 @bp_admin.get("/kpi/<int:project_id>.json")
-@login_required
+@require_login
 @admin_required
 def kpi_json(project_id: int):
     rows = (
@@ -110,7 +91,7 @@ def kpi_json(project_id: int):
 
 # PROYECTOS (listar/crear rápido)
 @bp_admin.get("/projects")
-@login_required
+@require_login
 @role_required("admin", "supervisor")
 def projects():
     data = Project.query.order_by(Project.created_at.desc()).all()
@@ -118,7 +99,7 @@ def projects():
 
 
 @bp_admin.post("/projects")
-@login_required
+@require_login
 @role_required("admin", "supervisor")
 def projects_create():
     payload = request.get_json(silent=True)
@@ -183,7 +164,7 @@ def projects_create():
 
 # BITÁCORAS (listar/crear)
 @bp_admin.get("/bitacoras")
-@login_required
+@require_login
 @role_required("admin", "supervisor", "editor")
 def bitacoras():
     logs = (
@@ -201,7 +182,7 @@ def bitacoras():
 
 
 @bp_admin.post("/bitacoras")
-@login_required
+@require_login
 @role_required("admin", "supervisor", "editor")
 def bitacoras_create():
     project_id = request.form.get("project_id")
@@ -233,7 +214,7 @@ def bitacoras_create():
 
 
 @bp_admin.get("/folders")
-@login_required
+@require_login
 @admin_required
 def folders_list():
     folders = Folder.query.order_by(Folder.created_at.desc()).all()
@@ -244,7 +225,7 @@ def folders_list():
 
 
 @bp_admin.post("/folders")
-@login_required
+@require_login
 @admin_required
 def folders_create():
     project_id = request.form.get("project_id")
@@ -274,7 +255,7 @@ def folders_create():
 
 
 @bp_admin.get("/files")
-@login_required
+@require_login
 @admin_required
 def list_files():
     data_dir = Path(current_app.config["DATA_DIR"])
@@ -292,7 +273,7 @@ def list_files():
 
     return render_template("admin/files.html", items=items, base=str(data_dir))
 @bp_admin.get("/users/new")
-@login_required
+@require_login
 @require_approved
 @admin_required
 @require_roles("admin")
@@ -301,7 +282,7 @@ def admin_new_user():
 
 
 @bp_admin.post("/users/new")
-@login_required
+@require_login
 @require_approved
 @admin_required
 @require_roles("admin")
@@ -370,7 +351,7 @@ def admin_create_user():
 
 
 @bp_admin.get("/users/pending")
-@login_required
+@require_login
 @require_approved
 @admin_required
 @require_roles("admin")
@@ -384,7 +365,7 @@ def users_pending():
 
 
 @bp_admin.post("/users/<int:user_id>/approve")
-@login_required
+@require_login
 @require_approved
 @admin_required
 @require_roles("admin")
@@ -407,7 +388,7 @@ def approve_user(user_id: int):
 
 
 @bp_admin.post("/users/<int:user_id>/reject")
-@login_required
+@require_login
 @require_approved
 @admin_required
 @require_roles("admin")
@@ -422,7 +403,7 @@ def reject_user(user_id: int):
 
 
 @bp_admin.get("/users")
-@login_required
+@require_login
 @require_approved
 @require_roles("admin", "supervisor")
 @role_required("admin", "supervisor")
@@ -467,7 +448,7 @@ def users():
 
 
 @bp_admin.post("/users/role")
-@login_required
+@require_login
 @require_approved
 @admin_required
 @require_roles("admin")
@@ -486,7 +467,7 @@ def users_set_role():
 
 
 @bp_admin.post("/users/toggle")
-@login_required
+@require_login
 @require_approved
 @admin_required
 @require_roles("admin")
@@ -503,7 +484,7 @@ def users_toggle_active():
 
 
 @bp_admin.post("/users/<int:user_id>/reset-link")
-@login_required
+@require_login
 @require_approved
 @admin_required
 @require_roles("admin")
@@ -527,7 +508,7 @@ def admin_user_reset_link(user_id: int):
 
 
 @bp_admin.post("/users/<int:user_id>/toggle-force")
-@login_required
+@require_login
 @require_approved
 @admin_required
 @require_roles("admin")

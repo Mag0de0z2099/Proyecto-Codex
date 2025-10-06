@@ -4,7 +4,8 @@ import csv
 import os
 
 from flask import current_app, flash, redirect, render_template, request, send_file, url_for
-from flask_login import login_required
+
+from app.security.authz import require_login
 
 from app.db import db
 from app.models import Equipo
@@ -14,7 +15,7 @@ from . import bp
 
 
 @bp.get("/")
-@login_required
+@require_login
 def index():
     q = (request.args.get("q", "") or "").strip()
     query = Equipo.query
@@ -40,7 +41,7 @@ def index():
 
 
 @bp.get("/export")
-@login_required
+@require_login
 def export_csv():
     rows = Equipo.query.order_by(Equipo.id.desc()).all()
     out_dir = current_app.config.get(
@@ -65,13 +66,13 @@ def export_csv():
 
 
 @bp.get("/nuevo")
-@login_required
+@require_login
 def nuevo():
     return render_template("equipos/form.html", equipo=None)
 
 
 @bp.post("/crear")
-@login_required
+@require_login
 def crear():
     data = {
         k: request.form.get(k) for k in [
@@ -103,14 +104,14 @@ def crear():
 
 
 @bp.get("/<int:equipo_id>/editar")
-@login_required
+@require_login
 def editar(equipo_id: int):
     equipo = Equipo.query.get_or_404(equipo_id)
     return render_template("equipos/form.html", equipo=equipo)
 
 
 @bp.post("/<int:equipo_id>/actualizar")
-@login_required
+@require_login
 def actualizar(equipo_id: int):
     equipo = Equipo.query.get_or_404(equipo_id)
     for key in [
@@ -140,7 +141,7 @@ def actualizar(equipo_id: int):
 
 
 @bp.post("/<int:equipo_id>/eliminar")
-@login_required
+@require_login
 def eliminar(equipo_id: int):
     equipo = Equipo.query.get_or_404(equipo_id)
     db.session.delete(equipo)
@@ -150,7 +151,7 @@ def eliminar(equipo_id: int):
 
 
 @bp.get("/<int:equipo_id>")
-@login_required
+@require_login
 def detalle(equipo_id: int):
     equipo = Equipo.query.get_or_404(equipo_id)
     return render_template("equipos/detalle.html", equipo=equipo)

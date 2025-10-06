@@ -4,17 +4,18 @@ from __future__ import annotations
 
 import pyotp
 from flask import Blueprint, flash, redirect, render_template, request, session, url_for
-from flask_login import current_user, login_required, login_user
+from flask_login import current_user, login_user
 
 from app.db import db
 from app.models.user import User
+from app.security.authz import require_login
 
 
 totp_bp = Blueprint("totp", __name__, url_prefix="/auth/totp", template_folder="templates")
 
 
 @totp_bp.route("/setup", methods=["GET", "POST"])
-@login_required
+@require_login
 def totp_setup():
     """Allow the authenticated user to enrol in MFA."""
 

@@ -336,6 +336,15 @@ def create_app(config_name: str | None = None) -> Flask:
 
     if dashboard_bp.name not in app.blueprints:
         app.register_blueprint(dashboard_bp)
+    if (
+        "dashboard.index" not in app.view_functions
+        and "dashboard_bp.index" in app.view_functions
+    ):
+        app.add_url_rule(
+            "/dashboard",
+            endpoint="dashboard.index",
+            view_func=app.view_functions["dashboard_bp.index"],
+        )
 
     from app.agent.routes import agent_bp
 

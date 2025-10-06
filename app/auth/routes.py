@@ -15,17 +15,11 @@ from flask import (
     session,
     url_for,
 )
-from flask_login import (
-    current_user,
-    login_required as flask_login_required,
-    login_user,
-    logout_user,
-)
+from flask_login import current_user, login_user, logout_user
 from sqlalchemy import func
 from sqlalchemy.exc import OperationalError
 from werkzeug.security import generate_password_hash
 
-from app.authz import login_required
 from app.db import db
 from app.extensions import limiter
 from app.security import generate_reset_token, parse_reset_token
@@ -38,6 +32,7 @@ from app.blueprints.auth.utils import (
 )
 from app.utils.validators import is_valid_email
 from app.simple_auth.store import ensure_bootstrap_admin, verify
+from app.security.authz import require_login
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth", template_folder="templates")
 # Compatibilidad retro
@@ -79,6 +74,13 @@ def _redirect_for_role(role: str, next_url: str | None = None):
     return redirect(url_for(_endpoint_for_role(role)))
 
 
+def _dashboard_endpoint() -> str:
+    for candidate in ("dashboard.index", "dashboard_bp.index", "admin.index"):
+        if candidate in current_app.view_functions:
+            return candidate
+    return "admin.index"
+
+
 @auth_bp.post("/login")
 def login_post():
     email_input = request.form.get("email")
@@ -88,6 +90,9 @@ def login_post():
     identifier = (identifier_source or "").strip()
     password = (request.form.get("password") or request.form.get("pass") or "").strip()
     next_url = request.args.get("next")
+
+    if current_app.config.get("AUTH_DISABLED", False):
+        return redirect(url_for(_dashboard_endpoint()))
 
     if not identifier or not password:
         flash("Faltan credenciales", "error")
@@ -221,6 +226,8 @@ def _enforce_force_change_password():
 
 @auth_bp.get("/login")
 def login():
+    if current_app.config.get("AUTH_DISABLED", False):
+        return redirect(url_for(_dashboard_endpoint()))
     if current_app.config.get("AUTH_SIMPLE", True) and session.get("user"):
         role = _resolve_role(session.get("user"))
         return redirect(url_for(_endpoint_for_role(role)))
@@ -231,7 +238,7 @@ def login():
 
 
 @auth_bp.post("/logout")
-@login_required
+@require_login
 def logout():
     logout_user()
     session.clear()
@@ -391,7 +398,7 @@ def register_post():
     return redirect(url_for("auth.login"))
 
 @auth_bp.route("/change-password", methods=["GET", "POST"])
-@flask_login_required
+@require_login
 def change_password():
     force_change = getattr(current_user, "force_change_password", False)
     template = (

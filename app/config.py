@@ -100,6 +100,9 @@ class TestingConfig(Config):
 class BaseConfig:
     SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    # ⬇️ bandera para desactivar auth en DEV
+    AUTH_DISABLED = os.getenv("AUTH_DISABLED", "false").lower() == "true"
+    APP_MODE = os.getenv("FLASK_ENV", "development").lower()
 
 
 class TestConfig(BaseConfig):
