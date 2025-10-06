@@ -33,7 +33,7 @@ def load_user(user_id: str):
     from app.models.user import User
 
     try:
-        return extensions_db.session.get(User, int(user_id))
+        return User.query.get(int(user_id))
     except Exception:
         return None
 
@@ -346,6 +346,15 @@ def create_app(config_name: str | None = None) -> Flask:
 
     if totp_bp.name not in app.blueprints:
         app.register_blueprint(totp_bp)
+
+    if app.config.get("AUTH_DISABLED", False):
+        try:
+            from app.auth.diag import diag_bp
+
+            if diag_bp.name not in app.blueprints:
+                app.register_blueprint(diag_bp)
+        except Exception:
+            pass
 
     from app.blueprints.checklists.routes import bp as checklists_bp
 
