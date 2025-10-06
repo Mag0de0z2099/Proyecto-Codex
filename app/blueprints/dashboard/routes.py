@@ -8,6 +8,7 @@ from flask import Blueprint, render_template, current_app, request, send_file
 from sqlalchemy import func, case, cast, String, literal
 
 from app.extensions import db
+from app.security.authz import require_login
 
 bp = Blueprint(
     "dashboard_bp",
@@ -81,6 +82,7 @@ def _valid_days(raw) -> int:
 
 @bp.get("/")
 @bp.get("")
+@require_login
 def index():
     Equipo, Operador, ParteDiaria, ChecklistTemplate, ChecklistRun, ArchivoAdjunto = _safe_imports()
     days = _valid_days(request.args.get("days", 14))
@@ -255,6 +257,7 @@ def _csv_bytes(rows, header):
 
 
 @bp.get("/export/kpis.csv")
+@require_login
 def export_kpis():
     Equipo, Operador, ParteDiaria, ChecklistTemplate, ChecklistRun, ArchivoAdjunto = _safe_imports()
 
@@ -277,6 +280,7 @@ def export_kpis():
 
 
 @bp.get("/export/series.csv")
+@require_login
 def export_series():
     metric = request.args.get("metric", "horas")  # 'horas' | 'pctok'
     days = _valid_days(request.args.get("days", 14))
@@ -323,6 +327,7 @@ def export_series():
 
 
 @bp.get("/export/top_equipos.csv")
+@require_login
 def export_top_equipos():
     days = _valid_days(request.args.get("days", 14))
     Equipo, _, ParteDiaria, *_ = _safe_imports()
@@ -379,6 +384,7 @@ def export_top_equipos():
 
 
 @bp.get("/export/incidencias.csv")
+@require_login
 def export_incidencias():
     days = _valid_days(request.args.get("days", 14))
     _, _, ParteDiaria, *_ = _safe_imports()

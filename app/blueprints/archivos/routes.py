@@ -17,7 +17,8 @@ from flask import (
     send_file,
     url_for,
 )
-from flask_login import login_required
+
+from app.security.authz import require_login
 from werkzeug.utils import secure_filename
 
 from app.extensions import db
@@ -186,7 +187,7 @@ def _redirect_with_filters(parte_id: int | None, run_id: int | None):
 
 
 @bp.get("/")
-@login_required
+@require_login
 def index():
     parte_id = request.args.get("parte_id", type=int)
     run_id = request.args.get("run_id", type=int)
@@ -206,7 +207,7 @@ def index():
 
 
 @bp.post("/upload")
-@login_required
+@require_login
 def upload():
     parte_id = request.form.get("parte_id", type=int)
     run_id = request.form.get("run_id", type=int)
@@ -260,7 +261,7 @@ def upload():
 
 
 @bp.get("/<int:attachment_id>/download")
-@login_required
+@require_login
 def download(attachment_id: int):
     _, _, ArchivoAdjunto = _imports()
     if not ArchivoAdjunto:
@@ -277,7 +278,7 @@ def download(attachment_id: int):
 
 
 @bp.post("/<int:attachment_id>/delete")
-@login_required
+@require_login
 def delete(attachment_id: int):
     parte_id = request.form.get("parte_id", type=int)
     run_id = request.form.get("run_id", type=int)
