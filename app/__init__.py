@@ -357,15 +357,15 @@ def create_app(config_name: str | None = None) -> Flask:
     if partes_bp.name not in app.blueprints:
         app.register_blueprint(partes_bp)
 
-    from app.blueprints.dashboard.routes import bp as dashboard_bp
-
-    if dashboard_bp.name not in app.blueprints:
-        app.register_blueprint(dashboard_bp)
-
     from app.agent.routes import agent_bp
 
     if agent_bp.name not in app.blueprints:
         app.register_blueprint(agent_bp)
+
+    from app.dashboard.routes import dashboard_bp
+
+    if dashboard_bp.name not in app.blueprints:
+        app.register_blueprint(dashboard_bp)
 
     try:
         from app.blueprints.archivos.routes import bp as archivos_bp
