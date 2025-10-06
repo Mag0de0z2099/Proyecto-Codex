@@ -8,6 +8,9 @@ from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from flask import Flask
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from typing import cast
 from flask_login import AnonymousUserMixin
 from pytz import timezone
 from .config import get_config, load_config
@@ -213,11 +216,12 @@ def create_app(config_name: str | None = None) -> Flask:
     )
 
     try:
-        from app.extensions import limiter
-
+        # Limiter por IP
+        app.limiter = cast(Limiter, limiter)
+        app.limiter.key_func = get_remote_address
         limiter.init_app(app)
         if app.config.get("RATELIMIT_ENABLED") is False:
-            setattr(limiter, "enabled", False)
+            setattr(app.limiter, "enabled", False)
     except Exception:
         pass
 

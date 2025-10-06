@@ -4,40 +4,52 @@ from __future__ import annotations
 
 import pyotp
 from flask import Blueprint, flash, redirect, render_template, request, session, url_for
-from flask_login import current_user, login_required, login_user
+from flask_login import login_user
 
 from app.db import db
+from app.extensions import limiter
 from app.models.user import User
+from app.security.audit import log_event
 
 
 totp_bp = Blueprint("totp", __name__, url_prefix="/auth/totp", template_folder="templates")
 
 
 @totp_bp.route("/setup", methods=["GET", "POST"])
-@login_required
 def totp_setup():
-    """Allow the authenticated user to enrol in MFA."""
+    """Allow a user in the MFA flow to enrol."""
+
+    uid = session.get("2fa_uid")
+    if not uid:
+        return redirect(url_for("auth.login"))
+
+    user = db.session.get(User, uid)
+    if not user:
+        session.pop("2fa_uid", None)
+        return redirect(url_for("auth.login"))
+
+    secret = getattr(user, "totp_secret", None)
 
     if request.method == "POST":
-        secret = pyotp.random_base32()
-        current_user.totp_secret = secret
-        db.session.commit()
-        flash(
-            "MFA habilitado. Configura tu app de autenticación con la clave mostrada.",
-            "success",
-        )
-        return redirect(url_for("totp.totp_setup"))
+        if not secret:
+            secret = pyotp.random_base32()
+            user.totp_secret = secret
+            db.session.commit()
+            flash("MFA habilitado", "success")
+            return redirect(url_for("totp.totp_verify"))
+        flash("MFA ya estaba habilitado.", "info")
 
-    secret = getattr(current_user, "totp_secret", None)
     uri = None
     if secret:
         uri = pyotp.TOTP(secret).provisioning_uri(
-            name=_user_identifier(current_user), issuer_name="SGC"
+            name=_user_identifier(user), issuer_name="SGC"
         )
 
     return render_template("auth/totp_setup.html", secret=secret, uri=uri)
 
 
+# ⬇️ Rate limit MFA verify: 6 por minuto
+@limiter.limit("6 per minute", methods=["POST"])
 @totp_bp.route("/verify", methods=["GET", "POST"])
 def totp_verify():
     """Verify the MFA code after password authentication."""
@@ -53,19 +65,16 @@ def totp_verify():
         session.pop("2fa_remember", None)
         return redirect(url_for("auth.login"))
 
-    provisioning_uri = pyotp.TOTP(user.totp_secret).provisioning_uri(
-        name=_user_identifier(user),
-        issuer_name="SGC",
-    )
+    totp = pyotp.TOTP(user.totp_secret)
 
     if request.method == "POST":
         code = (request.form.get("code") or "").strip()
-        totp = pyotp.TOTP(user.totp_secret)
         if totp.verify(code, valid_window=1):
             remember_flag = session.pop("2fa_remember", None)
             remember = True if remember_flag is None else bool(remember_flag)
             next_url = session.pop("2fa_next", None)
             session.pop("2fa_uid", None)
+            log_event("login_success", user_id=user.id)
             login_user(user, remember=remember)
             from app.auth.routes import _redirect_for_role  # lazy import
 
@@ -74,10 +83,17 @@ def totp_verify():
                 flash("Debes actualizar tu contraseña antes de continuar.", "info")
                 return redirect(url_for("auth.change_password"))
             flash("Autenticación verificada", "success")
-            return _redirect_for_role(role, next_url)
+            if next_url:
+                return redirect(next_url)
+            return _redirect_for_role(role)
+        log_event("login_fail", user_id=user.id)
         flash("Código inválido", "danger")
 
-    return render_template("auth/totp_verify.html", uri=provisioning_uri)
+    uri = totp.provisioning_uri(
+        name=_user_identifier(user),
+        issuer_name="SGC",
+    )
+    return render_template("auth/totp_verify.html", uri=uri)
 
 
 def _resolve_role_for_user(user: User) -> str:

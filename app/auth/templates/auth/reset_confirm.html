@@ -3,12 +3,12 @@
 {% block content %}
 <section class="auth-wrap">
   <h1>Define una nueva contraseña</h1>
-  <p class="text-muted">La contraseña debe tener al menos {{ password_min }} caracteres.</p>
+  <p class="text-muted">{{ policy_hint }}</p>
   <form method="post" action="">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <label class="form-label">
       Nueva contraseña
-      <input class="form-control" type="password" name="password" required autofocus autocomplete="new-password" minlength="{{ password_min }}">
+      <input class="form-control" type="password" name="password" required autofocus autocomplete="new-password" minlength="12">
     </label>
     <button type="submit">Actualizar contraseña</button>
   </form>
