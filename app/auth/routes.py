@@ -65,6 +65,8 @@ def _resolve_role(entity: Mapping[str, object] | User | None) -> str:
 def _endpoint_for_role(role: str) -> str:
     view_functions = current_app.view_functions
     if role == "admin":
+        if "dashboard.index" in view_functions:
+            return "dashboard.index"
         return "admin.index"
     if role in {"supervisor", "editor"} and "web.upload" in view_functions:
         return "web.upload"

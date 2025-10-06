@@ -9,8 +9,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       FLASK_ENV: testing
-      SECRET_KEY: dummy
+      SECRET_KEY: dummy-for-ci
       DATABASE_URL: sqlite:///test.db
+      AUTH_DISABLED: "false"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
