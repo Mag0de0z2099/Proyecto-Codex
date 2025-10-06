@@ -27,9 +27,8 @@ from werkzeug.security import generate_password_hash
 
 from app.authz import login_required
 from app.db import db
-from app.extensions import limiter
+from app.extensions import csrf, limiter
 from app.security import generate_reset_token, parse_reset_token
-from app.security.policy import is_locked, register_fail, reset_fail_counter
 from app.models import Invite, User
 from app.blueprints.auth.utils import is_active_and_approved, normalize_email
 from app.utils.validators import is_valid_email
@@ -79,109 +78,26 @@ def _redirect_for_role(role: str, next_url: str | None = None):
 
 
 @auth_bp.route("/login", methods=["GET", "POST"])
+@csrf.exempt
 def login():
     if current_app.config.get("AUTH_DISABLED", False):
-        target = "dashboard.index"
-        if target not in current_app.view_functions:
-            target = "dashboard_bp.index"
-        return redirect(url_for(target))
-
-    if current_user.is_authenticated:
-        role = _resolve_role(current_user)
-        return redirect(url_for(_endpoint_for_role(role)))
+        return redirect(url_for("dashboard.index"))
 
     if request.method == "POST":
-        email_input = request.form.get("email")
-        username_input = request.form.get("username")
-        identifier_source = (
-            email_input if email_input not in (None, "") else username_input
-        )
-        identifier = (identifier_source or "").strip()
-        password = (request.form.get("password") or request.form.get("pass") or "").strip()
-        next_url = request.args.get("next")
+        email = (request.form.get("email") or "").strip().lower()
+        password = request.form.get("password") or ""
+        user = User.query.filter_by(email=email).first()
 
-        if not identifier or not password:
-            flash("Usuario/contraseña incorrectos", "danger")
-            return redirect(url_for("auth.login"))
+        if not user or not user.check_password(password):
+            flash("Usuario o contraseña inválidos.", "danger")
+            return render_template("auth/login.html"), 401
 
-        email_from_field = (email_input or "").strip().casefold() or None
-        email = email_from_field or (normalize_email(identifier) or None)
-        if email:
-            email = email.casefold()
-
-        username = (username_input or "").strip()
-        email_or_user = identifier.casefold()
-
-        candidate: User | None = None
-        query = db.session.query(User)
-
-        search_terms: list[str] = []
-        seen_terms: set[str] = set()
-
-        def _add_term(term: str | None) -> None:
-            if not term:
-                return
-            normalized = term.casefold()
-            if normalized not in seen_terms:
-                seen_terms.add(normalized)
-                search_terms.append(normalized)
-
-        _add_term(email_or_user)
-        _add_term(email)
-        _add_term(username)
-
-        for term in search_terms:
-            if hasattr(User, "email"):
-                candidate = query.filter(func.lower(User.email) == term).first()
-                if candidate:
-                    break
-            if hasattr(User, "username"):
-                candidate = query.filter(func.lower(User.username) == term).first()
-                if candidate:
-                    break
-
-        if not candidate:
-            flash("Usuario/contraseña incorrectos", "danger")
-            return redirect(url_for("auth.login"))
-
-        user = candidate
-
-        if is_locked(user):
-            flash("Cuenta bloqueada temporalmente. Intenta más tarde", "warning")
-            return redirect(url_for("auth.login"))
-
-        if not user.check_password(password):
-            register_fail(user)
-            flash("Usuario/contraseña incorrectos", "danger")
-            return redirect(url_for("auth.login"))
-
-        if not is_active_and_approved(user):
-            flash(
-                "Tu cuenta está pendiente de aprobación o inactiva. Contacta al administrador.",
-                "warning",
-            )
-            return redirect(url_for("auth.login"))
-
-        reset_fail_counter(user)
-
-        if getattr(user, "totp_secret", None):
-            session["2fa_uid"] = user.id
-            if next_url:
-                session["2fa_next"] = next_url
-            else:
-                session.pop("2fa_next", None)
-            session["2fa_remember"] = True
-            flash("Ingresa tu código de verificación", "info")
-            return redirect(url_for("totp.totp_verify"))
+        if not getattr(user, "is_active", True):
+            flash("Usuario inactivo.", "warning")
+            return render_template("auth/login.html"), 403
 
         login_user(user, remember=True)
-        if getattr(user, "force_change_password", False):
-            flash("Debes actualizar tu contraseña antes de continuar.", "info")
-            return redirect(url_for("auth.change_password"))
-
-        if next_url:
-            return redirect(next_url)
-        return redirect(url_for(_endpoint_for_role(_resolve_role(user))))
+        return redirect(url_for("dashboard.index"))
 
     return render_template("auth/login.html")
 

@@ -1,38 +1,10 @@
 {% extends "base.html" %}
 {% block title %}Entrar{% endblock %}
 {% block content %}
-<section class="auth-wrap">
-  <h1>Iniciar sesión</h1>
-  <p class="text-muted">Ingresa tus credenciales. Las cuentas pendientes o rechazadas no pueden acceder.</p>
-  {% if config.AUTH_DISABLED %}
-  <div class="dev-banner">
-    <b>Modo DEV:</b> Autenticación desactivada. Puedes entrar directo al dashboard.
-    <a class="btn" href="{{ url_for('dashboard.index') }}">Ir al Dashboard</a>
-  </div>
-  {% elif DEV_MODE %}
-  <div class="dev-banner">
-    <b>Modo DEV:</b> Autenticación desactivada. Puedes entrar directo al dashboard.
-    <a class="btn" href="{{ url_for('dashboard.index') }}">Ir al Dashboard</a>
-  </div>
-  {% endif %}
-  <form method="POST" action="{{ url_for('auth.login') }}">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <label class="form-label">
-      Correo electrónico
-      <input class="form-control" type="email" name="email" required autofocus autocomplete="email">
-    </label>
-    <label class="form-label">
-      Contraseña
-      <input class="form-control" type="password" name="password" required>
-    </label>
-    <button type="submit">Entrar</button>
-    {% if config.get('ALLOW_SELF_SIGNUP') %}
-      <div class="mt-4 text-center">
-        <a href="{{ url_for('auth.register') }}" class="btn btn-lg btn-outline-primary">
-          ✨ Crear un nuevo usuario
-        </a>
-      </div>
-    {% endif %}
-  </form>
-</section>
+<form method="POST" action="{{ url_for('auth.login') }}" class="auth-login-form">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input name="email" type="email" placeholder="Correo" required autofocus autocomplete="email" />
+  <input name="password" type="password" placeholder="Contraseña" required autocomplete="current-password" />
+  <button type="submit">Entrar</button>
+</form>
 {% endblock %}

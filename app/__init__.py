@@ -8,7 +8,7 @@ from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from flask import Flask
-from flask_login import AnonymousUserMixin
+from flask_login import AnonymousUserMixin, LoginManager
 from pytz import timezone
 from .config import get_config, load_config
 from .errors import register_error_handlers
@@ -17,7 +17,6 @@ from .extensions import (
     db as extensions_db,
     init_auth_extensions,
     limiter,
-    login_manager,
 )
 from .metrics import cleanup_multiprocess_directory
 from .utils.scan_lock import get_scan_lock
@@ -26,6 +25,14 @@ from .security_headers import set_security_headers
 from .storage import ensure_dirs
 from .registry import register_blueprints
 from .telemetry import setup_logging
+
+
+login_manager = LoginManager()
+login_manager.login_view = "auth.login"
+
+import app.extensions as extensions_module
+
+extensions_module.login_manager = login_manager
 
 
 @login_manager.user_loader
@@ -159,8 +166,6 @@ def create_app(config_name: str | None = None) -> Flask:
 
         # Establecer usuario anónimo como DevUser (si existe login_manager)
         try:
-            from app.extensions import login_manager
-
             login_manager.anonymous_user = DevUser
         except Exception:
             pass
@@ -185,8 +190,6 @@ def create_app(config_name: str | None = None) -> Flask:
 
     # Inicializa extensiones aquí (después de setear flags):
     try:
-        from app.extensions import login_manager
-
         login_manager.init_app(app)
     except Exception:
         pass
