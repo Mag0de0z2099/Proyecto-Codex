@@ -17,7 +17,7 @@ from app.blueprints.ping import bp_ping
 from app.blueprints.web import bp_web
 from app.routes.assets import assets_bp
 from app.routes.auth import bp as auth_api_bp
-from app.routes.health import bp as health_bp
+from app.api.v1.health import bp as health_bp
 from app.routes.public import public_bp
 
 

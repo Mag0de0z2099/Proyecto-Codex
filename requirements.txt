@@ -1,5 +1,6 @@
 # Web framework
 Flask==3.0.3
+click>=8.1.7
 
 # Servidor WSGI para producción
 gunicorn==22.0.0

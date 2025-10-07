@@ -35,6 +35,7 @@ class Config:
 
     def __init__(self) -> None:
         self.SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret")
+        self.JWT_SECRET = os.getenv("JWT_SECRET", self.SECRET_KEY)
         self.SECURITY_PASSWORD_SALT = os.getenv("SECURITY_PASSWORD_SALT", "dev-salt")
         default_sqlite_path = PROJECT_ROOT / "instance" / "codex.db"
         default_sqlite_uri = f"sqlite:///{default_sqlite_path}"
