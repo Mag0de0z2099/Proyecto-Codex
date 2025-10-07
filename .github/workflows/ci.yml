@@ -12,6 +12,7 @@ jobs:
       SECRET_KEY: dummy-for-ci
       DATABASE_URL: sqlite:///test.db
       AUTH_DISABLED: "false"
+      ENABLE_AUTH0: "false"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
