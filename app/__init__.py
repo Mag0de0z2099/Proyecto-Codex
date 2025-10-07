@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+import logging
 import os
 from pathlib import Path
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from apscheduler.schedulers.background import BackgroundScheduler
-from flask import Flask
+from flask import Flask, g, jsonify, request
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from typing import cast
@@ -29,6 +30,7 @@ from .security_headers import set_security_headers
 from .storage import ensure_dirs
 from .registry import register_blueprints
 from .telemetry import setup_logging
+from .core.logging import init_logging
 
 
 @login_manager.user_loader
@@ -240,6 +242,7 @@ def create_app(config_name: str | None = None) -> Flask:
     )
 
     setup_logging(app)
+    init_logging(app)
 
     # DEBUG: imprime la URI y, si es SQLite, la ruta absoluta del archivo
     try:
@@ -462,6 +465,26 @@ def create_app(config_name: str | None = None) -> Flask:
     if not secret_key or len(secret_key) < 32:
         app.logger.warning(
             "SECRET_KEY is shorter than 32 characters. Provide a secure 32+ byte key for production.",
+        )
+
+    from .cli.seed_admin import seed_admin as seed_admin_command
+
+    if "seed-admin" not in app.cli.commands:
+        app.cli.add_command(seed_admin_command)
+
+    @app.errorhandler(Exception)
+    def _unhandled_exception(exc: Exception):
+        logging.exception("Unhandled | rid=%s", getattr(g, "request_id", "-"), exc_info=exc)
+        rid = getattr(g, "request_id", "-")
+        return (
+            jsonify(
+                {
+                    "error": "internal_server_error",
+                    "request_id": rid,
+                    "path": request.path,
+                }
+            ),
+            500,
         )
 
     return app

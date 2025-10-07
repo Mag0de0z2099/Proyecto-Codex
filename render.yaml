@@ -4,6 +4,7 @@ services:
     env: python
     buildCommand: pip install -r requirements.txt
     preDeployCommand: |
+      set -euxo pipefail
       python - <<'PY'
       import os
       from sqlalchemy import create_engine, text
@@ -18,7 +19,8 @@ services:
           )
       print("OK: alembic_version.version_num ensure 128")
       PY
-      && alembic -c migrations/alembic.ini upgrade head
+      python -m alembic -c migrations/alembic.ini upgrade head
+      python -m flask --app app:create_app seed-admin --email admin@admin.com --password admin123
     startCommand: gunicorn -w 2 -k gthread -t 120 -b 0.0.0.0:$PORT 'app:create_app()'
     healthCheckPath: /healthz
     envVars:
@@ -27,4 +29,8 @@ services:
           name: codex-db
           property: connectionString
       - key: SECRET_KEY
+        generateValue: true
+      - key: JWT_SECRET
+        generateValue: true
+      - key: SECURITY_PASSWORD_SALT
         generateValue: true

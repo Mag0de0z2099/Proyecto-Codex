@@ -8,8 +8,10 @@ ALGO = "HS256"
 
 
 def _secret() -> str:
-    # Usa SECRET_KEY existente
-    return current_app.config.get("SECRET_KEY", "dev-secret")
+    secret = current_app.config.get("JWT_SECRET")
+    if not secret:
+        secret = current_app.config.get("SECRET_KEY", "dev-secret")
+    return secret
 
 
 def encode_jwt(payload: dict, ttl_seconds: int = 3600, typ: str = "access") -> str:

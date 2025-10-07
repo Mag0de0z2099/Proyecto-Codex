@@ -10,7 +10,7 @@ from flask import current_app
 from flask.cli import with_appcontext
 from werkzeug.security import generate_password_hash
 
-from .seed_admin import register_cli as register_seed_admin_cli
+from .seed_admin import seed_admin as seed_admin_command, seed_admin_user
 
 from app.db import db
 from app.models import ChecklistItem, ChecklistTemplate, Equipo, Operador, ParteDiaria, User
@@ -42,6 +42,7 @@ def ensure_admin(email: str, password: str) -> None:
 
 def register_cli(app):
     app.cli.add_command(users)
+    app.cli.add_command(seed_admin_command)
 
     @app.cli.command("create-admin")
     def create_admin():
@@ -105,7 +106,7 @@ def register_cli(app):
 
         print(f"Admin creado: {user.email} ({user.username})")
 
-    @app.cli.command("seed-admin")
+    @app.cli.command("users:seed-admin")
     @click.option("--email", required=True, help="Email del administrador a crear")
     @click.option(
         "--password",
@@ -119,18 +120,26 @@ def register_cli(app):
         required=False,
         help="Username opcional (por defecto se deriva del email)",
     )
-    def seed_admin(email: str, password: str, username: str | None = None):
-        """Crear o actualizar un administrador de forma no interactiva."""
+    def seed_admin_cli(email: str, password: str, username: str | None = None):
+        """Crear o actualizar un administrador usando la sintaxis legacy."""
 
         resolved_password = password or "admin123"
         try:
-            user = ensure_admin_user(email=email, password=resolved_password, username=username)
+            user, _created = seed_admin_user(
+                email=email,
+                password=resolved_password,
+                username=username,
+            )
         except ValueError:
             click.echo("Email inválido", err=True)
             raise SystemExit(1)
         except Exception as exc:  # pragma: no cover - feedback interactivo
-            current_app.logger.exception("No se pudo crear/actualizar el admin", exc_info=exc)
-            click.echo("No se pudo crear/actualizar el usuario administrador.", err=True)
+            current_app.logger.exception(
+                "No se pudo crear/actualizar el admin", exc_info=exc
+            )
+            click.echo(
+                "No se pudo crear/actualizar el usuario administrador.", err=True
+            )
             raise SystemExit(1)
 
         click.echo(f"✅ Admin listo: {user.email} ({user.username})")
@@ -261,6 +270,5 @@ def register_cli(app):
         db.session.commit()
         click.echo("Plantillas de checklist: OK")
 
-    register_seed_admin_cli(app)
 
     return app
