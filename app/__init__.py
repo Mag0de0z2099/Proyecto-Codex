@@ -24,6 +24,7 @@ from .extensions import (
     login_manager,
 )
 from .metrics import cleanup_multiprocess_directory
+from .auth0 import init_auth0
 from .utils.scan_lock import get_scan_lock
 from .migrate_ext import init_migrations
 from .security_headers import set_security_headers
@@ -86,6 +87,7 @@ def _normalize_db_url(raw: str | None) -> str:
 
 def create_app(config_name: str | None = None) -> Flask:
     app = Flask(__name__)
+    app.secret_key = os.getenv("SECRET_KEY", "dev-secret")
     raw_uri = os.environ.get("DATABASE_URL", "")
 
     app.config.from_object(get_config())
@@ -285,6 +287,7 @@ def create_app(config_name: str | None = None) -> Flask:
     extensions_db.init_app(app)
     init_migrations(app, extensions_db)
     init_auth_extensions(app)
+    init_auth0(app)
 
     # Crear tablas nuevas automáticamente en DEV (sin molestar a Alembic)
     try:
