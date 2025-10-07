@@ -31,6 +31,7 @@ from .storage import ensure_dirs
 from .registry import register_blueprints
 from .telemetry import setup_logging
 from .core.logging import init_logging
+from .auth0 import init_auth0, requires_login
 
 
 @login_manager.user_loader
@@ -86,6 +87,7 @@ def _normalize_db_url(raw: str | None) -> str:
 
 def create_app(config_name: str | None = None) -> Flask:
     app = Flask(__name__)
+    app.secret_key = os.getenv("SECRET_KEY")
     raw_uri = os.environ.get("DATABASE_URL", "")
 
     app.config.from_object(get_config())
@@ -297,6 +299,21 @@ def create_app(config_name: str | None = None) -> Flask:
     set_security_headers(app)
 
     register_error_handlers(app)
+
+    # Inicializa Auth0
+    init_auth0(app)
+
+    @app.get("/me")
+    @requires_login
+    def me():
+        from flask import session
+
+        u = session.get("user") or {}
+        return jsonify({
+            "email": u.get("email"),
+            "name": u.get("name"),
+            "sub": u.get("sub"),
+        })
 
     # Variables globales seguras para Jinja (evita usar `current_app` en plantillas)
     @app.context_processor
