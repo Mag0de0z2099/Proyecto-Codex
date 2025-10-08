@@ -14,7 +14,7 @@ from flask_limiter.util import get_remote_address
 from typing import cast
 from flask_login import AnonymousUserMixin
 from pytz import timezone
-from .config import get_config, load_config
+from .config import get_config, is_mfa_enabled, load_config
 from .errors import register_error_handlers
 from .extensions import (
     csrf,
@@ -336,6 +336,10 @@ def create_app(config_name: str | None = None) -> Flask:
                 or app.config.get("LOGIN_DISABLED")
             )
         }
+
+    @app.context_processor
+    def inject_mfa_flag():
+        return {"is_mfa_enabled": is_mfa_enabled}
 
     # Blueprints
     from . import models  # noqa: F401

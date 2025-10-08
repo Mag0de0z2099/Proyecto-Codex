@@ -1,29 +1,35 @@
 {% extends "base.html" %}
+{% from "config_macros.html" import mfa_enabled %}
 {% block title %}Configurar MFA{% endblock %}
 {% block content %}
 <section class="auth-wrap">
   <h1>Autenticación de dos factores</h1>
-  {% if secret %}
-    <p class="text-muted">Ya tienes MFA configurado. Escanea el código nuevamente o utiliza la clave para configurar otro dispositivo.</p>
-    <div class="card">
-      <div class="card-body">
-        <p><strong>Clave:</strong> <code>{{ secret }}</code></p>
-        {% if uri %}
-          <p><strong>URI:</strong> <code>{{ uri }}</code></p>
-        {% endif %}
-      </div>
-    </div>
-    <form method="post" action="{{ url_for('totp.totp_setup') }}" class="mt-3">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <button type="submit">Generar nueva clave</button>
-    </form>
+  {% if not mfa_enabled() %}
+    <p class="text-muted">La autenticación de dos factores está desactivada por configuración.</p>
+    <p class="mt-4"><a href="{{ url_for('dashboard.index') }}">Regresar al dashboard</a></p>
   {% else %}
-    <p class="text-muted">Habilita MFA para agregar una capa adicional de seguridad a tu cuenta.</p>
-    <form method="post" action="{{ url_for('totp.totp_setup') }}">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <button type="submit">Habilitar MFA</button>
-    </form>
+    {% if secret %}
+      <p class="text-muted">Ya tienes MFA configurado. Escanea el código nuevamente o utiliza la clave para configurar otro dispositivo.</p>
+      <div class="card">
+        <div class="card-body">
+          <p><strong>Clave:</strong> <code>{{ secret }}</code></p>
+          {% if uri %}
+            <p><strong>URI:</strong> <code>{{ uri }}</code></p>
+          {% endif %}
+        </div>
+      </div>
+      <form method="post" action="{{ url_for('totp.totp_setup') }}" class="mt-3">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit">Generar nueva clave</button>
+      </form>
+    {% else %}
+      <p class="text-muted">Habilita MFA para agregar una capa adicional de seguridad a tu cuenta.</p>
+      <form method="post" action="{{ url_for('totp.totp_setup') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit">Habilitar MFA</button>
+      </form>
+    {% endif %}
+    <p class="mt-4"><a href="{{ url_for('dashboard.index') }}">Regresar al dashboard</a></p>
   {% endif %}
-  <p class="mt-4"><a href="{{ url_for('dashboard.index') }}">Regresar al dashboard</a></p>
 </section>
 {% endblock %}

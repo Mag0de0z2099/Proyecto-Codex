@@ -1,23 +1,29 @@
 {% extends "base.html" %}
+{% from "config_macros.html" import mfa_enabled %}
 {% block title %}Verificar código MFA{% endblock %}
 {% block content %}
 <section class="auth-wrap">
   <h1>Verificación en dos pasos</h1>
-  <p class="text-muted">Introduce el código de 6 dígitos generado por tu aplicación de autenticación.</p>
-  <form method="post" action="{{ url_for('totp.totp_verify') }}">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <label class="form-label">
-      Código
-      <input class="form-control" type="text" name="code" pattern="\d{6}" maxlength="6" required autofocus autocomplete="one-time-code">
-    </label>
-    <button type="submit">Verificar</button>
-  </form>
-  {% if uri %}
-    <div class="mt-4">
-      <p class="text-muted">Si necesitas configurar nuevamente, usa el siguiente enlace en tu app:</p>
-      <code>{{ uri }}</code>
-    </div>
+  {% if not mfa_enabled() %}
+    <p class="text-muted">La autenticación de dos factores está desactivada por configuración.</p>
+    <p class="mt-4"><a href="{{ url_for('auth.login') }}">Volver al inicio de sesión</a></p>
+  {% else %}
+    <p class="text-muted">Introduce el código de 6 dígitos generado por tu aplicación de autenticación.</p>
+    <form method="post" action="{{ url_for('totp.totp_verify') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label class="form-label">
+        Código
+        <input class="form-control" type="text" name="code" pattern="\d{6}" maxlength="6" required autofocus autocomplete="one-time-code">
+      </label>
+      <button type="submit">Verificar</button>
+    </form>
+    {% if uri %}
+      <div class="mt-4">
+        <p class="text-muted">Si necesitas configurar nuevamente, usa el siguiente enlace en tu app:</p>
+        <code>{{ uri }}</code>
+      </div>
+    {% endif %}
+    <p class="mt-4"><a href="{{ url_for('auth.login') }}">Volver al inicio de sesión</a></p>
   {% endif %}
-  <p class="mt-4"><a href="{{ url_for('auth.login') }}">Volver al inicio de sesión</a></p>
 </section>
 {% endblock %}
