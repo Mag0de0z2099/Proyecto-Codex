@@ -10,6 +10,7 @@ from app.db import db
 from app.extensions import limiter
 from app.models.user import User
 from app.security.audit import log_event
+from app.security.flags import is_2fa_enabled
 
 
 totp_bp = Blueprint("totp", __name__, url_prefix="/auth/totp", template_folder="templates")
@@ -18,6 +19,11 @@ totp_bp = Blueprint("totp", __name__, url_prefix="/auth/totp", template_folder="
 @totp_bp.route("/setup", methods=["GET", "POST"])
 def totp_setup():
     """Allow a user in the MFA flow to enrol."""
+
+    if not is_2fa_enabled():
+        session.pop("2fa_uid", None)
+        flash("MFA deshabilitado", "info")
+        return redirect(url_for("auth.login"))
 
     uid = session.get("2fa_uid")
     if not uid:
@@ -64,6 +70,24 @@ def totp_verify():
         session.pop("2fa_next", None)
         session.pop("2fa_remember", None)
         return redirect(url_for("auth.login"))
+
+    if not is_2fa_enabled():
+        remember_flag = session.pop("2fa_remember", None)
+        remember = True if remember_flag is None else bool(remember_flag)
+        next_url = session.pop("2fa_next", None)
+        session.pop("2fa_uid", None)
+        log_event("login_success", user_id=user.id)
+        login_user(user, remember=remember)
+        from app.auth.routes import _redirect_for_role  # lazy import
+
+        role = _resolve_role_for_user(user)
+        if getattr(user, "force_change_password", False):
+            flash("Debes actualizar tu contraseña antes de continuar.", "info")
+            return redirect(url_for("auth.change_password"))
+        flash("Autenticación verificada", "success")
+        if next_url:
+            return redirect(next_url)
+        return _redirect_for_role(role)
 
     totp = pyotp.TOTP(user.totp_secret)
 

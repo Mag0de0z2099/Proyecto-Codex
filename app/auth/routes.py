@@ -34,6 +34,7 @@ from app.security.policy import is_locked, register_fail, reset_fail_counter
 from app.models import Invite, User
 from app.blueprints.auth.utils import is_active_and_approved, normalize_email
 from app.utils.validators import is_valid_email
+from app.security.flags import is_2fa_enabled
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth", template_folder="templates")
 # Compatibilidad retro
@@ -171,9 +172,11 @@ def login():
 
         reset_fail_counter(user, db)
 
-        requires_mfa = user.role in {"admin", "supervisor"} or bool(
-            getattr(user, "totp_secret", None)
-        )
+        requires_mfa = False
+        if is_2fa_enabled():
+            requires_mfa = user.role in {"admin", "supervisor"} or bool(
+                getattr(user, "totp_secret", None)
+            )
         if requires_mfa:
             session["2fa_uid"] = user.id
             if next_url:

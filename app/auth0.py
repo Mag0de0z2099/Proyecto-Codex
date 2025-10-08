@@ -21,7 +21,7 @@ def is_auth0_enabled() -> bool:
         "AUTH0_CLIENT_SECRET",
         "AUTH0_CALLBACK_URL",
     ]
-    if not _is_truthy(os.getenv("ENABLE_AUTH0", "true")):
+    if not _is_truthy(os.getenv("ENABLE_AUTH0", "false")):
         return False
     return all(os.getenv(name) for name in required_envs)
 
@@ -47,7 +47,7 @@ def init_auth0(app) -> None:
 @bp.get("/login")
 def login():
     if not is_auth0_enabled():
-        return {"error": "auth_disabled"}, 503
+        return {"auth": "disabled"}, 200
 
     auth0_client = getattr(current_app, "auth0", None)
     if auth0_client is None:
@@ -63,7 +63,8 @@ def login():
 @bp.get("/callback")
 def callback():
     if not is_auth0_enabled():
-        return {"error": "auth_disabled"}, 503
+        session.clear()
+        return {"auth": "disabled"}, 200
 
     auth0_client = getattr(current_app, "auth0", None)
     if auth0_client is None:
@@ -79,5 +80,5 @@ def callback():
 def logout():
     session.clear()
     if not is_auth0_enabled():
-        return {"ok": True, "auth": "disabled"}, 200
+        return {"ok": True}, 200
     return redirect("/")

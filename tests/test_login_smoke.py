@@ -1,6 +1,16 @@
+import os
+
 import pyotp
+import pytest
 
 
+def _is_truthy(value: str | None) -> bool:
+    if value is None:
+        return True
+    return value.strip().lower() not in {"0", "false", "no", "off"}
+
+
+@pytest.mark.skipif(not _is_truthy(os.getenv("ENABLE_2FA")), reason="2FA disabled")
 def test_login_redirects_to_dashboard(monkeypatch):
     monkeypatch.setenv("FLASK_ENV", "testing")
     monkeypatch.setenv("SECRET_KEY", "dummy-secret")

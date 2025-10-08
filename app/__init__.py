@@ -86,13 +86,27 @@ def _normalize_db_url(raw: str | None) -> str:
 
 
 def create_app(config_name: str | None = None) -> Flask:
+    testing_flag = os.getenv("TESTING", "false").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+    }
+    if testing_flag:
+        os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")
+
+    secret_key = os.getenv("SECRET_KEY")
+    if not secret_key:
+        raise RuntimeError("SECRET_KEY environment variable must be set")
+
     app = Flask(__name__)
-    app.secret_key = os.getenv("SECRET_KEY", "dev-secret")
+    app.secret_key = secret_key
     raw_uri = os.environ.get("DATABASE_URL", "")
 
     app.config.from_object(get_config())
     app.config.from_object(load_config(config_name))
     app.config.setdefault("LOG_LEVEL", "INFO")
+    if testing_flag:
+        app.config["TESTING"] = True
 
     auth_disabled_env = os.getenv("AUTH_DISABLED")
     if auth_disabled_env is not None:
@@ -235,9 +249,7 @@ def create_app(config_name: str | None = None) -> Flask:
     if not app.config.get("SQLALCHEMY_TRACK_MODIFICATIONS"):
         app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     if not app.config.get("SECRET_KEY"):
-        app.config["SECRET_KEY"] = os.environ.get(
-            "SECRET_KEY", "dev-secret-change-me"
-        )
+        app.config["SECRET_KEY"] = secret_key
     app.config.setdefault(
         "ALLOW_SELF_SIGNUP",
         os.getenv("ALLOW_SELF_SIGNUP", "false").lower() in {"1", "true", "yes", "y"},
