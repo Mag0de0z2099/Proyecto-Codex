@@ -25,6 +25,7 @@ from sqlalchemy import func
 from sqlalchemy.exc import OperationalError
 from werkzeug.security import generate_password_hash
 
+from app.config import is_mfa_enabled
 from app.authz import login_required
 from app.db import db
 from app.extensions import limiter
@@ -171,9 +172,12 @@ def login():
 
         reset_fail_counter(user, db)
 
-        requires_mfa = user.role in {"admin", "supervisor"} or bool(
-            getattr(user, "totp_secret", None)
-        )
+        mfa_active = is_mfa_enabled()
+        requires_mfa = False
+        if mfa_active:
+            requires_mfa = user.role in {"admin", "supervisor"} or bool(
+                getattr(user, "totp_secret", None)
+            )
         if requires_mfa:
             session["2fa_uid"] = user.id
             if next_url:

@@ -1,0 +1,3 @@
+{% macro mfa_enabled() -%}
+  {%- if is_mfa_enabled() -%}1{%- endif -%}
+{%- endmacro %}

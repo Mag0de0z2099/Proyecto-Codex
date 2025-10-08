@@ -14,6 +14,12 @@ def _bool_env(name: str, default: bool = False) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
+def is_mfa_enabled() -> bool:
+    """Flag global para habilitar o deshabilitar MFA/TOTP."""
+
+    return _bool_env("ENABLE_2FA", False)
+
+
 def _list_env(name: str) -> list[str]:
     raw = os.getenv(name, "")
     if not raw:

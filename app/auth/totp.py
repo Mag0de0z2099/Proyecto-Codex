@@ -6,6 +6,7 @@ import pyotp
 from flask import Blueprint, flash, redirect, render_template, request, session, url_for
 from flask_login import login_user
 
+from app.config import is_mfa_enabled
 from app.db import db
 from app.extensions import limiter
 from app.models.user import User
@@ -18,6 +19,10 @@ totp_bp = Blueprint("totp", __name__, url_prefix="/auth/totp", template_folder="
 @totp_bp.route("/setup", methods=["GET", "POST"])
 def totp_setup():
     """Allow a user in the MFA flow to enrol."""
+
+    if not is_mfa_enabled():
+        flash("La autenticación de dos factores está desactivada.", "info")
+        return redirect(url_for("auth.login"))
 
     uid = session.get("2fa_uid")
     if not uid:
@@ -53,6 +58,10 @@ def totp_setup():
 @totp_bp.route("/verify", methods=["GET", "POST"])
 def totp_verify():
     """Verify the MFA code after password authentication."""
+
+    if not is_mfa_enabled():
+        flash("La autenticación de dos factores está desactivada.", "info")
+        return redirect(url_for("auth.login"))
 
     uid = session.get("2fa_uid")
     if not uid:
